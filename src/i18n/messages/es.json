@@ -1,0 +1,52 @@
+{
+  "common": {
+    "home": "Inicio",
+    "tours": "Tours",
+    "about": "Nosotros",
+    "blog": "Blog",
+    "faq": "Preguntas Frecuentes",
+    "contact": "Contacto",
+    "book": "Reservar",
+    "search": "Buscar",
+    "loading": "Cargando...",
+    "error": "Ocurrió un error",
+    "language": "Idioma"
+  },
+  "home": {
+    "hero_title": "Descubre el Perú con nosotros",
+    "hero_subtitle": "Tours personalizados para experiencias únicas",
+    "featured_tours": "Tours Destacados",
+    "popular_destinations": "Destinos Populares",
+    "testimonials": "Lo que dicen nuestros viajeros",
+    "cta": "¿Listo para tu próxima aventura?"
+  },
+  "tours": {
+    "catalog": "Catálogo de Tours",
+    "filter_destination": "Destino",
+    "filter_category": "Categoría",
+    "filter_duration": "Duración",
+    "filter_price": "Precio",
+    "sort_by": "Ordenar por",
+    "from_price": "Desde",
+    "days": "días",
+    "nights": "noches",
+    "per_person": "por persona",
+    "includes": "Incluye",
+    "excludes": "No incluye",
+    "itinerary": "Itinerario",
+    "departure_dates": "Fechas de Salida",
+    "available": "Disponible",
+    "sold_out": "Agotado"
+  },
+  "booking": {
+    "title": "Reservar Tour",
+    "adults": "Adultos",
+    "children": "Niños",
+    "date": "Fecha",
+    "total": "Total",
+    "deposit": "Seña",
+    "balance": "Saldo",
+    "pay_now": "Pagar Ahora",
+    "currency": "Moneda"
+  }
+}

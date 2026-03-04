@@ -1,0 +1,628 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTENTICACIÓN Y USUARIOS
+// ============================================================
+
+enum UserRole {
+  ADMIN
+  SALES
+  MARKETING
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  role          UserRole  @default(SALES)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  quotations    Quotation[]
+  paymentLinks  PaymentLink[]
+  reservations  Reservation[]
+  auditLogs     AuditLog[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// TOURS
+// ============================================================
+
+enum TourStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum Difficulty {
+  EASY
+  MODERATE
+  CHALLENGING
+}
+
+model Tour {
+  id             String     @id @default(cuid())
+  slug           String     @unique
+  status         TourStatus @default(DRAFT)
+  isFeatured     Boolean    @default(false)
+  category       String
+  difficulty     Difficulty @default(EASY)
+  durationDays   Int
+  durationNights Int
+  destination    String
+
+  nameEs         String
+  shortDescEs    String
+  longDescEs     String     @db.Text
+
+  nameEn         String
+  shortDescEn    String
+  longDescEn     String     @db.Text
+
+  metaTitleEs    String?
+  metaDescEs     String?
+  metaTitleEn    String?
+  metaDescEn     String?
+
+  sortOrder      Int        @default(0)
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  images         TourImage[]
+  itinerary      ItineraryDay[]
+  pricing        TourPricing?
+  seasons        TourSeason[]
+  includes       TourInclude[]
+  departures     TourDeparture[]
+  reservations   Reservation[]
+  quotationItems QuotationItem[]
+
+  @@index([status, isFeatured])
+  @@index([destination])
+  @@index([category])
+}
+
+model TourImage {
+  id           String  @id @default(cuid())
+  tourId       String
+  tour         Tour    @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  cloudinaryId String
+  url          String
+  altEs        String?
+  altEn        String?
+  isPrimary    Boolean @default(false)
+  sortOrder    Int     @default(0)
+
+  @@index([tourId, sortOrder])
+}
+
+model ItineraryDay {
+  id            String @id @default(cuid())
+  tourId        String
+  tour          Tour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  dayNumber     Int
+  titleEs       String
+  titleEn       String
+  descriptionEs String @db.Text
+  descriptionEn String @db.Text
+
+  @@unique([tourId, dayNumber])
+  @@index([tourId])
+}
+
+model TourPricing {
+  id                   String   @id @default(cuid())
+  tourId               String   @unique
+  tour                 Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  basePricePenAdult    Decimal  @db.Decimal(10, 2)
+  basePriceUsdAdult    Decimal  @db.Decimal(10, 2)
+  basePricePenChild    Decimal  @db.Decimal(10, 2)
+  basePriceUsdChild    Decimal  @db.Decimal(10, 2)
+
+  groupDiscountPercent Decimal? @db.Decimal(5, 2)
+  groupMinPersons      Int?
+
+  promoDiscountPercent Decimal?  @db.Decimal(5, 2)
+  promoStartDate       DateTime?
+  promoEndDate         DateTime?
+  promoLabelEs         String?
+  promoLabelEn         String?
+}
+
+model TourSeason {
+  id               String   @id @default(cuid())
+  tourId           String
+  tour             Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  name             String
+  startDate        DateTime
+  endDate          DateTime
+  surchargePercent Decimal  @db.Decimal(5, 2)
+
+  @@index([tourId])
+}
+
+model TourInclude {
+  id        String @id @default(cuid())
+  tourId    String
+  tour      Tour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  type      String // "INCLUDE" o "EXCLUDE"
+  textEs    String
+  textEn    String
+  sortOrder Int    @default(0)
+
+  @@index([tourId, type])
+}
+
+model TourDeparture {
+  id            String   @id @default(cuid())
+  tourId        String
+  tour          Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  departureDate DateTime
+  maxCapacity   Int
+  bookedCount   Int      @default(0)
+  status        String   @default("AVAILABLE")
+
+  reservations  Reservation[]
+
+  @@index([tourId, departureDate])
+  @@index([status])
+}
+
+// ============================================================
+// CLIENTES
+// ============================================================
+
+model Client {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  firstName    String
+  lastName     String
+  phone        String?
+  country      String?
+  language     String       @default("es")
+  notes        String?      @db.Text
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  reservations Reservation[]
+  quotations   Quotation[]
+
+  @@index([email])
+}
+
+// ============================================================
+// RESERVAS
+// ============================================================
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  PAID
+  COMPLETED
+  CANCELLED
+}
+
+enum ReservationOrigin {
+  WEB
+  MANUAL
+  QUOTATION
+  PAYMENT_LINK
+}
+
+model Reservation {
+  id              String            @id @default(cuid())
+  referenceCode   String            @unique @default(cuid())
+  status          ReservationStatus @default(PENDING)
+  origin          ReservationOrigin @default(WEB)
+
+  clientId        String
+  client          Client            @relation(fields: [clientId], references: [id])
+  tourId          String
+  tour            Tour              @relation(fields: [tourId], references: [id])
+  departureId     String?
+  departure       TourDeparture?    @relation(fields: [departureId], references: [id])
+  assignedUserId  String?
+  assignedUser    User?             @relation(fields: [assignedUserId], references: [id])
+  quotationId     String?
+  paymentLinkId   String?
+
+  adults          Int               @default(1)
+  children        Int               @default(0)
+  currency        String            @default("PEN")
+  totalAmount     Decimal           @db.Decimal(10, 2)
+  depositAmount   Decimal?          @db.Decimal(10, 2)
+  balanceAmount   Decimal?          @db.Decimal(10, 2)
+  extras          Json?
+
+  customDescEs    String?           @db.Text
+  customDescEn    String?           @db.Text
+  internalNotes   String?           @db.Text
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  payments        Payment[]
+
+  @@index([status])
+  @@index([clientId])
+  @@index([tourId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// PAGOS
+// ============================================================
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CULQI_CARD
+  CULQI_YAPE
+  PAYPAL
+  BANK_TRANSFER
+  CASH
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  reservationId    String
+  reservation      Reservation   @relation(fields: [reservationId], references: [id])
+  status           PaymentStatus @default(PENDING)
+  method           PaymentMethod
+  amount           Decimal       @db.Decimal(10, 2)
+  currency         String        @default("PEN")
+
+  culqiChargeId    String?
+  paypalOrderId    String?
+  gatewayResponse  Json?
+
+  manualVerifiedBy String?
+  manualVerifiedAt DateTime?
+  manualNotes      String?
+
+  isDeposit        Boolean       @default(false)
+
+  processedAt      DateTime?
+  createdAt        DateTime      @default(now())
+
+  @@index([reservationId])
+  @@index([status])
+  @@index([culqiChargeId])
+  @@index([paypalOrderId])
+}
+
+// ============================================================
+// COTIZACIONES
+// ============================================================
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  CONVERTED
+  EXPIRED
+}
+
+model Quotation {
+  id              String          @id @default(cuid())
+  referenceCode   String          @unique
+  status          QuotationStatus @default(DRAFT)
+
+  clientId        String
+  client          Client          @relation(fields: [clientId], references: [id])
+  createdByUserId String
+  createdBy       User            @relation(fields: [createdByUserId], references: [id])
+
+  titleEs         String
+  titleEn         String?
+  notesEs         String?         @db.Text
+  notesEn         String?         @db.Text
+  currency        String          @default("PEN")
+  totalAmount     Decimal         @db.Decimal(10, 2)
+  customAmount    Decimal?        @db.Decimal(10, 2)
+  validUntil      DateTime
+  depositPercent  Decimal?        @db.Decimal(5, 2)
+
+  sentAt          DateTime?
+  viewedAt        DateTime?
+  acceptedAt      DateTime?
+  reminderSentAt  DateTime?
+  reminderDays    Int             @default(3)
+
+  reservationId   String?         @unique
+  paymentLinkId   String?         @unique
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  items           QuotationItem[]
+  paymentLink     PaymentLink?
+
+  @@index([status])
+  @@index([clientId])
+}
+
+model QuotationItem {
+  id            String    @id @default(cuid())
+  quotationId   String
+  quotation     Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  tourId        String?
+  tour          Tour?     @relation(fields: [tourId], references: [id])
+
+  descriptionEs String
+  descriptionEn String?
+  adults        Int       @default(1)
+  children      Int       @default(0)
+  unitPrice     Decimal   @db.Decimal(10, 2)
+  quantity      Int       @default(1)
+  subtotal      Decimal   @db.Decimal(10, 2)
+
+  sortOrder     Int       @default(0)
+
+  @@index([quotationId])
+}
+
+// ============================================================
+// LINKS DE PAGO PERSONALIZADOS
+// ============================================================
+
+enum PaymentLinkStatus {
+  ACTIVE
+  PAID
+  PARTIALLY_PAID
+  EXPIRED
+  CANCELLED
+}
+
+model PaymentLink {
+  id              String            @id @default(cuid())
+  token           String            @unique @default(cuid())
+  status          PaymentLinkStatus @default(ACTIVE)
+
+  createdByUserId String
+  createdBy       User              @relation(fields: [createdByUserId], references: [id])
+
+  quotationId     String?           @unique
+  quotation       Quotation?        @relation(fields: [quotationId], references: [id])
+
+  clientName      String
+  clientEmail     String
+  clientPhone     String?
+
+  titleEs         String
+  titleEn         String?
+  descriptionEs   String            @db.Text
+  descriptionEn   String?           @db.Text
+  includesEs      String[]
+  includesEn      String[]
+  excludesEs      String[]
+  excludesEn      String[]
+  departureDate   DateTime?
+  returnDate      DateTime?
+  adults          Int               @default(1)
+  children        Int               @default(0)
+
+  currency        String            @default("PEN")
+  totalAmount     Decimal           @db.Decimal(10, 2)
+  depositRequired Boolean           @default(false)
+  depositPercent  Decimal?          @db.Decimal(5, 2)
+  depositAmount   Decimal?          @db.Decimal(10, 2)
+  balanceAmount   Decimal?          @db.Decimal(10, 2)
+  balanceDueDate  DateTime?
+
+  expiresAt       DateTime
+
+  amountPaid      Decimal           @db.Decimal(10, 2) @default(0)
+
+  termsEs         String?           @db.Text
+  termsEn         String?           @db.Text
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([token])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+// ============================================================
+// CMS: CONTENIDO WEB EDITABLE
+// ============================================================
+
+model NavItem {
+  id        String    @id @default(cuid())
+  labelEs   String
+  labelEn   String
+  href      String
+  target    String    @default("_self")
+  parentId  String?
+  parent    NavItem?  @relation("NavItemChildren", fields: [parentId], references: [id])
+  children  NavItem[] @relation("NavItemChildren")
+  isVisible Boolean   @default(true)
+  sortOrder Int       @default(0)
+
+  @@index([parentId, sortOrder])
+}
+
+model Page {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  titleEs     String
+  titleEn     String
+  contentEs   Json
+  contentEn   Json
+  metaTitleEs String?
+  metaDescEs  String?
+  metaTitleEn String?
+  metaDescEn  String?
+  isPublished Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+}
+
+enum HomeSectionType {
+  HERO
+  FEATURED_TOURS
+  DESTINATIONS
+  TESTIMONIALS
+  PROMOTIONS
+  CTA
+  ABOUT_PREVIEW
+  BLOG_PREVIEW
+  CUSTOM_HTML
+}
+
+model HomeSection {
+  id         String          @id @default(cuid())
+  type       HomeSectionType
+  titleEs    String?
+  titleEn    String?
+  subtitleEs String?
+  subtitleEn String?
+  contentEs  Json?
+  contentEn  Json?
+  imageUrl   String?
+  isVisible  Boolean         @default(true)
+  sortOrder  Int             @default(0)
+
+  @@index([isVisible, sortOrder])
+}
+
+model BlogPost {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  titleEs       String
+  titleEn       String
+  excerptEs     String
+  excerptEn     String
+  contentEs     Json
+  contentEn     Json
+  coverImageUrl String?
+  category      String?
+  isPublished   Boolean  @default(false)
+  publishedAt   DateTime?
+  metaTitleEs   String?
+  metaDescEs    String?
+  metaTitleEn   String?
+  metaDescEn    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isPublished, publishedAt])
+}
+
+model Testimonial {
+  id         String   @id @default(cuid())
+  clientName String
+  country    String?
+  tourName   String?
+  rating     Int
+  textEs     String   @db.Text
+  textEn     String?  @db.Text
+  avatarUrl  String?
+  isApproved Boolean  @default(false)
+  isFeatured Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([isApproved, isFeatured])
+}
+
+model FAQ {
+  id          String  @id @default(cuid())
+  questionEs  String
+  questionEn  String
+  answerEs    String  @db.Text
+  answerEn    String  @db.Text
+  category    String?
+  sortOrder   Int     @default(0)
+  isPublished Boolean @default(true)
+
+  @@index([category, sortOrder])
+}
+
+// ============================================================
+// SISTEMA
+// ============================================================
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  changes   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  subjectEs String
+  subjectEn String
+  bodyEs    Json
+  bodyEn    Json
+  variables String[]
+  isActive  Boolean  @default(true)
+}
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+}

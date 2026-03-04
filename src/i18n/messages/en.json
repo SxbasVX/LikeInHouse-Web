@@ -1,0 +1,52 @@
+{
+  "common": {
+    "home": "Home",
+    "tours": "Tours",
+    "about": "About Us",
+    "blog": "Blog",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "book": "Book Now",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "language": "Language"
+  },
+  "home": {
+    "hero_title": "Discover Peru with us",
+    "hero_subtitle": "Custom tours for unique experiences",
+    "featured_tours": "Featured Tours",
+    "popular_destinations": "Popular Destinations",
+    "testimonials": "What our travelers say",
+    "cta": "Ready for your next adventure?"
+  },
+  "tours": {
+    "catalog": "Tour Catalog",
+    "filter_destination": "Destination",
+    "filter_category": "Category",
+    "filter_duration": "Duration",
+    "filter_price": "Price",
+    "sort_by": "Sort by",
+    "from_price": "From",
+    "days": "days",
+    "nights": "nights",
+    "per_person": "per person",
+    "includes": "Includes",
+    "excludes": "Does not include",
+    "itinerary": "Itinerary",
+    "departure_dates": "Departure Dates",
+    "available": "Available",
+    "sold_out": "Sold Out"
+  },
+  "booking": {
+    "title": "Book Tour",
+    "adults": "Adults",
+    "children": "Children",
+    "date": "Date",
+    "total": "Total",
+    "deposit": "Deposit",
+    "balance": "Balance",
+    "pay_now": "Pay Now",
+    "currency": "Currency"
+  }
+}
