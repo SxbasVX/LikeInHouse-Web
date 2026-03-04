@@ -8,6 +8,7 @@ import { paymentRouter } from "./routers/payment";
 import { quotationRouter } from "./routers/quotation";
 import { userRouter } from "./routers/user";
 import { contentRouter } from "./routers/content";
+import { publicRouter } from "./routers/public";
 
 export const appRouter = router({
   auth: authRouter,
@@ -19,6 +20,7 @@ export const appRouter = router({
   quotation: quotationRouter,
   user: userRouter,
   content: contentRouter,
+  public: publicRouter,
 });
 
 export type AppRouter = typeof appRouter;
