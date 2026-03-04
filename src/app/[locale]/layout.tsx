@@ -4,7 +4,12 @@ import { getMessages } from "next-intl/server";
 import { TRPCProvider } from "@/lib/trpc-provider";
 import { Toaster } from "@/components/ui/toaster";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  preload: true,
+  variable: "--font-inter",
+});
 
 export default async function LocaleLayout({
   children,

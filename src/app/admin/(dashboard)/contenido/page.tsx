@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import type { RouterOutput } from "@/types";
+
+type FAQ = NonNullable<RouterOutput["content"]["faqList"]>[number];
+type Testimonial = NonNullable<RouterOutput["content"]["testimonialList"]>[number];
+type BlogPost = RouterOutput["content"]["blogList"]["posts"][number];
+type HomeSection = NonNullable<RouterOutput["content"]["homeSectionList"]>[number];
+type Setting = NonNullable<RouterOutput["content"]["settingsList"]>[number];
 import {
   Card,
   CardContent,
@@ -141,7 +148,7 @@ function FAQsSection() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {faqs?.map((faq) => (
+              {faqs?.map((faq: FAQ) => (
                 <TableRow key={faq.id}>
                   <TableCell className="font-medium max-w-md truncate">
                     {faq.questionEs}
@@ -252,7 +259,7 @@ function TestimonialsSection() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {testimonials?.map((t) => (
+            {testimonials?.map((t: Testimonial) => (
               <TableRow key={t.id}>
                 <TableCell className="font-medium">{t.clientName}</TableCell>
                 <TableCell>{t.country || "-"}</TableCell>
@@ -362,7 +369,7 @@ function BlogSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data?.posts.map((post) => (
+                {data?.posts.map((post: BlogPost) => (
                   <TableRow key={post.id}>
                     <TableCell className="font-medium">{post.titleEs}</TableCell>
                     <TableCell>
@@ -494,7 +501,7 @@ function HomeSectionsSection() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sections?.map((section) => (
+            {sections?.map((section: HomeSection) => (
               <TableRow key={section.id}>
                 <TableCell>
                   <Badge variant="outline">{typeLabels[section.type] || section.type}</Badge>
@@ -557,7 +564,7 @@ function SettingsSection() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {settings?.map((setting) => (
+            {settings?.map((setting: Setting) => (
               <TableRow key={setting.id}>
                 <TableCell className="font-mono text-sm">{setting.key}</TableCell>
                 <TableCell className="max-w-md truncate text-sm">

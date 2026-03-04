@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import type { RouterOutput } from "@/types";
+
+type Reservation = RouterOutput["reservation"]["list"]["reservations"][number];
+
 import {
   Card,
   CardContent,
@@ -183,7 +187,7 @@ export default function ReservasPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data?.reservations.map((reservation) => (
+                  {data?.reservations.map((reservation: Reservation) => (
                     <TableRow key={reservation.id}>
                       <TableCell className="font-mono text-sm">
                         {reservation.referenceCode.slice(0, 12)}...

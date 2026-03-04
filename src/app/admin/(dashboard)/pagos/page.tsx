@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import type { RouterOutput } from "@/types";
+
+type Payment = RouterOutput["payment"]["list"]["payments"][number];
 import {
   Card,
   CardContent,
@@ -225,7 +228,7 @@ export default function PagosPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data?.payments.map((payment) => (
+                  {data?.payments.map((payment: Payment) => (
                     <TableRow key={payment.id}>
                       <TableCell className="font-mono text-sm">
                         {payment.reservation.referenceCode.slice(0, 12)}...

@@ -4,7 +4,12 @@ import "../globals.css";
 import { TRPCProvider } from "@/lib/trpc-provider";
 import { Toaster } from "@/components/ui/toaster";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  preload: true,
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "Panel Admin | Agencia de Turismo",

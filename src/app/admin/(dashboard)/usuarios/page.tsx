@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import type { RouterOutput } from "@/types";
+
+type User = RouterOutput["user"]["list"]["users"][number];
 import {
   Card,
   CardContent,
@@ -252,7 +255,7 @@ export default function UsuariosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data?.users.map((user) => (
+                {data?.users.map((user: User) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>

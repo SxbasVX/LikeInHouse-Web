@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import type { RouterOutput } from "@/types";
+
+type Quotation = RouterOutput["quotation"]["list"]["quotations"][number];
 import {
   Card,
   CardContent,
@@ -183,7 +186,7 @@ export default function CotizacionesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data?.quotations.map((quotation) => (
+                  {data?.quotations.map((quotation: Quotation) => (
                     <TableRow key={quotation.id}>
                       <TableCell className="font-mono text-sm">
                         {quotation.referenceCode}
