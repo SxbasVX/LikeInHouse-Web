@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Map, Eye, EyeOff, ShieldCheck, Mail, Lock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,9 @@ export default function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>();
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
@@ -158,10 +161,7 @@ export default function LoginPage() {
                       autoComplete="email"
                       placeholder="admin@likeinhouse.com"
                       className="h-14 rounded-xl bg-white/[0.03] border-white/10 pl-11 pr-4 text-white placeholder:text-neutral-600 focus:bg-white/[0.06] focus:border-brand-teal/50 focus:ring-1 focus:ring-brand-teal/50 transition-all duration-300"
-                      {...register("email", {
-                        required: "Requerido",
-                        pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Formato inválido" },
-                      })}
+                      {...register("email")}
                     />
                   </div>
                   {errors.email && <p className="text-xs text-red-400 ml-1 font-medium mt-1.5">{errors.email.message}</p>}
@@ -180,7 +180,7 @@ export default function LoginPage() {
                       autoComplete="current-password"
                       placeholder="••••••••"
                       className="h-14 rounded-xl bg-white/[0.03] border-white/10 pl-11 pr-12 text-white placeholder:text-neutral-600 focus:bg-white/[0.06] focus:border-brand-teal/50 focus:ring-1 focus:ring-brand-teal/50 transition-all duration-300"
-                      {...register("password", { required: "Requerido" })}
+                      {...register("password")}
                     />
                     <button
                       type="button"

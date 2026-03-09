@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 import createMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
 
@@ -7,7 +8,10 @@ const intlMiddleware = createMiddleware(routing);
 // Subdomain allowed for admin panel (configurable via env var)
 const ADMIN_HOSTNAME = process.env.ADMIN_HOSTNAME || "panel.likeinhouseperu.com";
 
-export default function middleware(request: NextRequest) {
+// Admin routes that don't require authentication
+const PUBLIC_ADMIN_PATHS = ["/admin/login"];
+
+export default async function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
   const isAdminHost =
     hostname === ADMIN_HOSTNAME ||
@@ -20,6 +24,15 @@ export default function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/admin", request.url));
     }
     if (pathname.startsWith("/admin")) {
+      // Auth check: protect all admin routes except login
+      const isPublicAdminPath = PUBLIC_ADMIN_PATHS.some((p) => pathname === p);
+      if (!isPublicAdminPath) {
+        const token = await getToken({ req: request });
+        if (!token || !token.id) {
+          const loginUrl = new URL("/admin/login", request.url);
+          return NextResponse.redirect(loginUrl);
+        }
+      }
       return NextResponse.next();
     }
   }

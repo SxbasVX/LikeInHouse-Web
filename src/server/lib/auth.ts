@@ -8,7 +8,23 @@ import { checkRateLimit, RATE_LIMITS } from "./rate-limit";
 import type { UserRole } from "@prisma/client";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    maxAge: 8 * 60 * 60, // 8 hours - appropriate for admin panel
+  },
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Secure-next-auth.session-token"
+        : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   pages: {
     signIn: "/admin/login",
   },
@@ -38,7 +54,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const emailLimit = checkRateLimit(emailLimitKey, RATE_LIMITS.login);
 
         if (!ipLimit.allowed || !emailLimit.allowed) {
-          console.warn(`[Auth] Brute force attempt blocked from IP: ${ip} for email: ${credentials.email}`);
+          const email = credentials.email as string;
+          const maskedEmail = email.length > 4
+            ? email.slice(0, 2) + "***" + email.slice(email.indexOf("@"))
+            : "***";
+          console.warn(`[Auth] Brute force attempt blocked from IP: ${ip} for email: ${maskedEmail}`);
           return null; // Block access
         }
         // ------------------------------
@@ -102,11 +122,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.role = (user as { role: UserRole }).role;
         token.id = user.id!;
       }
+
+      // Re-validate user is still active on every session update
+      if (trigger === "update" || (!user && token.id)) {
+        const dbUser = await db.user.findUnique({
+          where: { id: token.id as string },
+          select: { isActive: true, role: true },
+        });
+        if (!dbUser || !dbUser.isActive) {
+          // Force session invalidation by returning null
+          return null;
+        }
+        // Keep role in sync
+        token.role = dbUser.role;
+      }
+
       return token;
     },
     async session({ session, token }) {
