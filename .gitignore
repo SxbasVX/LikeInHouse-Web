@@ -28,6 +28,15 @@ next-env.d.ts
 .vscode/
 .idea/
 
+# Logs & temp files
+*.log
+build.log
+ts_errors*.txt
+*.png
+*.jpg
+!public/**/*.png
+!public/**/*.jpg
+
 # OS
 .DS_Store
 Thumbs.db
