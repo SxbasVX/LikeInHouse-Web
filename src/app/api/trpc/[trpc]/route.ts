@@ -15,8 +15,10 @@ function validateOrigin(req: Request): boolean {
   const referer = req.headers.get("referer");
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const adminHostname = process.env.ADMIN_HOSTNAME || "panel.likeinhouseperu.com";
   const allowedOrigins = new Set([
     new URL(baseUrl).origin,
+    `https://${adminHostname}`,
   ]);
 
   // Only allow localhost in development
