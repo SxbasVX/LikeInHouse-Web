@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/types";
-import DOMPurify from "isomorphic-dompurify";
+import DOMPurify from "dompurify";
 
-// Sanitize HTML to prevent XSS using isomorphic-dompurify
-function sanitizeHtml(html: string): string {
+// Sanitize HTML to prevent XSS using browser-native DOMPurify
+function sanitizeClientHtml(html: string): string {
+  if (typeof window === "undefined") return html;
   return DOMPurify.sanitize(html);
 }
 
@@ -849,7 +850,7 @@ function BlogSection() {
               <img src={previewContent.image} alt="" className="w-full aspect-[16/9] object-cover rounded-lg" />
             )}
             <h2 className="text-xl font-bold">{previewContent.title}</h2>
-            <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewContent.content) }} />
+            <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeClientHtml(previewContent.content) }} />
           </div>
         </DialogContent>
       </Dialog>

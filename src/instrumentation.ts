@@ -8,7 +8,7 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs" && process.env.NODE_ENV === "production") {
     const required: Record<string, string | undefined> = {
       DATABASE_URL: process.env.DATABASE_URL,
-      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+      AUTH_SECRET: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
       NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
       CRON_SECRET: process.env.CRON_SECRET,
     };
