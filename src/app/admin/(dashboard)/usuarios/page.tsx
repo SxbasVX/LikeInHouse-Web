@@ -56,6 +56,7 @@ import {
   UserCheck,
   Trash2,
   Shield,
+  Loader2,
 } from "lucide-react";
 
 const roleLabels: Record<string, string> = {
@@ -219,7 +220,14 @@ export default function UsuariosPage() {
                   !form.password
                 }
               >
-                {createUser.isPending ? "Creando..." : "Crear"}
+                {createUser.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creando...
+                  </>
+                ) : (
+                  "Crear"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -273,12 +281,12 @@ export default function UsuariosPage() {
                     <TableCell className="text-sm">
                       {user.lastLoginAt
                         ? new Date(user.lastLoginAt).toLocaleDateString("es-PE", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
                         : "Nunca"}
                     </TableCell>
                     <TableCell>{user._count.reservations}</TableCell>
@@ -409,7 +417,14 @@ export default function UsuariosPage() {
               }}
               disabled={updateUser.isPending}
             >
-              {updateUser.isPending ? "Guardando..." : "Guardar"}
+              {updateUser.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -433,7 +448,14 @@ export default function UsuariosPage() {
               onClick={() => deleteId && deleteUser.mutate({ id: deleteId })}
               disabled={deleteUser.isPending}
             >
-              {deleteUser.isPending ? "Eliminando..." : "Eliminar"}
+              {deleteUser.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

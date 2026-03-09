@@ -4,9 +4,6 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Optimización: compilador SWC para minificación más rápida
-  swcMinify: true,
-
   // Optimización: compresión de respuestas
   compress: true,
 
@@ -14,10 +11,8 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
 
   // Optimización: reducir bundle con tree-shaking agresivo
-  modularizeImports: {
-    "lucide-react": {
-      transform: "lucide-react/dist/esm/icons/{{ kebabCase member }}",
-    },
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
   },
 
   images: {
@@ -26,12 +21,16 @@ const nextConfig = {
         protocol: "https",
         hostname: "res.cloudinary.com",
       },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
     ],
     // Optimización: formatos modernos de imagen
     formats: ["image/avif", "image/webp"],
   },
 
-  // Optimización: headers de caché para assets estáticos
+  // Headers de seguridad y caché
   async headers() {
     return [
       {
@@ -43,8 +42,54 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' https://www.paypal.com https://www.sandbox.paypal.com https://*.paypal.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://www.paypalobjects.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "connect-src 'self' https://www.paypal.com https://www.sandbox.paypal.com https://*.paypal.com https://api-m.sandbox.paypal.com https://api-m.paypal.com https://*.sentry.io https://*.ingest.sentry.io",
+              "frame-src 'self' https://www.paypal.com https://www.sandbox.paypal.com https://*.paypal.com",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "frame-ancestors 'none'",
+              ...(process.env.NODE_ENV === "production" ? ["upgrade-insecure-requests"] : []),
+            ].join("; "),
+          },
+          ...(process.env.NODE_ENV === "production"
+            ? [
+              {
+                key: "Strict-Transport-Security",
+                value: "max-age=31536000; includeSubDomains",
+              },
+            ]
+            : []),
+        ],
+      },
     ];
   },
 };
 
-export default withNextIntl(nextConfig);
+// Wrap with Sentry only if DSN is configured
+let finalConfig = withNextIntl(nextConfig);
+
+if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  const { withSentryConfig } = await import("@sentry/nextjs");
+  finalConfig = withSentryConfig(finalConfig, {
+    silent: true,
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+  });
+}
+
+export default finalConfig;

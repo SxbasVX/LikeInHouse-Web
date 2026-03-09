@@ -27,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MoreHorizontal, Pencil, Eye, EyeOff, Star, StarOff, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Eye, EyeOff, Star, StarOff, Trash2, Loader2, Map } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,6 +37,7 @@ interface Tour {
   nameEs: string;
   destination: string;
   status: string;
+  tourType: string;
   isFeatured: boolean;
   category: string;
   durationDays: number;
@@ -94,8 +95,9 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
             <TableHead>Tour</TableHead>
             <TableHead>Destino</TableHead>
             <TableHead>Duracion</TableHead>
+            <TableHead>Tipo</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead>Precio (PEN)</TableHead>
+            <TableHead>Precio (USD)</TableHead>
             <TableHead>Reservas</TableHead>
             <TableHead className="w-10"></TableHead>
           </TableRow>
@@ -103,8 +105,16 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
         <TableBody>
           {tours.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                No se encontraron tours
+              <TableCell colSpan={8} className="h-48 text-center text-muted-foreground">
+                <div className="flex flex-col items-center justify-center space-y-3">
+                  <div className="rounded-full bg-muted p-4">
+                    <Map className="h-8 w-8 text-muted-foreground/50" />
+                  </div>
+                  <div>
+                    <p className="text-base font-medium text-foreground">Aún no hay tours</p>
+                    <p className="text-sm text-muted-foreground mt-1">Crea tu primer destino o cambia los filtros de búsqueda.</p>
+                  </div>
+                </div>
               </TableCell>
             </TableRow>
           ) : (
@@ -135,13 +145,18 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
                 <TableCell>{tour.destination}</TableCell>
                 <TableCell>{tour.durationDays}D/{tour.durationNights}N</TableCell>
                 <TableCell>
+                  <Badge variant={tour.tourType === "BOOKABLE" ? "default" : "outline"}>
+                    {tour.tourType === "BOOKABLE" ? "Comprable" : "Info"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
                   <Badge variant={statusConfig[tour.status]?.variant || "secondary"}>
                     {statusConfig[tour.status]?.label || tour.status}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {tour.pricing
-                    ? `S/ ${Number(tour.pricing.basePricePenAdult).toFixed(0)}`
+                  {tour.tourType === "BOOKABLE" && tour.pricing
+                    ? `$ ${Number(tour.pricing.basePriceUsdAdult).toFixed(2)}`
                     : "-"}
                 </TableCell>
                 <TableCell>{tour._count.reservations}</TableCell>
@@ -223,7 +238,14 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
               onClick={() => deleteId && deleteTour.mutate({ id: deleteId })}
               disabled={deleteTour.isPending}
             >
-              {deleteTour.isPending ? "Eliminando..." : "Eliminar"}
+              {deleteTour.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -13,15 +13,44 @@ export default function EditarTourPage() {
 
   const { data: tour, isLoading } = trpc.tour.getById.useQuery({ id });
 
+  const saveDraftMutation = trpc.tour.saveDraft.useMutation();
+
   const updateMutation = trpc.tour.update.useMutation({
     onSuccess: () => {
       toast({ title: "Tour actualizado exitosamente" });
       router.push("/admin/tours");
     },
     onError: (error) => {
+      let description: any = error.message;
+
+      try {
+        const parsed = JSON.parse(error.message);
+        if (Array.isArray(parsed) && parsed[0]?.message) {
+          description = (
+            <div className="mt-2 max-h-[290px] overflow-y-auto pr-2">
+              <p className="text-sm font-semibold mb-2">Corrige los siguientes errores:</p>
+              <ul className="list-disc pl-4 space-y-2">
+                {parsed.map((e: any, i: number) => {
+                  const fieldPath = e.path ? e.path.join(" > ") : "";
+                  const msg = e.message.includes("NaN") ? "Falta completar un número válido" : e.message;
+                  return (
+                    <li key={i} className="text-xs">
+                      {fieldPath && <span className="font-semibold block opacity-70 mb-0.5">{fieldPath}</span>}
+                      {msg}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        }
+      } catch (e) {
+        // Ignorar si no es JSON
+      }
+
       toast({
-        title: "Error al actualizar tour",
-        description: error.message,
+        title: "No se pudo actualizar el tour",
+        description,
         variant: "destructive",
       });
     },
@@ -52,6 +81,7 @@ export default function EditarTourPage() {
     nameEs: tour.nameEs,
     nameEn: tour.nameEn,
     slug: tour.slug,
+    tourType: tour.tourType,
     category: tour.category,
     difficulty: tour.difficulty,
     durationDays: tour.durationDays,
@@ -75,21 +105,21 @@ export default function EditarTourPage() {
     })),
     pricing: tour.pricing
       ? {
-          basePricePenAdult: Number(tour.pricing.basePricePenAdult),
-          basePriceUsdAdult: Number(tour.pricing.basePriceUsdAdult),
-          basePricePenChild: Number(tour.pricing.basePricePenChild),
-          basePriceUsdChild: Number(tour.pricing.basePriceUsdChild),
-          groupDiscountPercent: tour.pricing.groupDiscountPercent
-            ? Number(tour.pricing.groupDiscountPercent)
-            : undefined,
-          groupMinPersons: tour.pricing.groupMinPersons || undefined,
-        }
+        basePricePenAdult: Number(tour.pricing.basePricePenAdult),
+        basePriceUsdAdult: Number(tour.pricing.basePriceUsdAdult),
+        basePricePenChild: Number(tour.pricing.basePricePenChild),
+        basePriceUsdChild: Number(tour.pricing.basePriceUsdChild),
+        groupDiscountPercent: tour.pricing.groupDiscountPercent
+          ? Number(tour.pricing.groupDiscountPercent)
+          : undefined,
+        groupMinPersons: tour.pricing.groupMinPersons || undefined,
+      }
       : {
-          basePricePenAdult: 0,
-          basePriceUsdAdult: 0,
-          basePricePenChild: 0,
-          basePriceUsdChild: 0,
-        },
+        basePricePenAdult: 0,
+        basePriceUsdAdult: 0,
+        basePricePenChild: 0,
+        basePriceUsdChild: 0,
+      },
     includes: tour.includes
       .filter((inc) => inc.type === "INCLUDE")
       .map((inc) => ({ textEs: inc.textEs, textEn: inc.textEn })),
@@ -118,6 +148,7 @@ export default function EditarTourPage() {
       <TourForm
         initialData={initialData}
         onSubmit={(data) => updateMutation.mutate({ id, ...data })}
+        onAutoSave={(data) => saveDraftMutation.mutate({ id, ...data })}
         isLoading={updateMutation.isPending}
       />
     </div>

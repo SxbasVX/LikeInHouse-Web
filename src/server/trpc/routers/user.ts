@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { hash } from "bcryptjs";
 import { router, roleProtectedProcedure } from "../trpc";
+import { createAuditLog } from "@/server/lib/audit";
 
 const adminOnly = roleProtectedProcedure(["ADMIN"]);
 
@@ -10,10 +11,16 @@ const userListSchema = z.object({
   limit: z.number().min(1).max(100).default(10),
 });
 
+const passwordSchema = z.string()
+  .min(8, "La contraseña debe tener al menos 8 caracteres")
+  .regex(/[A-Z]/, "Debe contener al menos una mayúscula")
+  .regex(/[a-z]/, "Debe contener al menos una minúscula")
+  .regex(/[0-9]/, "Debe contener al menos un número");
+
 const userCreateSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
-  password: z.string().min(6),
+  password: passwordSchema,
   role: z.enum(["ADMIN", "SALES", "MARKETING"]).default("SALES"),
 });
 
@@ -23,7 +30,7 @@ const userUpdateSchema = z.object({
   email: z.string().email().optional(),
   role: z.enum(["ADMIN", "SALES", "MARKETING"]).optional(),
   isActive: z.boolean().optional(),
-  password: z.string().min(6).optional(),
+  password: passwordSchema.optional(),
 });
 
 export const userRouter = router({
@@ -144,10 +151,22 @@ export const userRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Usuario no encontrado" });
       }
 
-      return ctx.db.user.update({
+      const updated = await ctx.db.user.update({
         where: { id: input.id },
         data: { isActive: !user.isActive },
       });
+
+      // Audit user activation/deactivation
+      const adminId = (ctx.session.user as { id: string }).id;
+      createAuditLog({
+        userId: adminId,
+        action: updated.isActive ? "USER_ACTIVATED" : "USER_DEACTIVATED",
+        entity: "User",
+        entityId: input.id,
+        changes: { targetEmail: user.email, isActive: updated.isActive },
+      });
+
+      return updated;
     }),
 
   delete: adminOnly
@@ -162,6 +181,38 @@ export const userRouter = router({
         });
       }
 
-      return ctx.db.user.delete({ where: { id: input.id } });
+      // Verify no assigned reservations (FK Restrict would crash)
+      const reservationCount = await ctx.db.reservation.count({
+        where: { assignedUserId: input.id },
+      });
+      if (reservationCount > 0) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `No se puede eliminar: tiene ${reservationCount} reserva(s) asignada(s). Reasígnalas primero o desactiva la cuenta.`,
+        });
+      }
+
+      // Verify no created quotations (FK Restrict would crash)
+      const quotationCount = await ctx.db.quotation.count({
+        where: { createdByUserId: input.id },
+      });
+      if (quotationCount > 0) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `No se puede eliminar: ha creado ${quotationCount} cotización(es). Desactiva la cuenta en su lugar.`,
+        });
+      }
+
+      await ctx.db.user.delete({ where: { id: input.id } });
+
+      // Audit user deletion
+      createAuditLog({
+        userId,
+        action: "DELETE",
+        entity: "User",
+        entityId: input.id,
+      });
+
+      return { success: true };
     }),
 });

@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Panel Admin | Agencia de Turismo",
+  title: "Panel Admin | LikeInHouse",
   description: "Panel de administracion",
 };
 
@@ -22,8 +22,8 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
-      <body className={inter.className}>
+    <html lang="es" suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
         <TRPCProvider>
           {children}
           <Toaster />

@@ -3,10 +3,26 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { Map, Mail, Phone, MapPin } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+
+// Use a fixed year to avoid hydration mismatch between server and client
+const CURRENT_YEAR = new Date().getFullYear();
 
 export function Footer() {
   const t = useTranslations("footer");
   const tc = useTranslations("common");
+
+  const { data: settings } = trpc.public.settings.useQuery(undefined, { staleTime: 10 * 60 * 1000 });
+  const getSetting = (key: string, fallback: string) => {
+    if (!settings) return fallback;
+    const arr = settings as unknown as Array<{ key: string; value: string }>;
+    const s = arr.find((item) => item.key === key);
+    return s?.value || fallback;
+  };
+
+  const address = getSetting("address", "Av. El Sol 456, Cusco, Peru");
+  const phone = getSetting("phone", "+51 84 123 456");
+  const email = getSetting("contactEmail", "info@perutours.com");
 
   return (
     <footer className="border-t bg-gray-900 text-gray-300">
@@ -16,7 +32,7 @@ export function Footer() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Map className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold text-white">Peru Tours</span>
+              <span className="text-lg font-bold text-white">LikeInHouse</span>
             </div>
             <p className="text-sm leading-relaxed">{t("description")}</p>
           </div>
@@ -54,15 +70,15 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                Av. El Sol 456, Cusco, Peru
+                {address}
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 shrink-0" />
-                +51 84 123 456
+                {phone}
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 shrink-0" />
-                info@perutours.com
+                {email}
               </li>
             </ul>
           </div>
@@ -70,7 +86,7 @@ export function Footer() {
 
         <div className="mt-10 border-t border-gray-800 pt-6 text-center text-xs">
           <p>
-            &copy; {new Date().getFullYear()} Peru Tours Agency.{" "}
+            &copy; {CURRENT_YEAR} LikeInHouse.{" "}
             {tc("all_rights")}.
           </p>
         </div>

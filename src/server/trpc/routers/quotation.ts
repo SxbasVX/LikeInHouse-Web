@@ -1,6 +1,28 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { randomBytes } from "crypto";
 import { router, protectedProcedure, roleProtectedProcedure } from "../trpc";
+import { sendEmail } from "../../../lib/mail";
+
+function generateReferenceCode(): string {
+  const currentYear = new Date().getFullYear();
+  const randomChars = randomBytes(4).toString("hex").substring(0, 5).toUpperCase();
+  return `LIH-${currentYear}-${randomChars}`;
+}
+
+async function generateUniqueQuotationRef(db: any, maxRetries = 5): Promise<string> {
+  for (let i = 0; i < maxRetries; i++) {
+    const code = generateReferenceCode();
+    const existing = await db.quotation.findUnique({ where: { referenceCode: code } });
+    if (!existing) return code;
+  }
+  return `LIH-${new Date().getFullYear()}-${randomBytes(8).toString("hex").toUpperCase()}`;
+}
+
+function generateSecureToken(): string {
+  const randomPart = randomBytes(6).toString("hex").toUpperCase();
+  return `PAY-${Date.now().toString(36).toUpperCase()}-${randomPart}`;
+}
 
 const adminOrSales = roleProtectedProcedure(["ADMIN", "SALES"]);
 
@@ -29,12 +51,12 @@ const quotationCreateSchema = z.object({
   titleEn: z.string().optional(),
   notesEs: z.string().optional(),
   notesEn: z.string().optional(),
-  currency: z.enum(["PEN", "USD"]).default("PEN"),
+  currency: z.literal("USD").default("USD"),
   totalAmount: z.number().min(0),
   customAmount: z.number().optional(),
   validUntil: z.string().transform((s) => new Date(s)),
   depositPercent: z.number().min(0).max(100).optional(),
-  items: z.array(quotationItemSchema).min(1),
+  items: z.array(quotationItemSchema).min(1).max(50),
 });
 
 export const quotationRouter = router({
@@ -44,8 +66,14 @@ export const quotationRouter = router({
       const { page, limit, status, search } = input;
       const skip = (page - 1) * limit;
 
+      const userId = (ctx.session.user as { id: string; role: string }).id;
+      const userRole = (ctx.session.user as { role: string }).role;
+      const isAdmin = userRole === "ADMIN";
+
       const where = {
         ...(status && { status }),
+        // Non-admin users only see their own quotations
+        ...(!isAdmin && { createdByUserId: userId }),
         ...(search && {
           OR: [
             { referenceCode: { contains: search, mode: "insensitive" as const } },
@@ -72,7 +100,10 @@ export const quotationRouter = router({
       ]);
 
       return {
-        quotations,
+        quotations: quotations.map(q => ({
+          ...q,
+          referenceCode: isAdmin ? q.referenceCode : (q.referenceCode.length > 8 ? q.referenceCode.slice(0, Math.min(9, q.referenceCode.length - 4)) + "****" : "****")
+        })),
         total,
         pages: Math.ceil(total / limit),
         page,
@@ -98,6 +129,18 @@ export const quotationRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Cotización no encontrada" });
       }
 
+      const userId = (ctx.session.user as { id: string }).id;
+      const userRole = (ctx.session.user as { role: string }).role;
+
+      // Non-admin can only view their own quotations
+      if (userRole !== "ADMIN" && quotation.createdByUserId !== userId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No tienes acceso a esta cotización" });
+      }
+
+      if (userRole !== "ADMIN") {
+        quotation.referenceCode = quotation.referenceCode.length > 8 ? quotation.referenceCode.slice(0, Math.min(9, quotation.referenceCode.length - 4)) + "****" : "****";
+      }
+
       return quotation;
     }),
 
@@ -107,9 +150,29 @@ export const quotationRouter = router({
       const userId = (ctx.session.user as { id: string }).id;
       const { items, ...data } = input;
 
-      // Generar referenceCode único
-      const count = await ctx.db.quotation.count();
-      const referenceCode = `COT-${String(count + 1).padStart(5, "0")}`;
+      // Validate subtotals and total server-side
+      let computedTotal = 0;
+      const validatedItems = items.map((item, index) => {
+        const expectedSubtotal = Math.round(item.unitPrice * item.quantity * 100) / 100;
+        if (Math.abs(expectedSubtotal - item.subtotal) > 0.01) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Subtotal del item "${item.descriptionEs}" no coincide: esperado ${expectedSubtotal}, recibido ${item.subtotal}`,
+          });
+        }
+        computedTotal += expectedSubtotal;
+        return { ...item, subtotal: expectedSubtotal, descriptionEn: item.descriptionEn ?? "", sortOrder: item.sortOrder || index };
+      });
+
+      computedTotal = Math.round(computedTotal * 100) / 100;
+      if (Math.abs(computedTotal - data.totalAmount) > 0.01 && !data.customAmount) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `El total (${data.totalAmount}) no coincide con la suma de items (${computedTotal})`,
+        });
+      }
+
+      const referenceCode = await generateUniqueQuotationRef(ctx.db);
 
       return ctx.db.quotation.create({
         data: {
@@ -117,11 +180,7 @@ export const quotationRouter = router({
           referenceCode,
           createdByUserId: userId,
           items: {
-            create: items.map((item, index) => ({
-              ...item,
-              descriptionEn: item.descriptionEn ?? "",
-              sortOrder: item.sortOrder || index,
-            })),
+            create: validatedItems,
           },
         },
         include: { items: true },
@@ -142,6 +201,30 @@ export const quotationRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Cotización no encontrada" });
       }
 
+      // Non-admin can only update their own quotations
+      const userId = (ctx.session.user as { id: string; role: string }).id;
+      const userRole = (ctx.session.user as { role: string }).role;
+      if (userRole !== "ADMIN" && quotation.createdByUserId !== userId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No tienes acceso a esta cotización" });
+      }
+
+      // Validate status transitions
+      const VALID_QUOTATION_TRANSITIONS: Record<string, string[]> = {
+        DRAFT: ["SENT"],
+        SENT: ["VIEWED", "ACCEPTED", "EXPIRED"],
+        VIEWED: ["ACCEPTED", "EXPIRED"],
+        ACCEPTED: ["CONVERTED", "EXPIRED"],
+        CONVERTED: [],
+        EXPIRED: ["DRAFT"],
+      };
+      const allowed = VALID_QUOTATION_TRANSITIONS[quotation.status];
+      if (!allowed || !allowed.includes(input.status)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `No se puede cambiar de ${quotation.status} a ${input.status}`,
+        });
+      }
+
       const updateData: Record<string, unknown> = { status: input.status };
 
       if (input.status === "SENT") updateData.sentAt = new Date();
@@ -157,6 +240,157 @@ export const quotationRouter = router({
   delete: roleProtectedProcedure(["ADMIN"])
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      // Verify no payment links with payments exist
+      const quotation = await ctx.db.quotation.findUnique({
+        where: { id: input.id },
+        include: { paymentLink: { select: { id: true, status: true, amountPaid: true } } },
+      });
+      if (!quotation) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Cotización no encontrada" });
+      }
+      const hasPayments = quotation.paymentLink && Number(quotation.paymentLink.amountPaid) > 0;
+      if (hasPayments) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "No se puede eliminar una cotización con pagos registrados",
+        });
+      }
+      // Delete related payment link first, then quotation
+      if (quotation.paymentLink) {
+        await ctx.db.paymentLink.delete({ where: { id: quotation.paymentLink.id } });
+      }
+      await ctx.db.quotationItem.deleteMany({ where: { quotationId: input.id } });
       return ctx.db.quotation.delete({ where: { id: input.id } });
+    }),
+
+  sendEmail: adminOrSales
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const quotation = await ctx.db.quotation.findUnique({
+        where: { id: input.id },
+        include: {
+          client: true,
+          items: { orderBy: { sortOrder: "asc" } },
+        },
+      });
+
+      if (!quotation) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Cotizacion no encontrada" });
+      }
+
+      // Ownership check: non-admin can only send their own quotations
+      const userId = (ctx.session.user as { id: string }).id;
+      const userRole = (ctx.session.user as { role: string }).role;
+      if (userRole !== "ADMIN" && quotation.createdByUserId !== userId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "No tienes acceso a esta cotización" });
+      }
+
+      if (!quotation.client.email) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "El cliente no tiene un email registrado" });
+      }
+
+      let paymentLinkId = quotation.paymentLinkId;
+      let token = "";
+
+      if (!paymentLinkId) {
+        // Create a payment link if it doesn't exist
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7); // Default to 7 days
+
+        token = generateSecureToken();
+
+        const itemLines = quotation.items.map((item) =>
+          `- ${item.descriptionEs} (${item.adults} adultos${item.children > 0 ? `, ${item.children} ninos` : ""}) - ${quotation.currency} ${Number(item.subtotal).toFixed(2)}`
+        ).join("\n");
+
+        const descriptionEs = `Cotizacion ${quotation.referenceCode}\n\n${quotation.titleEs}\n\nDetalle:\n${itemLines}`;
+
+        let depositAmount: number | undefined;
+        let balanceAmount: number | undefined;
+        const depositPercent = quotation.depositPercent ? Number(quotation.depositPercent) : undefined;
+        if (depositPercent && depositPercent > 0) {
+          depositAmount = Math.round((Number(quotation.totalAmount) * depositPercent) / 100 * 100) / 100;
+          balanceAmount = Math.round((Number(quotation.totalAmount) - depositAmount) * 100) / 100;
+        }
+
+        const link = await ctx.db.paymentLink.create({
+          data: {
+            token,
+            createdByUserId: quotation.createdByUserId,
+            quotationId: quotation.id,
+            clientName: `${quotation.client.firstName} ${quotation.client.lastName}`,
+            clientEmail: quotation.client.email,
+            clientPhone: quotation.client.phone,
+            titleEs: quotation.titleEs,
+            titleEn: quotation.titleEn || quotation.titleEs,
+            descriptionEs,
+            descriptionEn: descriptionEs,
+            currency: quotation.currency,
+            totalAmount: Number(quotation.totalAmount),
+            depositRequired: !!depositPercent && depositPercent > 0,
+            depositPercent,
+            depositAmount,
+            balanceAmount,
+            expiresAt,
+          },
+        });
+
+        paymentLinkId = link.id;
+
+        await ctx.db.quotation.update({
+          where: { id: quotation.id },
+          data: {
+            paymentLinkId: link.id,
+          },
+        });
+      } else {
+        const existingLink = await ctx.db.paymentLink.findUnique({
+          where: { id: paymentLinkId },
+        });
+        if (existingLink) {
+          token = existingLink.token;
+        }
+      }
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const paymentUrl = token ? `${appUrl}/es/pagar/${token}` : "";
+
+      // Escape HTML entities to prevent injection
+      const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const clientName = esc(quotation.client.firstName);
+      const refCode = esc(quotation.referenceCode);
+      const title = esc(quotation.titleEs);
+
+      const html = `
+        <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto;">
+          <h2>Hola ${clientName},</h2>
+          <p>Te adjuntamos la cotizacion <strong>${refCode}</strong> correspondiente a: <em>${title}</em>.</p>
+          <p><strong>Monto Total:</strong> ${esc(quotation.currency)} ${Number(quotation.totalAmount).toFixed(2)}</p>
+          ${paymentUrl ? `<p>Para confirmar tu reserva y realizar el pago, por favor haz clic en el siguiente enlace:</p>
+            <p><a href="${paymentUrl}" style="display: inline-block; padding: 10px 20px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 5px;">Pagar Cotizacion</a></p>` : ""}
+          <p>La cotizacion es valida hasta el <strong>${quotation.validUntil.toLocaleDateString("es-PE")}</strong>.</p>
+          <p>Si tienes alguna consulta, no dudes en contactarnos.</p>
+          <br/>
+          <p>Saludos cordiales,<br/>El equipo de Like In House</p>
+        </div>
+      `;
+
+      try {
+        await sendEmail({
+          to: quotation.client.email,
+          subject: `Cotización ${quotation.referenceCode} - ${quotation.titleEs}`,
+          html,
+        });
+      } catch (error: any) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Error al enviar el correo: ${error.message}` });
+      }
+
+      return ctx.db.quotation.update({
+        where: { id: quotation.id },
+        data: {
+          status: "SENT",
+          sentAt: new Date(),
+        },
+      });
     }),
 });

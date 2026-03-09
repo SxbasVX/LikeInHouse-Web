@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { revalidateTag } from "next/cache";
 import {
   router,
   publicProcedure,
@@ -11,6 +12,22 @@ import {
   tourCreateSchema,
   tourUpdateSchema,
 } from "@/lib/validators/tour";
+import { Decimal } from "@prisma/client/runtime/library";
+import { CACHE_TAGS } from "@/server/lib/cache";
+
+function serializeDecimals<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (obj instanceof Decimal) return Number(obj) as unknown as T;
+  if (Array.isArray(obj)) return obj.map(serializeDecimals) as unknown as T;
+  if (typeof obj === 'object' && obj.constructor === Object) {
+    const result: any = {};
+    for (const key of Object.keys(obj as any)) {
+      result[key] = serializeDecimals((obj as any)[key]);
+    }
+    return result as T;
+  }
+  return obj;
+}
 
 const adminOrMarketing = roleProtectedProcedure(["ADMIN", "MARKETING"]);
 const adminOnly = roleProtectedProcedure(["ADMIN"]);
@@ -24,7 +41,9 @@ export const tourRouter = router({
       const skip = (page - 1) * limit;
 
       const where = {
+        isActive: true,
         ...(status && { status }),
+        ...(input.tourType && { tourType: input.tourType }),
         ...(isFeatured !== undefined && { isFeatured }),
         ...(search && {
           OR: [
@@ -51,11 +70,23 @@ export const tourRouter = router({
       ]);
 
       return {
-        tours,
+        tours: tours.map((t) => ({ ...t, pricing: serializeDecimals(t.pricing) })),
         total,
         pages: Math.ceil(total / limit),
         page,
       };
+    }),
+
+  // Guardar borrador (auto-save)
+  saveDraft: adminOrMarketing
+    .input(tourUpdateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { id, itinerary, pricing, includes, excludes, images, departures, ...tourData } = input;
+      const existing = await ctx.db.tour.findUnique({ where: { id } });
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Tour no encontrado" });
+      }
+      return ctx.db.tour.update({ where: { id }, data: tourData });
     }),
 
   // Detalle por ID (admin)
@@ -85,8 +116,8 @@ export const tourRouter = router({
   getBySlug: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ ctx, input }) => {
-      const tour = await ctx.db.tour.findUnique({
-        where: { slug: input.slug, status: "PUBLISHED" },
+      const tour = await ctx.db.tour.findFirst({
+        where: { slug: input.slug, status: "PUBLISHED", isActive: true },
         include: {
           images: { orderBy: { sortOrder: "asc" } },
           itinerary: { orderBy: { dayNumber: "asc" } },
@@ -122,7 +153,7 @@ export const tourRouter = router({
         data: {
           ...tourData,
           status: "DRAFT",
-          itinerary: {
+          itinerary: itinerary.length > 0 ? {
             create: itinerary.map((day) => ({
               dayNumber: day.dayNumber,
               titleEs: day.titleEs,
@@ -130,22 +161,24 @@ export const tourRouter = router({
               descriptionEs: day.descriptionEs,
               descriptionEn: day.descriptionEn,
             })),
-          },
-          pricing: {
-            create: {
-              basePricePenAdult: pricing.basePricePenAdult,
-              basePriceUsdAdult: pricing.basePriceUsdAdult,
-              basePricePenChild: pricing.basePricePenChild,
-              basePriceUsdChild: pricing.basePriceUsdChild,
-              groupDiscountPercent: pricing.groupDiscountPercent,
-              groupMinPersons: pricing.groupMinPersons,
-              promoDiscountPercent: pricing.promoDiscountPercent,
-              promoStartDate: pricing.promoStartDate ? new Date(pricing.promoStartDate) : undefined,
-              promoEndDate: pricing.promoEndDate ? new Date(pricing.promoEndDate) : undefined,
-              promoLabelEs: pricing.promoLabelEs,
-              promoLabelEn: pricing.promoLabelEn,
+          } : undefined,
+          ...(pricing ? {
+            pricing: {
+              create: {
+                basePricePenAdult: pricing.basePricePenAdult,
+                basePriceUsdAdult: pricing.basePriceUsdAdult,
+                basePricePenChild: pricing.basePricePenChild,
+                basePriceUsdChild: pricing.basePriceUsdChild,
+                groupDiscountPercent: pricing.groupDiscountPercent,
+                groupMinPersons: pricing.groupMinPersons,
+                promoDiscountPercent: pricing.promoDiscountPercent,
+                promoStartDate: pricing.promoStartDate ? new Date(pricing.promoStartDate) : undefined,
+                promoEndDate: pricing.promoEndDate ? new Date(pricing.promoEndDate) : undefined,
+                promoLabelEs: pricing.promoLabelEs,
+                promoLabelEn: pricing.promoLabelEn,
+              },
             },
-          },
+          } : {}),
           includes: {
             create: [
               ...includes.map((inc, i) => ({ type: "INCLUDE", textEs: inc.textEs, textEn: inc.textEn, sortOrder: i })),
@@ -171,6 +204,7 @@ export const tourRouter = router({
         },
       });
 
+      revalidateTag(CACHE_TAGS.tours);
       return tour;
     }),
 
@@ -185,99 +219,134 @@ export const tourRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Tour no encontrado" });
       }
 
-      // Verificar slug unico si cambio
-      if (tourData.slug && tourData.slug !== existing.slug) {
-        const slugExists = await ctx.db.tour.findUnique({ where: { slug: tourData.slug } });
-        if (slugExists) {
-          throw new TRPCError({ code: "CONFLICT", message: "Ya existe un tour con ese slug" });
+      // Wrap all mutations in a transaction for atomicity
+      const result = await ctx.db.$transaction(async (tx) => {
+        // Verificar slug unico DENTRO de la transacción para evitar race conditions
+        if (tourData.slug && tourData.slug !== existing.slug) {
+          const slugExists = await tx.tour.findUnique({ where: { slug: tourData.slug } });
+          if (slugExists) {
+            throw new TRPCError({ code: "CONFLICT", message: "Ya existe un tour con ese slug" });
+          }
         }
-      }
 
-      // Actualizar tour base
-      await ctx.db.tour.update({ where: { id }, data: tourData });
+        // Actualizar tour base
+        await tx.tour.update({ where: { id }, data: tourData });
 
-      // Recrear relaciones si se proporcionan
-      if (itinerary) {
-        await ctx.db.itineraryDay.deleteMany({ where: { tourId: id } });
-        await ctx.db.itineraryDay.createMany({
-          data: itinerary.map((day) => ({ tourId: id, ...day })),
-        });
-      }
-
-      if (pricing) {
-        await ctx.db.tourPricing.upsert({
-          where: { tourId: id },
-          create: {
-            tourId: id,
-            basePricePenAdult: pricing.basePricePenAdult!,
-            basePriceUsdAdult: pricing.basePriceUsdAdult!,
-            basePricePenChild: pricing.basePricePenChild!,
-            basePriceUsdChild: pricing.basePriceUsdChild!,
-            groupDiscountPercent: pricing.groupDiscountPercent,
-            groupMinPersons: pricing.groupMinPersons,
-          },
-          update: {
-            basePricePenAdult: pricing.basePricePenAdult,
-            basePriceUsdAdult: pricing.basePriceUsdAdult,
-            basePricePenChild: pricing.basePricePenChild,
-            basePriceUsdChild: pricing.basePriceUsdChild,
-            groupDiscountPercent: pricing.groupDiscountPercent,
-            groupMinPersons: pricing.groupMinPersons,
-          },
-        });
-      }
-
-      if (includes || excludes) {
-        await ctx.db.tourInclude.deleteMany({ where: { tourId: id } });
-        const allIncludes = [
-          ...(includes || []).map((inc, i) => ({ tourId: id, type: "INCLUDE", textEs: inc.textEs, textEn: inc.textEn, sortOrder: i })),
-          ...(excludes || []).map((exc, i) => ({ tourId: id, type: "EXCLUDE", textEs: exc.textEs, textEn: exc.textEn, sortOrder: i })),
-        ];
-        if (allIncludes.length > 0) {
-          await ctx.db.tourInclude.createMany({ data: allIncludes });
-        }
-      }
-
-      if (images) {
-        await ctx.db.tourImage.deleteMany({ where: { tourId: id } });
-        if (images.length > 0) {
-          await ctx.db.tourImage.createMany({
-            data: images.map((img, i) => ({
-              tourId: id,
-              cloudinaryId: img.cloudinaryId,
-              url: img.url,
-              altEs: img.altEs,
-              altEn: img.altEn,
-              isPrimary: img.isPrimary,
-              sortOrder: i,
-            })),
+        // Recrear relaciones si se proporcionan
+        if (itinerary) {
+          await tx.itineraryDay.deleteMany({ where: { tourId: id } });
+          await tx.itineraryDay.createMany({
+            data: itinerary.map((day) => ({ tourId: id, ...day })),
           });
         }
-      }
 
-      if (departures) {
-        await ctx.db.tourDeparture.deleteMany({ where: { tourId: id } });
-        if (departures.length > 0) {
-          await ctx.db.tourDeparture.createMany({
-            data: departures.map((dep) => ({
+        if (pricing === null) {
+          await tx.tourPricing.deleteMany({ where: { tourId: id } });
+        } else if (pricing) {
+          await tx.tourPricing.upsert({
+            where: { tourId: id },
+            create: {
               tourId: id,
-              departureDate: new Date(dep.departureDate),
-              maxCapacity: dep.maxCapacity,
-            })),
+              basePricePenAdult: pricing.basePricePenAdult,
+              basePriceUsdAdult: pricing.basePriceUsdAdult,
+              basePricePenChild: pricing.basePricePenChild,
+              basePriceUsdChild: pricing.basePriceUsdChild,
+              groupDiscountPercent: pricing.groupDiscountPercent,
+              groupMinPersons: pricing.groupMinPersons,
+            },
+            update: {
+              basePricePenAdult: pricing.basePricePenAdult,
+              basePriceUsdAdult: pricing.basePriceUsdAdult,
+              basePricePenChild: pricing.basePricePenChild,
+              basePriceUsdChild: pricing.basePriceUsdChild,
+              groupDiscountPercent: pricing.groupDiscountPercent,
+              groupMinPersons: pricing.groupMinPersons,
+            },
           });
         }
-      }
 
-      return ctx.db.tour.findUnique({
-        where: { id },
-        include: {
-          images: true,
-          itinerary: true,
-          pricing: true,
-          includes: true,
-          departures: true,
-        },
+        if (includes || excludes) {
+          await tx.tourInclude.deleteMany({ where: { tourId: id } });
+          const allIncludes = [
+            ...(includes || []).map((inc, i) => ({ tourId: id, type: "INCLUDE", textEs: inc.textEs, textEn: inc.textEn, sortOrder: i })),
+            ...(excludes || []).map((exc, i) => ({ tourId: id, type: "EXCLUDE", textEs: exc.textEs, textEn: exc.textEn, sortOrder: i })),
+          ];
+          if (allIncludes.length > 0) {
+            await tx.tourInclude.createMany({ data: allIncludes });
+          }
+        }
+
+        if (images) {
+          await tx.tourImage.deleteMany({ where: { tourId: id } });
+          if (images.length > 0) {
+            await tx.tourImage.createMany({
+              data: images.map((img, i) => ({
+                tourId: id,
+                cloudinaryId: img.cloudinaryId,
+                url: img.url,
+                altEs: img.altEs,
+                altEn: img.altEn,
+                isPrimary: img.isPrimary,
+                sortOrder: i,
+              })),
+            });
+          }
+        }
+
+        if (departures) {
+          // Only delete departures WITHOUT reservations to prevent FK violations
+          const departuresWithReservations = await tx.tourDeparture.findMany({
+            where: { tourId: id },
+            include: { _count: { select: { reservations: true } } },
+          });
+
+          const toDelete = departuresWithReservations
+            .filter((d) => d._count.reservations === 0)
+            .map((d) => d.id);
+
+          const protected_ = departuresWithReservations
+            .filter((d) => d._count.reservations > 0);
+
+          if (toDelete.length > 0) {
+            await tx.tourDeparture.deleteMany({
+              where: { id: { in: toDelete } },
+            });
+          }
+
+          // Create new departures (skip dates that are already protected)
+          const protectedDates = new Set(
+            protected_.map((d) => d.departureDate.toISOString().split("T")[0])
+          );
+
+          const newDepartures = departures.filter(
+            (dep) => !protectedDates.has(new Date(dep.departureDate).toISOString().split("T")[0])
+          );
+
+          if (newDepartures.length > 0) {
+            await tx.tourDeparture.createMany({
+              data: newDepartures.map((dep) => ({
+                tourId: id,
+                departureDate: new Date(dep.departureDate),
+                maxCapacity: dep.maxCapacity,
+              })),
+            });
+          }
+        }
+
+        return tx.tour.findUnique({
+          where: { id },
+          include: {
+            images: true,
+            itinerary: true,
+            pricing: true,
+            includes: true,
+            departures: true,
+          },
+        });
       });
+
+      revalidateTag(CACHE_TAGS.tours);
+      return result;
     }),
 
   // Eliminar tour (solo admin)
@@ -289,7 +358,16 @@ export const tourRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Tour no encontrado" });
       }
 
-      await ctx.db.tour.delete({ where: { id: input.id } });
+      // Aplicamos Soft Delete (Borrado Lógico) para proteger la integridad contable
+      // de las reservas y cotizaciones históricas asociadas a este tour.
+      await ctx.db.tour.update({
+        where: { id: input.id },
+        data: {
+          isActive: false,
+          status: "ARCHIVED"
+        }
+      });
+      revalidateTag(CACHE_TAGS.tours);
       return { success: true };
     }),
 
@@ -303,10 +381,12 @@ export const tourRouter = router({
       }
 
       const newStatus = tour.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
-      return ctx.db.tour.update({
+      const result = await ctx.db.tour.update({
         where: { id: input.id },
         data: { status: newStatus },
       });
+      revalidateTag(CACHE_TAGS.tours);
+      return result;
     }),
 
   // Toggle destacado
@@ -318,9 +398,11 @@ export const tourRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Tour no encontrado" });
       }
 
-      return ctx.db.tour.update({
+      const result = await ctx.db.tour.update({
         where: { id: input.id },
         data: { isFeatured: !tour.isFeatured },
       });
+      revalidateTag(CACHE_TAGS.tours);
+      return result;
     }),
 });

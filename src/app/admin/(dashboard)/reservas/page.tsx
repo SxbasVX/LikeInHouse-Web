@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/types";
+import { DownloadPDFButton } from "@/components/pdf/download-button";
 
 type Reservation = RouterOutput["reservation"]["list"]["reservations"][number];
 
@@ -56,6 +57,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  Loader2,
 } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
@@ -190,7 +192,7 @@ export default function ReservasPage() {
                   {data?.reservations.map((reservation: Reservation) => (
                     <TableRow key={reservation.id}>
                       <TableCell className="font-mono text-sm">
-                        {reservation.referenceCode.slice(0, 12)}...
+                        {reservation.referenceCode}
                       </TableCell>
                       <TableCell>
                         <div>
@@ -263,6 +265,28 @@ export default function ReservasPage() {
                             >
                               <XCircle className="mr-2 h-4 w-4" /> Cancelar
                             </DropdownMenuItem>
+
+                            <div className="px-1 py-1">
+                              <DownloadPDFButton
+                                isEs={true}
+                                variant="ghost"
+                                className="w-full justify-start h-8 px-2 py-1.5 text-sm font-normal"
+                                data={{
+                                  referenceCode: reservation.referenceCode,
+                                  serviceName: reservation.tour?.nameEs || "Servicio",
+                                  clientName: `${reservation.client.firstName} ${reservation.client.lastName}`,
+                                  clientEmail: reservation.client.email,
+                                  amountPaid: ["PAID", "COMPLETED"].includes(reservation.status) ? Number(reservation.totalAmount) : 0,
+                                  totalAmount: Number(reservation.totalAmount),
+                                  currency: reservation.currency,
+                                  dateStr: reservation.departure ? new Date(reservation.departure.departureDate).toLocaleDateString("es-PE") : "Sin fecha",
+                                  adults: reservation.adults,
+                                  children: reservation.children,
+                                  isEs: true,
+                                  type: "RESERVATION"
+                                }}
+                              />
+                            </div>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -315,7 +339,14 @@ export default function ReservasPage() {
               Cancelar
             </Button>
             <Button onClick={handleStatusChange} disabled={updateStatus.isPending}>
-              {updateStatus.isPending ? "Guardando..." : "Confirmar"}
+              {updateStatus.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Confirmar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

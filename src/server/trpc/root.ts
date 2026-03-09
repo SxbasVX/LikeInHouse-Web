@@ -9,9 +9,13 @@ import { quotationRouter } from "./routers/quotation";
 import { userRouter } from "./routers/user";
 import { contentRouter } from "./routers/content";
 import { publicRouter } from "./routers/public";
+import { paypalRouter } from "./routers/paypal";
+import { paymentLinkRouter } from "./routers/paymentLink";
 
 export const appRouter = router({
   auth: authRouter,
+  paypal: paypalRouter,
+  paymentLink: paymentLinkRouter,
   tour: tourRouter,
   dashboard: dashboardRouter,
   client: clientRouter,

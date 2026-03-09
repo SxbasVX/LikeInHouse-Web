@@ -36,7 +36,7 @@ export default function ToursPage() {
         <div>
           <h2 className="text-2xl font-bold">Tours</h2>
           <p className="text-muted-foreground">
-            Gestiona los tours de tu agencia
+            Gestiona los tours de LikeInHouse
           </p>
         </div>
         <Button asChild>

@@ -15,9 +15,37 @@ export default function NuevoTourPage() {
       router.push("/admin/tours");
     },
     onError: (error) => {
+      let description: any = error.message;
+
+      try {
+        const parsed = JSON.parse(error.message);
+        if (Array.isArray(parsed) && parsed[0]?.message) {
+          description = (
+            <div className="mt-2 max-h-[290px] overflow-y-auto pr-2">
+              <p className="text-sm font-semibold mb-2">Corrige los siguientes errores:</p>
+              <ul className="list-disc pl-4 space-y-2">
+                {parsed.map((e: any, i: number) => {
+                  const fieldPath = e.path ? e.path.join(" > ") : "";
+                  // Limpiar mensajes tecnicos si es posible
+                  const msg = e.message.includes("NaN") ? "Falta completar un número válido" : e.message;
+                  return (
+                    <li key={i} className="text-xs">
+                      {fieldPath && <span className="font-semibold block opacity-70 mb-0.5">{fieldPath}</span>}
+                      {msg}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        }
+      } catch (e) {
+        // Ignorar si no es JSON
+      }
+
       toast({
-        title: "Error al crear tour",
-        description: error.message,
+        title: "No se pudo crear el tour",
+        description,
         variant: "destructive",
       });
     },

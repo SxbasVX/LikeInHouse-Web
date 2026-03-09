@@ -1,5 +1,34 @@
 import { z } from "zod";
-import { router, publicProcedure } from "../trpc";
+import { Decimal } from "@prisma/client/runtime/library";
+import { router, publicProcedure, rateLimitedProcedure } from "../trpc";
+import { RATE_LIMITS } from "@/server/lib/rate-limit";
+import { sanitizePlainText } from "@/server/lib/sanitize";
+import {
+  getCachedFeaturedTours,
+  getCachedDestinations,
+  getCachedCategories,
+  getCachedToursByDestination,
+  getCachedFaqs,
+  getCachedHomeSections,
+  getCachedNavigation,
+  getCachedTestimonials,
+  getCachedSettings,
+} from "@/server/lib/cache";
+
+// Convierte Decimals de Prisma a números planos (necesario para RSC → Client Components)
+function serializeDecimals<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (obj instanceof Decimal) return Number(obj) as unknown as T;
+  if (Array.isArray(obj)) return obj.map(serializeDecimals) as unknown as T;
+  if (typeof obj === 'object' && obj.constructor === Object) {
+    const result: any = {};
+    for (const key of Object.keys(obj as any)) {
+      result[key] = serializeDecimals((obj as any)[key]);
+    }
+    return result as T;
+  }
+  return obj;
+}
 
 export const publicRouter = router({
   // Tours publicados con paginación y filtros
@@ -20,10 +49,15 @@ export const publicRouter = router({
       const { page, limit, destination, category, difficulty, sort } = input;
       const skip = (page - 1) * limit;
 
-      const where: any = { status: "PUBLISHED" };
+      const where: any = { status: "PUBLISHED", isActive: true };
       if (destination) where.destination = { contains: destination, mode: "insensitive" };
       if (category) where.category = { contains: category, mode: "insensitive" };
       if (difficulty) where.difficulty = difficulty;
+      if (input.minPrice !== undefined || input.maxPrice !== undefined) {
+        where.pricing = { basePriceUsdAdult: {} };
+        if (input.minPrice !== undefined) where.pricing.basePriceUsdAdult.gte = input.minPrice;
+        if (input.maxPrice !== undefined) where.pricing.basePriceUsdAdult.lte = input.maxPrice;
+      }
 
       let orderBy: any = { createdAt: "desc" };
       if (sort === "popular") orderBy = { isFeatured: "desc" };
@@ -43,28 +77,25 @@ export const publicRouter = router({
         ctx.db.tour.count({ where }),
       ]);
 
-      return { tours, total, pages: Math.ceil(total / limit), page };
+      return {
+        tours: tours.map((t) => ({ ...t, pricing: serializeDecimals(t.pricing) })),
+        total,
+        pages: Math.ceil(total / limit),
+        page,
+      };
     }),
 
   // Tours destacados (para homepage)
-  featuredTours: publicProcedure.query(async ({ ctx }) => {
-    return ctx.db.tour.findMany({
-      where: { status: "PUBLISHED", isFeatured: true },
-      take: 6,
-      orderBy: { sortOrder: "asc" },
-      include: {
-        images: { where: { isPrimary: true }, take: 1 },
-        pricing: { select: { basePricePenAdult: true, basePriceUsdAdult: true } },
-      },
-    });
+  featuredTours: publicProcedure.query(async () => {
+    return getCachedFeaturedTours();
   }),
 
   // Tour por slug
   tourBySlug: publicProcedure
     .input(z.object({ slug: z.string() }))
     .query(async ({ ctx, input }) => {
-      return ctx.db.tour.findUnique({
-        where: { slug: input.slug, status: "PUBLISHED" },
+      const tour = await ctx.db.tour.findUnique({
+        where: { slug: input.slug, status: "PUBLISHED", isActive: true },
         include: {
           images: { orderBy: { sortOrder: "asc" } },
           itinerary: { orderBy: { dayNumber: "asc" } },
@@ -77,40 +108,28 @@ export const publicRouter = router({
           seasons: true,
         },
       });
+      if (!tour) return null;
+      return { ...tour, pricing: serializeDecimals(tour.pricing) };
     }),
 
   // Testimonios aprobados
-  testimonials: publicProcedure.query(async ({ ctx }) => {
-    return ctx.db.testimonial.findMany({
-      where: { isApproved: true },
-      orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
-      take: 10,
-    });
+  testimonials: publicProcedure.query(async () => {
+    return getCachedTestimonials();
   }),
 
   // FAQs publicadas
-  faqs: publicProcedure.query(async ({ ctx }) => {
-    return ctx.db.fAQ.findMany({
-      where: { isPublished: true },
-      orderBy: { sortOrder: "asc" },
-    });
+  faqs: publicProcedure.query(async () => {
+    return getCachedFaqs();
   }),
 
   // Secciones del home
-  homeSections: publicProcedure.query(async ({ ctx }) => {
-    return ctx.db.homeSection.findMany({
-      where: { isVisible: true },
-      orderBy: { sortOrder: "asc" },
-    });
+  homeSections: publicProcedure.query(async () => {
+    return getCachedHomeSections();
   }),
 
   // NavItems
-  navigation: publicProcedure.query(async ({ ctx }) => {
-    return ctx.db.navItem.findMany({
-      where: { isVisible: true, parentId: null },
-      orderBy: { sortOrder: "asc" },
-      include: { children: { where: { isVisible: true }, orderBy: { sortOrder: "asc" } } },
-    });
+  navigation: publicProcedure.query(async () => {
+    return getCachedNavigation();
   }),
 
   // Blog posts publicados
@@ -145,28 +164,47 @@ export const publicRouter = router({
     }),
 
   // Settings públicos
-  settings: publicProcedure.query(async ({ ctx }) => {
-    const settings = await ctx.db.setting.findMany();
-    return Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  settings: publicProcedure.query(async () => {
+    return getCachedSettings();
+  }),
+
+  // Tours agrupados por destino (para navbar dinámico)
+  toursByDestination: publicProcedure.query(async () => {
+    return getCachedToursByDestination();
   }),
 
   // Destinos únicos (para filtros)
-  destinations: publicProcedure.query(async ({ ctx }) => {
-    const tours = await ctx.db.tour.findMany({
-      where: { status: "PUBLISHED" },
-      select: { destination: true },
-      distinct: ["destination"],
-    });
-    return tours.map((t) => t.destination);
+  destinations: publicProcedure.query(async () => {
+    return getCachedDestinations();
   }),
 
   // Categorías únicas (para filtros)
-  categories: publicProcedure.query(async ({ ctx }) => {
-    const tours = await ctx.db.tour.findMany({
-      where: { status: "PUBLISHED" },
-      select: { category: true },
-      distinct: ["category"],
-    });
-    return tours.map((t) => t.category);
+  categories: publicProcedure.query(async () => {
+    return getCachedCategories();
   }),
+
+  // Enviar mensaje de contacto (rate limited)
+  submitContact: rateLimitedProcedure(RATE_LIMITS.contactForm)
+    .input(
+      z.object({
+        name: z.string().min(1, "Nombre requerido").max(100),
+        email: z.string().email("Email inválido"),
+        phone: z.string().max(20).optional()
+          .refine((val) => !val || /^\+?[\d\s\-().]{6,20}$/.test(val), { message: "Teléfono inválido" }),
+        subject: z.string().min(1, "Asunto requerido").max(200),
+        message: z.string().min(10, "Mensaje muy corto").max(5000),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.contactMessage.create({
+        data: {
+          name: sanitizePlainText(input.name),
+          email: input.email,
+          phone: input.phone,
+          subject: sanitizePlainText(input.subject),
+          message: sanitizePlainText(input.message),
+        },
+      });
+      return { success: true };
+    }),
 });

@@ -84,7 +84,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@agencia.com"
+                placeholder="admin@likeinhouse.com"
                 {...register("email", {
                   required: "Email requerido",
                   pattern: {

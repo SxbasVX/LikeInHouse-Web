@@ -1,6 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { revalidateTag } from "next/cache";
 import { router, protectedProcedure, roleProtectedProcedure } from "../trpc";
+import { sanitizeHtml } from "@/server/lib/sanitize";
+import { CACHE_TAGS } from "@/server/lib/cache";
 
 const adminOrMarketing = roleProtectedProcedure(["ADMIN", "MARKETING"]);
 
@@ -23,7 +26,15 @@ export const contentRouter = router({
       isPublished: z.boolean().default(true),
     }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.fAQ.create({ data: input });
+      const result = await ctx.db.fAQ.create({
+        data: {
+          ...input,
+          answerEs: sanitizeHtml(input.answerEs),
+          answerEn: sanitizeHtml(input.answerEn),
+        },
+      });
+      revalidateTag(CACHE_TAGS.content);
+      return result;
     }),
 
   faqUpdate: adminOrMarketing
@@ -39,13 +50,19 @@ export const contentRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      return ctx.db.fAQ.update({ where: { id }, data });
+      if (data.answerEs) data.answerEs = sanitizeHtml(data.answerEs);
+      if (data.answerEn) data.answerEn = sanitizeHtml(data.answerEn);
+      const result = await ctx.db.fAQ.update({ where: { id }, data });
+      revalidateTag(CACHE_TAGS.content);
+      return result;
     }),
 
   faqDelete: adminOrMarketing
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.fAQ.delete({ where: { id: input.id } });
+      const result = await ctx.db.fAQ.delete({ where: { id: input.id } });
+      revalidateTag(CACHE_TAGS.content);
+      return result;
     }),
 
   // ===== Testimonios =====
@@ -63,13 +80,17 @@ export const contentRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      return ctx.db.testimonial.update({ where: { id }, data });
+      const result = await ctx.db.testimonial.update({ where: { id }, data });
+      revalidateTag(CACHE_TAGS.content);
+      return result;
     }),
 
   testimonialDelete: adminOrMarketing
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.testimonial.delete({ where: { id: input.id } });
+      const result = await ctx.db.testimonial.delete({ where: { id: input.id } });
+      revalidateTag(CACHE_TAGS.content);
+      return result;
     }),
 
   // ===== Blog Posts =====
@@ -106,6 +127,16 @@ export const contentRouter = router({
       return { posts, total, pages: Math.ceil(total / limit), page };
     }),
 
+  blogGetById: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const post = await ctx.db.blogPost.findUnique({ where: { id: input.id } });
+      if (!post) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Post no encontrado" });
+      }
+      return post;
+    }),
+
   blogTogglePublish: adminOrMarketing
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -123,6 +154,90 @@ export const contentRouter = router({
       });
     }),
 
+  blogCreate: adminOrMarketing
+    .input(z.object({
+      slug: z.string().min(3).regex(/^[a-z0-9-]+$/),
+      titleEs: z.string().min(1),
+      titleEn: z.string().min(1),
+      excerptEs: z.string().min(1),
+      excerptEn: z.string().min(1),
+      contentEs: z.string().min(1),
+      contentEn: z.string().min(1),
+      coverImageUrl: z.string().optional(),
+      category: z.string().optional(),
+      isPublished: z.boolean().default(false),
+      metaTitleEs: z.string().optional(),
+      metaDescEs: z.string().optional(),
+      metaTitleEn: z.string().optional(),
+      metaDescEn: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Use transaction to prevent slug race condition
+      const result = await ctx.db.$transaction(async (tx) => {
+        const existing = await tx.blogPost.findUnique({ where: { slug: input.slug } });
+        if (existing) {
+          throw new TRPCError({ code: "CONFLICT", message: "Ya existe un post con ese slug" });
+        }
+
+        return tx.blogPost.create({
+          data: {
+            ...input,
+            contentEs: sanitizeHtml(input.contentEs),
+            contentEn: sanitizeHtml(input.contentEn),
+            publishedAt: input.isPublished ? new Date() : null,
+          },
+        });
+      });
+      revalidateTag(CACHE_TAGS.blog);
+      return result;
+    }),
+
+  blogUpdate: adminOrMarketing
+    .input(z.object({
+      id: z.string(),
+      slug: z.string().min(3).regex(/^[a-z0-9-]+$/).optional(),
+      titleEs: z.string().min(1).optional(),
+      titleEn: z.string().min(1).optional(),
+      excerptEs: z.string().min(1).optional(),
+      excerptEn: z.string().min(1).optional(),
+      contentEs: z.string().optional(),
+      contentEn: z.string().optional(),
+      coverImageUrl: z.string().optional(),
+      category: z.string().optional(),
+      metaTitleEs: z.string().optional(),
+      metaDescEs: z.string().optional(),
+      metaTitleEn: z.string().optional(),
+      metaDescEn: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input;
+      const post = await ctx.db.blogPost.findUnique({ where: { id } });
+      if (!post) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Post no encontrado" });
+      }
+
+      if (data.slug && data.slug !== post.slug) {
+        const slugExists = await ctx.db.blogPost.findUnique({ where: { slug: data.slug } });
+        if (slugExists) {
+          throw new TRPCError({ code: "CONFLICT", message: "Ya existe un post con ese slug" });
+        }
+      }
+
+      if (data.contentEs) data.contentEs = sanitizeHtml(data.contentEs);
+      if (data.contentEn) data.contentEn = sanitizeHtml(data.contentEn);
+      const result = await ctx.db.blogPost.update({ where: { id }, data });
+      revalidateTag(CACHE_TAGS.blog);
+      return result;
+    }),
+
+  blogDelete: adminOrMarketing
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.db.blogPost.delete({ where: { id: input.id } });
+      revalidateTag(CACHE_TAGS.blog);
+      return result;
+    }),
+
   // ===== Home Sections =====
   homeSectionList: protectedProcedure.query(async ({ ctx }) => {
     return ctx.db.homeSection.findMany({
@@ -138,10 +253,36 @@ export const contentRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Sección no encontrada" });
       }
 
-      return ctx.db.homeSection.update({
+      const result = await ctx.db.homeSection.update({
         where: { id: input.id },
         data: { isVisible: !section.isVisible },
       });
+      revalidateTag(CACHE_TAGS.content);
+      return result;
+    }),
+
+  homeSectionUpdate: adminOrMarketing
+    .input(z.object({
+      id: z.string(),
+      titleEs: z.string().optional(),
+      titleEn: z.string().optional(),
+      subtitleEs: z.string().optional(),
+      subtitleEn: z.string().optional(),
+      imageUrl: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.db.homeSection.update({
+        where: { id: input.id },
+        data: {
+          titleEs: input.titleEs,
+          titleEn: input.titleEn,
+          subtitleEs: input.subtitleEs,
+          subtitleEn: input.subtitleEn,
+          imageUrl: input.imageUrl,
+        },
+      });
+      revalidateTag(CACHE_TAGS.content);
+      return result;
     }),
 
   // ===== Settings =====
@@ -151,14 +292,63 @@ export const contentRouter = router({
 
   settingUpsert: roleProtectedProcedure(["ADMIN"])
     .input(z.object({
-      key: z.string(),
-      value: z.any(),
+      key: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_.:-]+$/, "Clave inválida"),
+      value: z.unknown().refine(
+        (val) => {
+          try { return JSON.stringify(val).length <= 10000; } catch { return false; }
+        },
+        { message: "El valor es demasiado grande (máximo 10KB)" }
+      ),
     }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.setting.upsert({
+      const jsonValue = input.value as any;
+      const result = await ctx.db.setting.upsert({
         where: { key: input.key },
-        create: { key: input.key, value: input.value },
-        update: { value: input.value },
+        create: { key: input.key, value: jsonValue },
+        update: { value: jsonValue },
       });
+      revalidateTag(CACHE_TAGS.settings);
+      return result;
+    }),
+
+  // ===== Mensajes de Contacto =====
+  contactList: protectedProcedure
+    .input(z.object({
+      page: z.number().min(1).default(1),
+      limit: z.number().min(1).max(50).default(10),
+      isRead: z.boolean().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const { page, limit, isRead } = input;
+      const skip = (page - 1) * limit;
+
+      const where = isRead !== undefined ? { isRead } : {};
+
+      const [messages, total] = await Promise.all([
+        ctx.db.contactMessage.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: "desc" },
+        }),
+        ctx.db.contactMessage.count({ where }),
+      ]);
+
+      return { messages, total, pages: Math.ceil(total / limit), page };
+    }),
+
+  contactMarkRead: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.contactMessage.update({
+        where: { id: input.id },
+        data: { isRead: true },
+      });
+    }),
+
+  contactDelete: roleProtectedProcedure(["ADMIN"])
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.contactMessage.delete({ where: { id: input.id } });
     }),
 });

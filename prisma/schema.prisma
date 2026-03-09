@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // ============================================================
@@ -31,7 +32,6 @@ model User {
   quotations    Quotation[]
   paymentLinks  PaymentLink[]
   reservations  Reservation[]
-  auditLogs     AuditLog[]
   accounts      Account[]
   sessions      Session[]
 }
@@ -78,10 +78,16 @@ enum Difficulty {
   CHALLENGING
 }
 
+enum TourType {
+  BOOKABLE
+  INFORMATIONAL
+}
+
 model Tour {
   id             String     @id @default(cuid())
   slug           String     @unique
   status         TourStatus @default(DRAFT)
+  tourType       TourType   @default(BOOKABLE)
   isFeatured     Boolean    @default(false)
   category       String
   difficulty     Difficulty @default(EASY)
@@ -102,6 +108,7 @@ model Tour {
   metaTitleEn    String?
   metaDescEn     String?
 
+  isActive       Boolean    @default(true) // For soft deletes
   sortOrder      Int        @default(0)
 
   createdAt      DateTime   @default(now())
@@ -227,7 +234,6 @@ model Client {
   reservations Reservation[]
   quotations   Quotation[]
 
-  @@index([email])
 }
 
 // ============================================================
@@ -256,13 +262,13 @@ model Reservation {
   origin          ReservationOrigin @default(WEB)
 
   clientId        String
-  client          Client            @relation(fields: [clientId], references: [id])
+  client          Client            @relation(fields: [clientId], references: [id], onDelete: Restrict)
   tourId          String
-  tour            Tour              @relation(fields: [tourId], references: [id])
+  tour            Tour              @relation(fields: [tourId], references: [id], onDelete: Restrict)
   departureId     String?
-  departure       TourDeparture?    @relation(fields: [departureId], references: [id])
+  departure       TourDeparture?    @relation(fields: [departureId], references: [id], onDelete: SetNull)
   assignedUserId  String?
-  assignedUser    User?             @relation(fields: [assignedUserId], references: [id])
+  assignedUser    User?             @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
   quotationId     String?
   paymentLinkId   String?
 
@@ -312,7 +318,7 @@ enum PaymentMethod {
 model Payment {
   id               String        @id @default(cuid())
   reservationId    String
-  reservation      Reservation   @relation(fields: [reservationId], references: [id])
+  reservation      Reservation   @relation(fields: [reservationId], references: [id], onDelete: Restrict)
   status           PaymentStatus @default(PENDING)
   method           PaymentMethod
   amount           Decimal       @db.Decimal(10, 2)
@@ -356,9 +362,9 @@ model Quotation {
   status          QuotationStatus @default(DRAFT)
 
   clientId        String
-  client          Client          @relation(fields: [clientId], references: [id])
+  client          Client          @relation(fields: [clientId], references: [id], onDelete: Restrict)
   createdByUserId String
-  createdBy       User            @relation(fields: [createdByUserId], references: [id])
+  createdBy       User            @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
 
   titleEs         String
   titleEn         String?
@@ -427,7 +433,7 @@ model PaymentLink {
   status          PaymentLinkStatus @default(ACTIVE)
 
   createdByUserId String
-  createdBy       User              @relation(fields: [createdByUserId], references: [id])
+  createdBy       User              @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
 
   quotationId     String?           @unique
   quotation       Quotation?        @relation(fields: [quotationId], references: [id])
@@ -467,7 +473,6 @@ model PaymentLink {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
-  @@index([token])
   @@index([status])
   @@index([expiresAt])
 }
@@ -507,7 +512,6 @@ model Page {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([slug])
 }
 
 enum HomeSectionType {
@@ -596,8 +600,7 @@ model FAQ {
 
 model AuditLog {
   id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  userId    String   // Real user ID or system actor name (e.g. "system-cron")
   action    String
   entity    String
   entityId  String
@@ -625,4 +628,22 @@ model Setting {
   id    String @id @default(cuid())
   key   String @unique
   value Json
+}
+
+// ============================================================
+// MENSAJES DE CONTACTO
+// ============================================================
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
 }

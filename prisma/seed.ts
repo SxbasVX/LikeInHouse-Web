@@ -4,6 +4,14 @@ import { hash } from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
+  // Production guard: prevent accidental data wipe
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "🚫 SEED CANNOT RUN IN PRODUCTION. This script deletes ALL data. " +
+      "If you really need to seed production, set NODE_ENV=development first."
+    );
+  }
+
   console.log("🌱 Iniciando seed...");
 
   // ============================================================
@@ -111,7 +119,7 @@ async function main() {
       {
         tourId: tour.id,
         cloudinaryId: "tours/cusco-magico-1",
-        url: "https://res.cloudinary.com/ditqi1yrz/image/upload/v1/tours/cusco-magico-1",
+        url: "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800&q=80",
         altEs: "Vista panoramica de Cusco",
         altEn: "Panoramic view of Cusco",
         isPrimary: true,
@@ -120,7 +128,7 @@ async function main() {
       {
         tourId: tour.id,
         cloudinaryId: "tours/cusco-magico-2",
-        url: "https://res.cloudinary.com/ditqi1yrz/image/upload/v1/tours/cusco-magico-2",
+        url: "https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800&q=80",
         altEs: "Machu Picchu al amanecer",
         altEn: "Machu Picchu at sunrise",
         isPrimary: false,
@@ -129,7 +137,7 @@ async function main() {
       {
         tourId: tour.id,
         cloudinaryId: "tours/cusco-magico-3",
-        url: "https://res.cloudinary.com/ditqi1yrz/image/upload/v1/tours/cusco-magico-3",
+        url: "https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?w=800&q=80",
         altEs: "Valle Sagrado de los Incas",
         altEn: "Sacred Valley of the Incas",
         isPrimary: false,
@@ -138,7 +146,7 @@ async function main() {
       {
         tourId: tour.id,
         cloudinaryId: "tours/cusco-magico-4",
-        url: "https://res.cloudinary.com/ditqi1yrz/image/upload/v1/tours/cusco-magico-4",
+        url: "https://images.unsplash.com/photo-1569383746724-6f1b882b8f46?w=800&q=80",
         altEs: "Sacsayhuaman fortaleza",
         altEn: "Sacsayhuaman fortress",
         isPrimary: false,

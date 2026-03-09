@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ interface TourCardProps {
     durationDays: number;
     durationNights: number;
     isFeatured: boolean;
+    tourType?: string;
     images: { url: string; altEs?: string | null; altEn?: string | null }[];
     pricing: { basePricePenAdult: any; basePriceUsdAdult: any } | null;
   };
@@ -39,20 +41,25 @@ export function TourCard({ tour }: TourCardProps) {
   const desc = isEs ? tour.shortDescEs : tour.shortDescEn;
   const image = tour.images[0];
   const price = tour.pricing
-    ? Number(isEs ? tour.pricing.basePricePenAdult : tour.pricing.basePriceUsdAdult)
+    ? (() => {
+        const raw = Number(isEs ? tour.pricing.basePricePenAdult : tour.pricing.basePriceUsdAdult);
+        return isFinite(raw) ? raw : null;
+      })()
     : null;
   const currency = isEs ? "S/" : "$";
 
   return (
     <Link href={`/tours/${tour.slug}`}>
-      <Card className="group overflow-hidden transition-shadow hover:shadow-lg">
+      <Card className="group flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
         {/* Image */}
         <div className="relative aspect-[4/3] overflow-hidden">
           {image ? (
-            <img
+            <Image
               src={image.url}
               alt={(isEs ? image.altEs : image.altEn) || name}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-muted">
@@ -74,7 +81,7 @@ export function TourCard({ tour }: TourCardProps) {
         </div>
 
         {/* Content */}
-        <CardContent className="p-4">
+        <CardContent className="flex flex-col flex-1 p-4">
           <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" />
             {tour.destination}
@@ -83,14 +90,18 @@ export function TourCard({ tour }: TourCardProps) {
             {tour.durationDays}{t("days")} / {tour.durationNights}{t("nights")}
           </div>
 
-          <h3 className="mb-1 font-semibold line-clamp-1 group-hover:text-primary transition-colors">
+          <h3 className="mb-1 text-base font-bold leading-tight line-clamp-1 group-hover:text-primary transition-colors">
             {name}
           </h3>
           <p className="mb-3 text-sm text-muted-foreground line-clamp-2">
             {desc}
           </p>
 
-          {price && (
+          {tour.tourType === "INFORMATIONAL" ? (
+            <Badge variant="secondary" className="text-xs">
+              {isEs ? "Solo informativo" : "Info only"}
+            </Badge>
+          ) : price ? (
             <div className="flex items-baseline gap-1">
               <span className="text-xs text-muted-foreground">{t("from_price")}</span>
               <span className="text-lg font-bold text-primary">
@@ -98,7 +109,7 @@ export function TourCard({ tour }: TourCardProps) {
               </span>
               <span className="text-xs text-muted-foreground">/ {t("per_person")}</span>
             </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </Link>

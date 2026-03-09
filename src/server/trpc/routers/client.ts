@@ -144,6 +144,15 @@ export const clientRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Cliente no encontrado" });
       }
 
+      // Check quotations FK too (Restrict would crash)
+      const quotationCount = await ctx.db.quotation.count({ where: { clientId: input.id } });
+      if (quotationCount > 0) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `No se puede eliminar: tiene ${quotationCount} cotización(es) asociada(s)`,
+        });
+      }
+
       if (client._count.reservations > 0) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",

@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "../trpc";
+import { router, roleProtectedProcedure } from "../trpc";
+import { TRPCError } from "@trpc/server";
+import { createAuditLog } from "@/server/lib/audit";
+import { sendWhatsAppAlert } from "@/server/lib/whatsapp";
+
+const adminOrSales = roleProtectedProcedure(["ADMIN", "SALES"]);
 
 const paymentListSchema = z.object({
   page: z.number().min(1).default(1),
@@ -9,7 +14,7 @@ const paymentListSchema = z.object({
 });
 
 export const paymentRouter = router({
-  list: protectedProcedure
+  list: adminOrSales
     .input(paymentListSchema)
     .query(async ({ ctx, input }) => {
       const { page, limit, status, method } = input;
@@ -47,7 +52,7 @@ export const paymentRouter = router({
       };
     }),
 
-  getStats: protectedProcedure.query(async ({ ctx }) => {
+  getStats: adminOrSales.query(async ({ ctx }) => {
     const [totalCompleted, totalPending, totalRefunded] = await Promise.all([
       ctx.db.payment.aggregate({
         where: { status: "COMPLETED" },
@@ -82,7 +87,7 @@ export const paymentRouter = router({
     };
   }),
 
-  markAsVerified: protectedProcedure
+  markAsVerified: adminOrSales
     .input(z.object({
       id: z.string(),
       notes: z.string().optional(),
@@ -90,15 +95,41 @@ export const paymentRouter = router({
     .mutation(async ({ ctx, input }) => {
       const userId = (ctx.session.user as { id: string }).id;
 
-      return ctx.db.payment.update({
-        where: { id: input.id },
-        data: {
-          status: "COMPLETED",
-          manualVerifiedBy: userId,
-          manualVerifiedAt: new Date(),
-          manualNotes: input.notes,
-          processedAt: new Date(),
-        },
+      // M14: Use transaction to prevent double verification
+      const payment = await ctx.db.$transaction(async (tx) => {
+        const existing = await tx.payment.findUnique({ where: { id: input.id } });
+        if (!existing) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Pago no encontrado" });
+        }
+        if (existing.status === "COMPLETED") {
+          return existing; // Already verified, idempotent
+        }
+
+        return tx.payment.update({
+          where: { id: input.id },
+          data: {
+            status: "COMPLETED",
+            manualVerifiedBy: userId,
+            manualVerifiedAt: new Date(),
+            manualNotes: input.notes,
+            processedAt: new Date(),
+          },
+        });
       });
+
+      // Audit log
+      createAuditLog({
+        userId,
+        action: "PAYMENT_VERIFIED",
+        entity: "Payment",
+        entityId: input.id,
+        changes: { notes: input.notes, reservationId: payment.reservationId },
+      });
+
+      sendWhatsAppAlert(
+        `✅ *Pago Verificado Manualmente*\nMonto: ${payment.amount}\nMétodo: ${payment.method}\nReserva ID: ${payment.reservationId}`
+      ).catch(console.error);
+
+      return payment;
     }),
 });

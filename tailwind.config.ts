@@ -16,7 +16,18 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-lato)", "sans-serif"],
+        heading: ["var(--font-montserrat)", "sans-serif"],
+      },
       colors: {
+        brand: {
+          teal: "#16A59E",
+          orange: "#FC431F",
+          beige: "#E5CFBE",
+          darkRed: "#441514",
+          darkTeal: "#0E6660"
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

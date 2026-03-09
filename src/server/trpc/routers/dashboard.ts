@@ -2,6 +2,14 @@ import { router, protectedProcedure } from "../trpc";
 
 export const dashboardRouter = router({
   getStats: protectedProcedure.query(async ({ ctx }) => {
+    const userId = (ctx.session.user as { id: string; role: string }).id;
+    const userRole = (ctx.session.user as { role: string }).role;
+    const isAdmin = userRole === "ADMIN";
+
+    // Non-admin users only see stats for their own reservations/quotations
+    const reservationFilter = isAdmin ? {} : { assignedUserId: userId };
+    const quotationFilter = isAdmin ? {} : { createdByUserId: userId };
+
     const [
       totalTours,
       publishedTours,
@@ -11,18 +19,21 @@ export const dashboardRouter = router({
       totalClients,
       openQuotations,
     ] = await Promise.all([
-      ctx.db.tour.count(),
-      ctx.db.tour.count({ where: { status: "PUBLISHED" } }),
-      ctx.db.reservation.count(),
-      ctx.db.reservation.count({ where: { status: "PENDING" } }),
-      ctx.db.payment.count({ where: { status: "PENDING" } }),
-      ctx.db.client.count(),
+      ctx.db.tour.count({ where: { isActive: true } }),
+      ctx.db.tour.count({ where: { status: "PUBLISHED", isActive: true } }),
+      ctx.db.reservation.count({ where: reservationFilter }),
+      ctx.db.reservation.count({ where: { status: "PENDING", ...reservationFilter } }),
+      isAdmin
+        ? ctx.db.payment.count({ where: { status: "PENDING" } })
+        : ctx.db.payment.count({ where: { status: "PENDING", reservation: { assignedUserId: userId } } }),
+      isAdmin ? ctx.db.client.count() : 0,
       ctx.db.quotation.count({
-        where: { status: { in: ["DRAFT", "SENT", "VIEWED"] } },
+        where: { status: { in: ["DRAFT", "SENT", "VIEWED"] }, ...quotationFilter },
       }),
     ]);
 
     const recentReservations = await ctx.db.reservation.findMany({
+      where: reservationFilter,
       take: 5,
       orderBy: { createdAt: "desc" },
       include: {

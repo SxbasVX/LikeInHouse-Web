@@ -53,7 +53,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 border-b px-6">
         <Map className="h-6 w-6 text-primary" />
-        <span className="text-lg font-bold">Peru Tours</span>
+        <span className="text-lg font-bold">LikeInHouse</span>
       </div>
 
       {/* Navigation */}
@@ -96,7 +96,11 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
           variant="ghost"
           size="sm"
           className="w-full justify-start gap-2 text-muted-foreground"
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
+          onClick={() => {
+            if (window.confirm("¿Seguro que deseas cerrar sesión?")) {
+              signOut({ callbackUrl: "/admin/login" });
+            }
+          }}
         >
           <LogOut className="h-4 w-4" />
           Cerrar sesion
