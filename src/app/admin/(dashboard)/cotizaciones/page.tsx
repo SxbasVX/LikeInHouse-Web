@@ -165,7 +165,7 @@ export default function CotizacionesPage() {
 
   const generatePaymentLink = trpc.paymentLink.createFromQuotation.useMutation({
     onSuccess: (link) => {
-      const baseUrl = window.location.origin;
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
       const url = `${baseUrl}/es/pagar/${link.token}`;
       setLinkDialog({ url, token: link.token });
       toast({ title: "Link de pago generado" });
