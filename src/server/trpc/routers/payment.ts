@@ -53,19 +53,26 @@ export const paymentRouter = router({
     }),
 
   getStats: adminOrSales.query(async ({ ctx }) => {
+    const userId = (ctx.session.user as { id: string; role: string }).id;
+    const userRole = (ctx.session.user as { role: string }).role;
+    const isAdmin = userRole === "ADMIN";
+
+    // Non-admin users only see stats for payments on their assigned reservations
+    const ownershipFilter = isAdmin ? {} : { reservation: { assignedUserId: userId } };
+
     const [totalCompleted, totalPending, totalRefunded] = await Promise.all([
       ctx.db.payment.aggregate({
-        where: { status: "COMPLETED" },
+        where: { status: "COMPLETED", ...ownershipFilter },
         _sum: { amount: true },
         _count: true,
       }),
       ctx.db.payment.aggregate({
-        where: { status: "PENDING" },
+        where: { status: "PENDING", ...ownershipFilter },
         _sum: { amount: true },
         _count: true,
       }),
       ctx.db.payment.aggregate({
-        where: { status: "REFUNDED" },
+        where: { status: "REFUNDED", ...ownershipFilter },
         _sum: { amount: true },
         _count: true,
       }),

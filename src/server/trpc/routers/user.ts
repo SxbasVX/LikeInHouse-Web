@@ -203,6 +203,17 @@ export const userRouter = router({
         });
       }
 
+      // Verify no created payment links (FK Restrict would crash)
+      const paymentLinkCount = await ctx.db.paymentLink.count({
+        where: { createdByUserId: input.id },
+      });
+      if (paymentLinkCount > 0) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: `No se puede eliminar: ha creado ${paymentLinkCount} link(s) de pago. Desactiva la cuenta en su lugar.`,
+        });
+      }
+
       await ctx.db.user.delete({ where: { id: input.id } });
 
       // Audit user deletion

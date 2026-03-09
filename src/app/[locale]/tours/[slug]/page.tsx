@@ -67,7 +67,7 @@ export default async function TourDetailPage({
     <div className="page-transition">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/\//g, '\\u002f') }}
       />
       <TourDetail tour={tour} />
     </div>

@@ -211,21 +211,27 @@ export const contentRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const post = await ctx.db.blogPost.findUnique({ where: { id } });
-      if (!post) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Post no encontrado" });
-      }
-
-      if (data.slug && data.slug !== post.slug) {
-        const slugExists = await ctx.db.blogPost.findUnique({ where: { slug: data.slug } });
-        if (slugExists) {
-          throw new TRPCError({ code: "CONFLICT", message: "Ya existe un post con ese slug" });
-        }
-      }
 
       if (data.contentEs) data.contentEs = sanitizeHtml(data.contentEs);
       if (data.contentEn) data.contentEn = sanitizeHtml(data.contentEn);
-      const result = await ctx.db.blogPost.update({ where: { id }, data });
+
+      // Wrap in transaction to prevent TOCTOU slug race condition
+      const result = await ctx.db.$transaction(async (tx) => {
+        const post = await tx.blogPost.findUnique({ where: { id } });
+        if (!post) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Post no encontrado" });
+        }
+
+        if (data.slug && data.slug !== post.slug) {
+          const slugExists = await tx.blogPost.findUnique({ where: { slug: data.slug } });
+          if (slugExists) {
+            throw new TRPCError({ code: "CONFLICT", message: "Ya existe un post con ese slug" });
+          }
+        }
+
+        return tx.blogPost.update({ where: { id }, data });
+      });
+
       revalidateTag(CACHE_TAGS.blog);
       return result;
     }),

@@ -16,8 +16,8 @@ function makeQueryClient() {
         gcTime: 5 * 60 * 1000,
         // No refetch al volver a la pestaña (admin no necesita real-time)
         refetchOnWindowFocus: false,
-        // Reintentar 1 vez en caso de error
-        retry: 1,
+        // Reintentar hasta 3 veces con backoff exponencial
+        retry: 3,
       },
     },
   });

@@ -63,13 +63,15 @@ const reservationUpdateStatusSchema = z.object({
 });
 
 // Reusable traffic source schema for attribution tracking
+// Only allow safe characters to prevent stored XSS in admin dashboards
+const safeTrafficString = z.string().max(100).regex(/^[a-zA-Z0-9_.:\-/()%+ ]*$/, "Caracteres no permitidos");
 const trafficSourceSchema = z.object({
-  firstSource: z.string().max(100).optional(),
-  lastSource: z.string().max(100).optional(),
-  utmSource: z.string().max(100).optional(),
-  utmCampaign: z.string().max(100).optional(),
-  utmMedium: z.string().max(100).optional(),
-  utmContent: z.string().max(100).optional(),
+  firstSource: safeTrafficString.optional(),
+  lastSource: safeTrafficString.optional(),
+  utmSource: safeTrafficString.optional(),
+  utmCampaign: safeTrafficString.optional(),
+  utmMedium: safeTrafficString.optional(),
+  utmContent: safeTrafficString.optional(),
 }).optional();
 
 const guestReservationSchema = z.object({

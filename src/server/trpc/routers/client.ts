@@ -1,8 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { router, protectedProcedure, roleProtectedProcedure } from "../trpc";
+import { router, roleProtectedProcedure } from "../trpc";
 
 const adminOnly = roleProtectedProcedure(["ADMIN"]);
+const adminOrSales = roleProtectedProcedure(["ADMIN", "SALES"]);
 
 const clientListSchema = z.object({
   page: z.number().min(1).default(1),
@@ -25,7 +26,7 @@ const clientUpdateSchema = clientCreateSchema.partial().extend({
 });
 
 export const clientRouter = router({
-  list: protectedProcedure
+  list: adminOrSales
     .input(clientListSchema)
     .query(async ({ ctx, input }) => {
       const { page, limit, search } = input;
@@ -63,7 +64,7 @@ export const clientRouter = router({
       };
     }),
 
-  getById: protectedProcedure
+  getById: adminOrSales
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const client = await ctx.db.client.findUnique({
@@ -90,7 +91,7 @@ export const clientRouter = router({
       return client;
     }),
 
-  create: protectedProcedure
+  create: adminOrSales
     .input(clientCreateSchema)
     .mutation(async ({ ctx, input }) => {
       const exists = await ctx.db.client.findUnique({
@@ -107,7 +108,7 @@ export const clientRouter = router({
       return ctx.db.client.create({ data: input });
     }),
 
-  update: protectedProcedure
+  update: adminOrSales
     .input(clientUpdateSchema)
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;

@@ -1,23 +1,81 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "crypto";
 import { db } from "@/server/lib/db";
+import { createAuditLog } from "@/server/lib/audit";
 import { sendWhatsAppAlert, sendWhatsAppToClient } from "@/server/lib/whatsapp";
+
+/**
+ * Verify Culqi webhook HMAC signature.
+ * Culqi signs webhooks with the merchant's secret key.
+ */
+function verifyCulqiSignature(rawBody: string, signatureHeader: string | null): boolean {
+    const secretKey = process.env.CULQI_SECRET_KEY;
+    if (!secretKey || !signatureHeader) return false;
+
+    try {
+        const expectedSig = createHmac("sha256", secretKey).update(rawBody).digest("hex");
+        const sigBuffer = Buffer.from(signatureHeader);
+        const expectedBuffer = Buffer.from(expectedSig);
+        if (sigBuffer.length !== expectedBuffer.length) return false;
+        return timingSafeEqual(sigBuffer, expectedBuffer);
+    } catch {
+        return false;
+    }
+}
 
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
+        const rawBody = await req.text();
+
+        // HMAC signature verification (when Culqi account is configured)
+        const signature = req.headers.get("x-culqi-signature");
+        if (process.env.CULQI_SECRET_KEY) {
+            if (!verifyCulqiSignature(rawBody, signature)) {
+                console.error("[Culqi Webhook] Invalid signature - rejecting");
+                createAuditLog({
+                    userId: "SYSTEM",
+                    action: "WEBHOOK_REJECTED",
+                    entity: "CulqiWebhook",
+                    entityId: "unknown",
+                    changes: { reason: "Invalid HMAC signature" },
+                });
+                return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
+            }
+        } else if (process.env.NODE_ENV === "production") {
+            console.error("[Culqi Webhook] CULQI_SECRET_KEY not configured - rejecting in production");
+            return NextResponse.json({ error: "Webhook verification not configured" }, { status: 500 });
+        }
+
+        let body: any;
+        try {
+            body = JSON.parse(rawBody);
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+        }
 
         // Culqi dispara 'charge.creation.succeeded' cuando una tarjeta pasa
         if (body.object !== "event" || body.type !== "charge.creation.succeeded") {
             return NextResponse.json({ received: true });
         }
 
-        const data = JSON.parse(body.data);
+        let data: any;
+        try {
+            data = typeof body.data === "string" ? JSON.parse(body.data) : body.data;
+        } catch {
+            console.error("[Culqi Webhook] Invalid body.data JSON");
+            return NextResponse.json({ error: "Invalid payload data" }, { status: 400 });
+        }
+
         const chargeId = data.id;
         const referenceCode = data.metadata?.referenceCode;
-        const amount = data.amount / 100; // Culqi manda importes en centimos
 
         if (!chargeId || !referenceCode) {
             return NextResponse.json({ error: "Faltan identificadores críticos" }, { status: 400 });
+        }
+
+        // Sanitize chargeId before using in URL
+        if (!/^[a-zA-Z0-9_-]+$/.test(chargeId)) {
+            return NextResponse.json({ error: "Invalid charge ID format" }, { status: 400 });
         }
 
         // SECURITY PATCH: Server-to-Server validation
@@ -96,7 +154,14 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ received: true });
     } catch (error) {
-        console.error("[Culqi Webhook Error]", error);
+        console.error("[Culqi Webhook Error]", error instanceof Error ? error.message : "Unknown error");
+        createAuditLog({
+            userId: "SYSTEM",
+            action: "WEBHOOK_ERROR",
+            entity: "CulqiWebhook",
+            entityId: "unknown",
+            changes: { error: error instanceof Error ? error.message : String(error) },
+        });
         return NextResponse.json({ error: "Server Error" }, { status: 500 });
     }
 }

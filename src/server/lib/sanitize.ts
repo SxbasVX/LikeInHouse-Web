@@ -59,8 +59,9 @@ function sanitizeTag(fullMatch: string, tagName: string, attrs: string | undefin
 
             if (!ALLOWED_ATTR.has(attrName)) continue;
 
-            // Prevent javascript: protocol in href/src
-            if ((attrName === "href" || attrName === "src") && /^\s*javascript\s*:/i.test(attrValue)) {
+            // Prevent dangerous protocols in href/src (javascript:, data:, vbscript:)
+            if ((attrName === "href" || attrName === "src") &&
+                /^\s*(javascript|data|vbscript)\s*:/i.test(attrValue)) {
                 continue;
             }
 
@@ -74,8 +75,8 @@ function sanitizeTag(fullMatch: string, tagName: string, attrs: string | undefin
 
 export function sanitizeHtml(html: string): string {
     // Strip dangerous tags AND their content
-    let clean = html.replace(/<(script|style|iframe|object|embed|form|input|textarea|select)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
-    clean = clean.replace(/<(script|style|iframe|object|embed|form|input|textarea|select)\b[^>]*\/?>/gi, "");
+    let clean = html.replace(/<(script|style|iframe|object|embed|form|input|textarea|select|meta|link|base)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+    clean = clean.replace(/<(script|style|iframe|object|embed|form|input|textarea|select|meta|link|base)\b[^>]*\/?>/gi, "");
 
     // Process remaining tags
     return clean.replace(TAG_RE, sanitizeTag);
@@ -86,5 +87,9 @@ export function sanitizeHtml(html: string): string {
  * Use for fields that should never contain markup.
  */
 export function sanitizePlainText(text: string): string {
-    return text.replace(/<[^>]*>/g, "").trim();
+    // First strip dangerous tags AND their content (script, style, etc.)
+    let clean = text.replace(/<(script|style|iframe|object|embed)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+    clean = clean.replace(/<(script|style|iframe|object|embed)\b[^>]*\/?>/gi, "");
+    // Then strip remaining HTML tags (keep text content)
+    return clean.replace(/<[^>]*>/g, "").trim();
 }

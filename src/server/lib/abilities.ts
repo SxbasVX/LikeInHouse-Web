@@ -1,4 +1,5 @@
 import { AbilityBuilder, createMongoAbility, type MongoAbility, type InferSubjects } from "@casl/ability";
+import { TRPCError } from "@trpc/server";
 import type { UserRole } from "@prisma/client";
 
 // Define the subjects (entities) in the application
@@ -91,7 +92,6 @@ export function assertOwnershipOrAdmin(
     resourceName: string = "recurso"
 ): void {
     if (role !== "ADMIN" && !isOwner(resourceOwnerId, currentUserId)) {
-        const { TRPCError } = require("@trpc/server");
         throw new TRPCError({
             code: "FORBIDDEN",
             message: `No tienes acceso a este ${resourceName}`,

@@ -299,10 +299,10 @@ export const paymentLinkRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Link de pago no encontrado" });
       }
 
-      // Check expiration
+      // Check expiration - use updateMany with status condition to prevent race conditions
       if (link.status === "ACTIVE" && new Date() > link.expiresAt) {
-        await ctx.db.paymentLink.update({
-          where: { id: link.id },
+        await ctx.db.paymentLink.updateMany({
+          where: { id: link.id, status: "ACTIVE" },
           data: { status: "EXPIRED" },
         });
         link.status = "EXPIRED";
@@ -345,12 +345,12 @@ export const paymentLinkRouter = router({
       token: z.string(),
       payDeposit: z.boolean().default(false),
       trafficSource: z.object({
-        firstSource: z.string().max(100).optional(),
-        lastSource: z.string().max(100).optional(),
-        utmSource: z.string().max(100).optional(),
-        utmCampaign: z.string().max(100).optional(),
-        utmMedium: z.string().max(100).optional(),
-        utmContent: z.string().max(100).optional(),
+        firstSource: z.string().max(100).regex(/^[a-zA-Z0-9_.:\-/()%+ ]*$/).optional(),
+        lastSource: z.string().max(100).regex(/^[a-zA-Z0-9_.:\-/()%+ ]*$/).optional(),
+        utmSource: z.string().max(100).regex(/^[a-zA-Z0-9_.:\-/()%+ ]*$/).optional(),
+        utmCampaign: z.string().max(100).regex(/^[a-zA-Z0-9_.:\-/()%+ ]*$/).optional(),
+        utmMedium: z.string().max(100).regex(/^[a-zA-Z0-9_.:\-/()%+ ]*$/).optional(),
+        utmContent: z.string().max(100).regex(/^[a-zA-Z0-9_.:\-/()%+ ]*$/).optional(),
       }).optional(),
     }))
     .mutation(async ({ ctx, input }) => {

@@ -49,7 +49,7 @@ export default function BlogPostPage() {
 
   // Simple Tiptap JSON content renderer
   const renderContent = (json: any) => {
-    if (!json || !json.content) return null;
+    if (!json || !Array.isArray(json.content)) return null;
     return json.content.map((node: any, i: number) => {
       if (node.type === "paragraph" && node.content) {
         return (

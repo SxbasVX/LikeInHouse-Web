@@ -229,6 +229,19 @@ export const tourRouter = router({
           }
         }
 
+        // Prevent changing BOOKABLE → INFORMATIONAL if there are active reservations
+        if (tourData.tourType === "INFORMATIONAL" && existing.tourType === "BOOKABLE") {
+          const activeReservations = await tx.reservation.count({
+            where: { tourId: id, status: { notIn: ["COMPLETED", "CANCELLED"] } },
+          });
+          if (activeReservations > 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `No se puede cambiar a informativo: hay ${activeReservations} reserva(s) activa(s)`,
+            });
+          }
+        }
+
         // Actualizar tour base
         await tx.tour.update({ where: { id }, data: tourData });
 

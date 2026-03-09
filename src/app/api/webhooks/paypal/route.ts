@@ -25,7 +25,7 @@ async function getPayPalAccessToken() {
 async function verifyWebhookSignature(req: NextRequest, body: any, accessToken: string, api: string): Promise<boolean> {
     const webhookId = process.env.PAYPAL_WEBHOOK_ID;
     if (!webhookId) {
-        console.warn("[PayPal Webhook] PAYPAL_WEBHOOK_ID not set, skipping verification");
+        console.error("[PayPal Webhook] PAYPAL_WEBHOOK_ID not set - cannot verify");
         return false;
     }
 
@@ -39,9 +39,10 @@ async function verifyWebhookSignature(req: NextRequest, body: any, accessToken: 
         webhook_event: body,
     };
 
-    // All headers must be present
-    if (!verifyPayload.auth_algo || !verifyPayload.cert_url || !verifyPayload.transmission_id ||
-        !verifyPayload.transmission_sig || !verifyPayload.transmission_time) {
+    // All headers must be present and non-empty
+    if (!verifyPayload.auth_algo?.trim() || !verifyPayload.cert_url?.trim() ||
+        !verifyPayload.transmission_id?.trim() || !verifyPayload.transmission_sig?.trim() ||
+        !verifyPayload.transmission_time?.trim()) {
         return false;
     }
 
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
         }
 
         const isValid = await verifyWebhookSignature(req, body, token, api);
-        if (!isValid && process.env.PAYPAL_WEBHOOK_ID) {
+        if (!isValid) {
             console.error("[PayPal Webhook] Invalid signature, rejecting");
             createAuditLog({
                 userId: "SYSTEM",
@@ -199,7 +200,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ received: true });
     } catch (error) {
-        console.error("[PayPal Webhook Error]", error);
+        console.error("[PayPal Webhook Error]", error instanceof Error ? error.message : "Unknown error");
         createAuditLog({
             userId: "SYSTEM",
             action: "WEBHOOK_ERROR",

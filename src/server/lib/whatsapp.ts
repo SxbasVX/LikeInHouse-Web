@@ -77,7 +77,8 @@ export async function sendWhatsAppToClient(phone: string, message: string) {
     // Limpieza básica de número (Meta exige E.164, ej: 51999888777 sin el +)
     const cleanPhone = phone.replace(/\D/g, "");
     if (cleanPhone.length < 8) {
-        console.warn(`[WhatsApp] Número de cliente inválido: ${phone}`);
+        const maskedPhone = cleanPhone.length > 4 ? "***" + cleanPhone.slice(-4) : "****";
+        console.warn(`[WhatsApp] Número de cliente inválido: ${maskedPhone}`);
         return false;
     }
 
@@ -101,7 +102,8 @@ export async function sendWhatsAppToClient(phone: string, message: string) {
 
         if (!response.ok) {
             const errorData = await response.json();
-            console.error(`[WhatsApp] Error al enviar mensaje a cliente (${cleanPhone}):`, errorData);
+            const maskedPhone = cleanPhone.length > 4 ? "***" + cleanPhone.slice(-4) : "****";
+            console.error(`[WhatsApp] Error al enviar mensaje a cliente (${maskedPhone}):`, errorData);
             createAuditLog({ userId: "SYSTEM", action: "WHATSAPP_ERROR", entity: "WhatsApp", entityId: cleanPhone, changes: { error: JSON.stringify(errorData) } });
             return false;
         }
