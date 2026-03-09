@@ -11,6 +11,12 @@ const ADMIN_HOSTNAME = process.env.ADMIN_HOSTNAME || "panel.likeinhouseperu.com"
 // Admin routes that don't require authentication
 const PUBLIC_ADMIN_PATHS = ["/admin/login"];
 
+// Cookie name must match the one in auth.ts config
+const SESSION_COOKIE_NAME =
+  process.env.NODE_ENV === "production"
+    ? "__Secure-next-auth.session-token"
+    : "next-auth.session-token";
+
 export default async function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
   const isAdminHost =
@@ -27,7 +33,7 @@ export default async function middleware(request: NextRequest) {
       // Auth check: protect all admin routes except login
       const isPublicAdminPath = PUBLIC_ADMIN_PATHS.some((p) => pathname === p);
       if (!isPublicAdminPath) {
-        const token = await getToken({ req: request });
+        const token = await getToken({ req: request, cookieName: SESSION_COOKIE_NAME });
         if (!token || !token.id) {
           const loginUrl = new URL("/admin/login", request.url);
           return NextResponse.redirect(loginUrl);
