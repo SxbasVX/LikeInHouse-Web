@@ -9,21 +9,24 @@ const ADMIN_HOSTNAME = process.env.ADMIN_HOSTNAME || "panel.likeinhouseperu.com"
 
 export default function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
+  const isAdminHost =
+    hostname === ADMIN_HOSTNAME ||
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost");
 
-  // Block /admin routes unless accessed from the admin subdomain
-  if (pathname.startsWith("/admin")) {
-    const isAdminHost =
-      hostname === ADMIN_HOSTNAME ||
-      hostname === "localhost" ||
-      hostname.endsWith(".localhost");
-
-    if (!isAdminHost) {
-      // Return 404 - don't reveal that /admin exists
-      return NextResponse.rewrite(new URL("/_not-found", request.url));
+  // On admin subdomain: redirect root to /admin, allow /admin routes
+  if (isAdminHost) {
+    if (pathname === "/" || pathname === "") {
+      return NextResponse.redirect(new URL("/admin", request.url));
     }
+    if (pathname.startsWith("/admin")) {
+      return NextResponse.next();
+    }
+  }
 
-    // Admin routes don't need i18n middleware
-    return NextResponse.next();
+  // Block /admin on any other domain - return 404
+  if (pathname.startsWith("/admin")) {
+    return NextResponse.rewrite(new URL("/_not-found", request.url));
   }
 
   // All other routes go through next-intl middleware
