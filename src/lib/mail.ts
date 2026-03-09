@@ -1,12 +1,15 @@
 import { Resend } from "resend";
 import { sanitizeHtml } from "@/server/lib/sanitize";
 
-const globalForResend = globalThis as unknown as { resend: Resend };
+const globalForResend = globalThis as unknown as { resend: Resend | null };
 
-export const resend =
-    globalForResend.resend || new Resend(process.env.RESEND_API_KEY);
-
-if (process.env.NODE_ENV !== "production") globalForResend.resend = resend;
+function getResend(): Resend | null {
+    if (!process.env.RESEND_API_KEY) return null;
+    if (!globalForResend.resend) {
+        globalForResend.resend = new Resend(process.env.RESEND_API_KEY);
+    }
+    return globalForResend.resend;
+}
 
 export const sendEmail = async ({
     to,
@@ -17,7 +20,8 @@ export const sendEmail = async ({
     subject: string;
     html: string;
 }) => {
-    if (!process.env.RESEND_API_KEY) {
+    const resend = getResend();
+    if (!resend) {
         console.error("[Email] RESEND_API_KEY not configured, skipping email send");
         return { data: null, error: { message: "Email not configured" } };
     }
