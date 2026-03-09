@@ -33,7 +33,11 @@ export default async function middleware(request: NextRequest) {
       // Auth check: protect all admin routes except login
       const isPublicAdminPath = PUBLIC_ADMIN_PATHS.some((p) => pathname === p);
       if (!isPublicAdminPath) {
-        const token = await getToken({ req: request, cookieName: SESSION_COOKIE_NAME });
+        const token = await getToken({
+          req: request,
+          cookieName: SESSION_COOKIE_NAME,
+          secret: process.env.AUTH_SECRET,
+        });
         if (!token || !token.id) {
           const loginUrl = new URL("/admin/login", request.url);
           return NextResponse.redirect(loginUrl);
