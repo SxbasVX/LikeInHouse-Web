@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/cron/auto-cancel-reservations",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }
