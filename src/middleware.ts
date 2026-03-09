@@ -5,7 +5,7 @@ import { routing } from "./i18n/routing";
 const intlMiddleware = createMiddleware(routing);
 
 // Subdomain allowed for admin panel (configurable via env var)
-const ADMIN_HOSTNAME = process.env.ADMIN_HOSTNAME || "sistema.likeinhouseperu.com";
+const ADMIN_HOSTNAME = process.env.ADMIN_HOSTNAME || "panel.likeinhouseperu.com";
 
 export default function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
