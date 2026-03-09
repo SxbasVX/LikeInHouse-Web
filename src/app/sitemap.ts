@@ -5,16 +5,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
     // Fetch all published tours and blog posts from the database
-    const [publishedTours, publishedPosts] = await Promise.all([
-        db.tour.findMany({
-            where: { status: "PUBLISHED", isActive: true },
-            select: { slug: true, updatedAt: true },
-        }),
-        db.blogPost.findMany({
-            where: { isPublished: true },
-            select: { slug: true, updatedAt: true },
-        }),
-    ]);
+    let publishedTours: { slug: string; updatedAt: Date }[] = [];
+    let publishedPosts: { slug: string; updatedAt: Date }[] = [];
+    try {
+        [publishedTours, publishedPosts] = await Promise.all([
+            db.tour.findMany({
+                where: { status: "PUBLISHED", isActive: true },
+                select: { slug: true, updatedAt: true },
+            }),
+            db.blogPost.findMany({
+                where: { isPublished: true },
+                select: { slug: true, updatedAt: true },
+            }),
+        ]);
+    } catch {
+        // Tables may not exist yet during initial deployment
+    }
 
     const sitemapEntries: MetadataRoute.Sitemap = [
         {
