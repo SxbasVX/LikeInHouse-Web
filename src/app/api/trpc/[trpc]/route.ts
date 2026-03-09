@@ -26,23 +26,25 @@ function validateOrigin(req: Request): boolean {
     allowedOrigins.add("http://localhost:3000");
   }
 
-  // If origin header is present, validate it
-  if (origin) {
-    return allowedOrigins.has(origin);
+  const sourceOrigin = origin || (referer ? (() => { try { return new URL(referer).origin; } catch { return null; } })() : null);
+
+  if (!sourceOrigin) {
+    // Server-side calls (no origin/referer) are allowed (e.g., tRPC callers)
+    return true;
   }
 
-  // If no origin but referer exists, validate referer
-  if (referer) {
-    try {
-      return allowedOrigins.has(new URL(referer).origin);
-    } catch {
-      return false;
-    }
+  // Check exact match first
+  if (allowedOrigins.has(sourceOrigin)) return true;
+
+  // Allow Vercel preview/production deployments (*.vercel.app)
+  try {
+    const url = new URL(sourceOrigin);
+    if (url.hostname.endsWith(".vercel.app")) return true;
+  } catch {
+    return false;
   }
 
-  // Server-side calls (no origin/referer) are allowed (e.g., tRPC callers)
-  // Browser requests always include origin/referer for POST
-  return true;
+  return false;
 }
 
 const handler = (req: Request) => {
