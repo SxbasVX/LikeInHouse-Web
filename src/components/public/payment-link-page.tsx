@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
+import { getTrafficData } from "@/hooks/use-traffic-tracking";
 import {
     CheckCircle2,
     Clock,
@@ -219,7 +220,19 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
         if (isStartingPayment) return; // Prevenir doble-click
         setIsStartingPayment(true);
         try {
-            const result = await createPayment.mutateAsync({ token, payDeposit });
+            const trafficData = getTrafficData();
+            const result = await createPayment.mutateAsync({
+                token,
+                payDeposit,
+                trafficSource: {
+                    firstSource: trafficData.firstSource,
+                    lastSource: trafficData.lastSource,
+                    utmSource: trafficData.utmSource || undefined,
+                    utmCampaign: trafficData.utmCampaign || undefined,
+                    utmMedium: trafficData.utmMedium || undefined,
+                    utmContent: trafficData.utmContent || undefined,
+                },
+            });
             setReservationId(result.reservationId);
             setReferenceCode(result.referenceCode);
             setAmountToPay(result.amount);

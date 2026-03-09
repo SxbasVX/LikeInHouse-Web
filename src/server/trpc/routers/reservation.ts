@@ -62,6 +62,16 @@ const reservationUpdateStatusSchema = z.object({
   status: z.enum(["PENDING", "CONFIRMED", "PAID", "COMPLETED", "CANCELLED"]),
 });
 
+// Reusable traffic source schema for attribution tracking
+const trafficSourceSchema = z.object({
+  firstSource: z.string().max(100).optional(),
+  lastSource: z.string().max(100).optional(),
+  utmSource: z.string().max(100).optional(),
+  utmCampaign: z.string().max(100).optional(),
+  utmMedium: z.string().max(100).optional(),
+  utmContent: z.string().max(100).optional(),
+}).optional();
+
 const guestReservationSchema = z.object({
   tourId: z.string(),
   departureId: z.string().optional(),
@@ -78,6 +88,9 @@ const guestReservationSchema = z.object({
   children: z.number().min(0).default(0),
   currency: z.literal("USD").default("USD"),
   totalAmount: z.number().min(0),
+
+  // Traffic source attribution
+  trafficSource: trafficSourceSchema,
 });
 
 export const reservationRouter = router({
@@ -121,6 +134,9 @@ export const reservationRouter = router({
         }),
         ctx.db.reservation.count({ where }),
       ]);
+
+      // Note: firstSource, lastSource, utmCampaign are already included
+      // in the reservation object via findMany (no need for explicit select)
 
       return {
         reservations: reservations.map(r => ({
@@ -345,6 +361,13 @@ export const reservationRouter = router({
             children: input.children,
             currency: input.currency,
             totalAmount: serverTotal,
+            // Traffic source attribution
+            firstSource: input.trafficSource?.firstSource || "direct",
+            lastSource: input.trafficSource?.lastSource || "direct",
+            utmSource: input.trafficSource?.utmSource || null,
+            utmCampaign: input.trafficSource?.utmCampaign || null,
+            utmMedium: input.trafficSource?.utmMedium || null,
+            utmContent: input.trafficSource?.utmContent || null,
           },
         });
 

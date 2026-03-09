@@ -344,6 +344,14 @@ export const paymentLinkRouter = router({
     .input(z.object({
       token: z.string(),
       payDeposit: z.boolean().default(false),
+      trafficSource: z.object({
+        firstSource: z.string().max(100).optional(),
+        lastSource: z.string().max(100).optional(),
+        utmSource: z.string().max(100).optional(),
+        utmCampaign: z.string().max(100).optional(),
+        utmMedium: z.string().max(100).optional(),
+        utmContent: z.string().max(100).optional(),
+      }).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       // Wrap everything in a Serializable transaction to prevent double-payment race conditions
@@ -429,6 +437,13 @@ export const paymentLinkRouter = router({
             totalAmount: amountToPay,
             paymentLinkId: link.id,
             customDescEs: link.titleEs,
+            // Traffic source attribution
+            firstSource: input.trafficSource?.firstSource || "direct",
+            lastSource: input.trafficSource?.lastSource || "direct",
+            utmSource: input.trafficSource?.utmSource || null,
+            utmCampaign: input.trafficSource?.utmCampaign || null,
+            utmMedium: input.trafficSource?.utmMedium || null,
+            utmContent: input.trafficSource?.utmContent || null,
           },
         });
 

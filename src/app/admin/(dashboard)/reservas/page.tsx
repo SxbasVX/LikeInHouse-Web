@@ -185,6 +185,8 @@ export default function ReservasPage() {
                     <TableHead>Monto</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Origen</TableHead>
+                    <TableHead>Fuente</TableHead>
+                    <TableHead>Campaña</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -223,6 +225,21 @@ export default function ReservasPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{reservation.origin}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {(reservation as any).firstSource && (reservation as any).firstSource !== "direct" ? (
+                          <div className="text-xs space-y-0.5">
+                            <div><span className="text-muted-foreground">1st:</span> <Badge variant="secondary" className="text-xs px-1.5 py-0">{(reservation as any).firstSource}</Badge></div>
+                            {(reservation as any).lastSource && (reservation as any).lastSource !== (reservation as any).firstSource && (
+                              <div><span className="text-muted-foreground">Last:</span> <Badge variant="secondary" className="text-xs px-1.5 py-0">{(reservation as any).lastSource}</Badge></div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{(reservation as any).firstSource || "—"}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs">{(reservation as any).utmCampaign || "—"}</span>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>

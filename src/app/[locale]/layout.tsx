@@ -7,6 +7,7 @@ import { Navbar } from "@/components/public/navbar";
 import { Footer } from "@/components/public/footer";
 import { WhatsAppButton } from "@/components/public/whatsapp-button";
 import { Analytics } from "@/components/public/analytics";
+import { TrafficTracker } from "@/components/public/traffic-tracker";
 import "@/app/globals.css";
 
 
@@ -44,6 +45,7 @@ export default async function LocaleLayout({
               <Footer />
             </div>
             <WhatsAppButton />
+            <TrafficTracker />
             <Toaster />
           </TRPCProvider>
         </NextIntlClientProvider>

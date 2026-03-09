@@ -284,6 +284,14 @@ model Reservation {
   customDescEn    String?           @db.Text
   internalNotes   String?           @db.Text
 
+  // Traffic source attribution
+  firstSource     String?           // First touch: instagram, tiktok, facebook, google, direct, referral
+  lastSource      String?           // Last touch before purchase
+  utmSource       String?           // utm_source parameter
+  utmCampaign     String?           // utm_campaign parameter
+  utmMedium       String?           // utm_medium parameter
+  utmContent      String?           // utm_content parameter
+
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -293,6 +301,8 @@ model Reservation {
   @@index([clientId])
   @@index([tourId])
   @@index([createdAt])
+  @@index([firstSource])
+  @@index([lastSource])
 }
 
 // ============================================================

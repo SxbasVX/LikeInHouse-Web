@@ -14,6 +14,7 @@ import {
   Image,
   UserCog,
   LogOut,
+  BarChart3,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ const navItems = [
   { label: "Pagos", href: "/admin/pagos", icon: CreditCard },
   { label: "Cotizaciones", href: "/admin/cotizaciones", icon: FileText },
   { label: "Clientes", href: "/admin/clientes", icon: Users },
+  { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   { label: "Contenido", href: "/admin/contenido", icon: Newspaper },
   { label: "Galeria", href: "/admin/galeria", icon: Image },
   { label: "Usuarios", href: "/admin/usuarios", icon: UserCog },

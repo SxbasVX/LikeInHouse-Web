@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
+import { getTrafficData } from "@/hooks/use-traffic-tracking";
 import {
     PayPalScriptProvider,
     PayPalButtons,
@@ -121,6 +122,7 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
             return;
         }
 
+        const trafficData = getTrafficData();
         createReservation.mutate({
             tourId: tour.id,
             departureId: selectedDeparture || undefined,
@@ -133,6 +135,14 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
             children: Number(data.children),
             currency: currency,
             totalAmount: grandTotal,
+            trafficSource: {
+                firstSource: trafficData.firstSource,
+                lastSource: trafficData.lastSource,
+                utmSource: trafficData.utmSource || undefined,
+                utmCampaign: trafficData.utmCampaign || undefined,
+                utmMedium: trafficData.utmMedium || undefined,
+                utmContent: trafficData.utmContent || undefined,
+            },
         });
     };
 
