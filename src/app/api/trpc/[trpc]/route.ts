@@ -22,6 +22,7 @@ function validateOrigin(req: Request): boolean {
   const allowedOrigins = new Set([
     new URL(baseUrl).origin,
     `https://${adminHostname}`,
+    "https://dev.likeinhouseperu.com",
   ]);
 
   // Only allow localhost in development

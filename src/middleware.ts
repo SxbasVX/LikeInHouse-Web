@@ -26,8 +26,9 @@ export default async function middleware(request: NextRequest) {
     hostname === "localhost" ||
     hostname.endsWith(".localhost");
 
-  // Vercel preview/production deployments: allow both public site AND admin routes
+  // Vercel preview/production deployments OR dev subdomain: allow both public site AND admin routes
   const isVercelHost = hostname.endsWith(".vercel.app");
+  const isDevHost = hostname === "dev.likeinhouseperu.com";
 
   // On dedicated admin subdomain: redirect root to /admin, allow /admin routes
   if (isDedicatedAdminHost) {
@@ -36,8 +37,8 @@ export default async function middleware(request: NextRequest) {
     }
   }
 
-  // Allow /admin routes on dedicated admin host OR Vercel deployments
-  if (pathname.startsWith("/admin") && (isDedicatedAdminHost || isVercelHost)) {
+  // Allow /admin routes on dedicated admin host, Vercel deployments, or dev subdomain
+  if (pathname.startsWith("/admin") && (isDedicatedAdminHost || isVercelHost || isDevHost)) {
     // Auth check: protect all admin routes except login
     const isPublicAdminPath = PUBLIC_ADMIN_PATHS.some((p) => pathname === p);
     if (!isPublicAdminPath) {
