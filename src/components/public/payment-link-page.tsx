@@ -68,7 +68,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
         return (
             <div className="min-h-[60vh] flex items-center justify-center">
                 <Card className="max-w-md w-full text-center p-8">
-                    <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <XCircle className="h-12 w-12 text-brand-orange mx-auto mb-4" />
                     <h2 className="text-xl font-bold mb-2">
                         {isEs ? "Link no encontrado" : "Link not found"}
                     </h2>
@@ -87,7 +87,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
         return (
             <div className="min-h-[60vh] flex items-center justify-center px-4">
                 <Card className="max-w-md w-full text-center p-8">
-                    <Clock className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+                    <Clock className="h-12 w-12 text-brand-orange mx-auto mb-4" />
                     <h2 className="text-xl font-bold mb-2">
                         {isEs ? "Link expirado" : "Link expired"}
                     </h2>
@@ -106,7 +106,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
         return (
             <div className="min-h-[60vh] flex items-center justify-center px-4">
                 <Card className="max-w-md w-full text-center p-8">
-                    <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                    <CheckCircle2 className="h-12 w-12 text-brand-teal mx-auto mb-4" />
                     <h2 className="text-xl font-bold mb-2">
                         {isEs ? "Pago completado" : "Payment completed"}
                     </h2>
@@ -125,7 +125,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
         return (
             <div className="min-h-[60vh] flex items-center justify-center px-4">
                 <Card className="max-w-md w-full text-center p-8">
-                    <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <XCircle className="h-12 w-12 text-brand-darkRed mx-auto mb-4" />
                     <h2 className="text-xl font-bold mb-2">
                         {isEs ? "Link cancelado" : "Link cancelled"}
                     </h2>
@@ -151,8 +151,8 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
             <div className="bg-muted/30 py-10 min-h-[60vh]">
                 <div className="max-w-lg mx-auto text-center space-y-6 px-4">
                     <div className="flex justify-center">
-                        <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center">
-                            <CheckCircle2 className="h-10 w-10 text-green-600" />
+                        <div className="h-20 w-20 rounded-full bg-brand-teal/15 flex items-center justify-center">
+                            <CheckCircle2 className="h-10 w-10 text-brand-teal" />
                         </div>
                     </div>
                     <h2 className="text-2xl font-bold">
@@ -334,7 +334,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
                                                         <ul className="space-y-1">
                                                             {(isEs ? link.includesEs : link.includesEn).map((item, i) => (
                                                                 <li key={i} className="flex items-start gap-2 text-sm">
-                                                                    <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                                                                    <Check className="h-4 w-4 text-brand-teal mt-0.5 shrink-0" />
                                                                     {item}
                                                                 </li>
                                                             ))}
@@ -349,7 +349,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
                                                         <ul className="space-y-1">
                                                             {(isEs ? link.excludesEs : link.excludesEn).map((item, i) => (
                                                                 <li key={i} className="flex items-start gap-2 text-sm">
-                                                                    <X className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+                                                                    <X className="h-4 w-4 text-brand-orange mt-0.5 shrink-0" />
                                                                     {item}
                                                                 </li>
                                                             ))}
@@ -390,11 +390,11 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
                                                 type="button"
                                                 onClick={() => setPaymentMethod("paypal")}
                                                 className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${paymentMethod === "paypal"
-                                                    ? "border-blue-500 bg-blue-50"
-                                                    : "border-border hover:border-blue-300"
+                                                    ? "border-brand-teal bg-brand-teal/10"
+                                                    : "border-border hover:border-brand-teal/50"
                                                     }`}
                                             >
-                                                <span className={`text-lg font-bold ${paymentMethod === "paypal" ? "text-blue-700" : ""}`}>
+                                                <span className={`text-lg font-bold ${paymentMethod === "paypal" ? "text-brand-darkTeal" : ""}`}>
                                                     PayPal
                                                 </span>
                                             </button>
@@ -403,12 +403,12 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
                                                 type="button"
                                                 onClick={() => setPaymentMethod("card")}
                                                 className={`flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all ${paymentMethod === "card"
-                                                    ? "border-green-500 bg-green-50"
-                                                    : "border-border hover:border-green-300"
+                                                    ? "border-brand-orange bg-brand-orange/10"
+                                                    : "border-border hover:border-brand-orange/50"
                                                     }`}
                                             >
-                                                <CreditCard className={`h-5 w-5 mb-1 ${paymentMethod === "card" ? "text-green-700" : ""}`} />
-                                                <span className={`text-lg font-bold ${paymentMethod === "card" ? "text-green-700" : ""}`}>
+                                                <CreditCard className={`h-5 w-5 mb-1 ${paymentMethod === "card" ? "text-brand-orange" : ""}`} />
+                                                <span className={`text-lg font-bold ${paymentMethod === "card" ? "text-brand-orange" : ""}`}>
                                                     {isEs ? "Tarjeta" : "Card"}
                                                 </span>
                                             </button>
@@ -451,7 +451,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
                                     {link.amountPaid > 0 && (
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{isEs ? "Ya pagado" : "Already paid"}</span>
-                                            <span className="text-green-600 font-medium">- {currencySymbol} {link.amountPaid.toFixed(2)}</span>
+                                            <span className="text-brand-teal font-medium">- {currencySymbol} {link.amountPaid.toFixed(2)}</span>
                                         </div>
                                     )}
 
@@ -495,7 +495,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
 
                                             {/* Pay full */}
                                             <Button
-                                                className="w-full h-12 text-base bg-orange-600 hover:bg-orange-700"
+                                                className="w-full h-12 text-base bg-brand-orange hover:bg-brand-orange/90"
                                                 onClick={() => handleStartPayment(false)}
                                                 disabled={isStartingPayment || createPayment.isPending}
                                                 variant={link.depositRequired && depositPending > 0 ? "outline" : "default"}
@@ -511,7 +511,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
                                     )}
 
                                     <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                                        <ShieldCheck className="w-4 h-4 text-green-600" />
+                                        <ShieldCheck className="w-4 h-4 text-brand-teal" />
                                         <span>{isEs ? "Pago seguro via PayPal" : "Secure payment via PayPal"}</span>
                                     </div>
                                 </CardContent>
@@ -541,14 +541,14 @@ function LinkPayPalButtons({
     if (isPending) {
         return (
             <div className="p-6 bg-muted/30 rounded-lg flex items-center justify-center min-h-[100px]">
-                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                <Loader2 className="h-6 w-6 animate-spin text-brand-teal" />
             </div>
         );
     }
 
     if (isRejected) {
         return (
-            <div className="p-4 bg-red-50 rounded-lg text-center text-sm text-red-600">
+            <div className="p-4 bg-brand-orange/10 rounded-lg text-center text-sm text-brand-orange">
                 {isEs ? "Error cargando PayPal" : "Error loading PayPal"}
             </div>
         );
@@ -591,14 +591,14 @@ function LinkCardFields({
     if (isPending) {
         return (
             <div className="p-6 bg-muted/30 rounded-lg flex items-center justify-center min-h-[100px]">
-                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                <Loader2 className="h-6 w-6 animate-spin text-brand-teal" />
             </div>
         );
     }
 
     if (isRejected) {
         return (
-            <div className="p-4 bg-red-50 rounded-lg text-center text-sm text-red-600">
+            <div className="p-4 bg-brand-orange/10 rounded-lg text-center text-sm text-brand-orange">
                 {isEs ? "Error cargando formulario" : "Error loading form"}
             </div>
         );
@@ -651,7 +651,7 @@ function LinkCardSubmit({ isEs }: { isEs: boolean }) {
     };
 
     return (
-        <Button onClick={handleClick} disabled={paying} className="w-full h-12 bg-green-600 hover:bg-green-700">
+        <Button onClick={handleClick} disabled={paying} className="w-full h-12 bg-brand-teal hover:bg-brand-darkTeal">
             {paying ? (
                 <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />

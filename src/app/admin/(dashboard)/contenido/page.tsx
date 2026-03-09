@@ -449,7 +449,7 @@ function TestimonialsSection() {
                     }
                   >
                     {t.isApproved ? (
-                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <CheckCircle className="h-4 w-4 text-brand-teal" />
                     ) : (
                       <XCircle className="h-4 w-4 text-gray-400" />
                     )}
@@ -467,7 +467,7 @@ function TestimonialsSection() {
                     }
                   >
                     {t.isFeatured ? (
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                      <Star className="h-4 w-4 text-brand-orange fill-brand-orange" />
                     ) : (
                       <StarOff className="h-4 w-4 text-gray-400" />
                     )}
@@ -479,7 +479,7 @@ function TestimonialsSection() {
                     size="icon"
                     onClick={() => deleteTestimonial.mutate({ id: t.id })}
                   >
-                    <Trash2 className="h-4 w-4 text-red-500" />
+                    <Trash2 className="h-4 w-4 text-brand-darkRed" />
                   </Button>
                 </TableCell>
               </TableRow>
@@ -1318,7 +1318,7 @@ function SettingsSection() {
                           onClick={() => handleSave(setting.key)}
                           disabled={upsertSetting.isPending}
                         >
-                          <Save className="h-4 w-4 text-green-600" />
+                          <Save className="h-4 w-4 text-brand-teal" />
                         </Button>
                         <Button
                           variant="ghost"

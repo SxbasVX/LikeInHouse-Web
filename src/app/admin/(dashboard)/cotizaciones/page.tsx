@@ -81,11 +81,11 @@ const statusLabels: Record<string, string> = {
 
 const statusColors: Record<string, string> = {
   DRAFT: "bg-gray-100 text-gray-800",
-  SENT: "bg-blue-100 text-blue-800",
-  VIEWED: "bg-cyan-100 text-cyan-800",
-  ACCEPTED: "bg-green-100 text-green-800",
-  CONVERTED: "bg-purple-100 text-purple-800",
-  EXPIRED: "bg-red-100 text-red-800",
+  SENT: "bg-brand-teal/15 text-brand-darkTeal",
+  VIEWED: "bg-brand-beige text-brand-darkRed",
+  ACCEPTED: "bg-brand-teal/15 text-brand-darkTeal",
+  CONVERTED: "bg-brand-darkTeal/15 text-brand-darkTeal",
+  EXPIRED: "bg-brand-darkRed/15 text-brand-darkRed",
 };
 
 // =============================================

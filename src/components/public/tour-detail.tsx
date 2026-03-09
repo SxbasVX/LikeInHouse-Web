@@ -77,9 +77,9 @@ interface TourData {
 }
 
 const difficultyColors: Record<string, string> = {
-  EASY: "bg-green-100 text-green-800",
-  MODERATE: "bg-yellow-100 text-yellow-800",
-  CHALLENGING: "bg-red-100 text-red-800",
+  EASY: "bg-brand-teal/15 text-brand-darkTeal",
+  MODERATE: "bg-brand-orange/15 text-brand-orange",
+  CHALLENGING: "bg-brand-darkRed/15 text-brand-darkRed",
 };
 
 export function TourDetail({ tour }: { tour: TourData }) {
@@ -208,7 +208,7 @@ export function TourDetail({ tour }: { tour: TourData }) {
                     {tour.category}
                   </Badge>
                   {tour.isFeatured && (
-                    <Badge className="gap-1 border-0 bg-yellow-500 text-white">
+                    <Badge className="gap-1 border-0 bg-brand-orange text-white">
                       <Star className="h-3 w-3" /> Destacado
                     </Badge>
                   )}
@@ -347,14 +347,14 @@ export function TourDetail({ tour }: { tour: TourData }) {
                 <div className="grid gap-6 sm:grid-cols-2">
                   {included.length > 0 && (
                     <div className="rounded-lg border p-5">
-                      <h3 className="mb-4 flex items-center gap-2 font-semibold text-green-700">
+                      <h3 className="mb-4 flex items-center gap-2 font-semibold text-brand-darkTeal">
                         <Check className="h-5 w-5" />
                         {t("includes")}
                       </h3>
                       <ul className="space-y-2.5">
                         {included.map((item) => (
                           <li key={item.id} className="flex items-start gap-2 text-sm">
-                            <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+                            <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-teal" />
                             <span>{isEs ? item.textEs : (item.textEn || item.textEs)}</span>
                           </li>
                         ))}
@@ -363,14 +363,14 @@ export function TourDetail({ tour }: { tour: TourData }) {
                   )}
                   {excluded.length > 0 && (
                     <div className="rounded-lg border p-5">
-                      <h3 className="mb-4 flex items-center gap-2 font-semibold text-red-600">
+                      <h3 className="mb-4 flex items-center gap-2 font-semibold text-brand-orange">
                         <X className="h-5 w-5" />
                         {t("excludes")}
                       </h3>
                       <ul className="space-y-2.5">
                         {excluded.map((item) => (
                           <li key={item.id} className="flex items-start gap-2 text-sm">
-                            <X className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                            <X className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" />
                             <span>{isEs ? item.textEs : (item.textEn || item.textEs)}</span>
                           </li>
                         ))}

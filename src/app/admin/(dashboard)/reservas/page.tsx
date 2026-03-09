@@ -69,11 +69,11 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  CONFIRMED: "bg-blue-100 text-blue-800",
-  PAID: "bg-green-100 text-green-800",
+  PENDING: "bg-brand-orange/15 text-brand-orange",
+  CONFIRMED: "bg-brand-teal/15 text-brand-darkTeal",
+  PAID: "bg-brand-teal/15 text-brand-darkTeal",
   COMPLETED: "bg-gray-100 text-gray-800",
-  CANCELLED: "bg-red-100 text-red-800",
+  CANCELLED: "bg-brand-darkRed/15 text-brand-darkRed",
 };
 
 export default function ReservasPage() {

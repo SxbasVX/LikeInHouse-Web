@@ -38,7 +38,7 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
                       aria-label={i < test.rating ? "filled star" : "empty star"}
                       className={`h-4 w-4 transition-colors ${
                         i < test.rating
-                          ? "fill-yellow-400 text-yellow-400"
+                          ? "fill-brand-orange text-brand-orange"
                           : "text-gray-200"
                       }`}
                     />

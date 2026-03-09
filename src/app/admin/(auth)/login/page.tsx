@@ -59,20 +59,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#0f1117]">
+    <div className="flex min-h-screen bg-brand-darkRed">
       {/* Left Panel - Branding (desktop) */}
       <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden">
         {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-teal-800 to-cyan-900" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-500/20 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-darkTeal via-brand-teal to-brand-darkTeal" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-brand-teal/20 via-transparent to-transparent" />
 
         {/* Grid pattern overlay */}
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
 
         {/* Floating animated orbs */}
-        <div className="absolute top-[15%] left-[10%] w-72 h-72 rounded-full bg-emerald-500/10 blur-[100px] animate-pulse" />
-        <div className="absolute bottom-[20%] right-[5%] w-96 h-96 rounded-full bg-cyan-500/10 blur-[120px] animate-pulse" style={{ animationDelay: "1s", animationDuration: "4s" }} />
-        <div className="absolute top-[60%] left-[40%] w-48 h-48 rounded-full bg-teal-400/10 blur-[80px] animate-pulse" style={{ animationDelay: "2s", animationDuration: "5s" }} />
+        <div className="absolute top-[15%] left-[10%] w-72 h-72 rounded-full bg-brand-teal/15 blur-[100px] animate-pulse" />
+        <div className="absolute bottom-[20%] right-[5%] w-96 h-96 rounded-full bg-brand-orange/10 blur-[120px] animate-pulse" style={{ animationDelay: "1s", animationDuration: "4s" }} />
+        <div className="absolute top-[60%] left-[40%] w-48 h-48 rounded-full bg-brand-beige/10 blur-[80px] animate-pulse" style={{ animationDelay: "2s", animationDuration: "5s" }} />
 
         <div className={cn(
           "relative z-10 flex flex-col items-center justify-center w-full px-16 text-white transition-all duration-1000",
@@ -84,9 +84,9 @@ export default function LoginPage() {
             mounted ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
           )}>
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/10">
-              <Map className="h-6 w-6 text-emerald-300" />
+              <Map className="h-6 w-6 text-brand-orange" />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-white/90">LikeInHouse</span>
+            <span className="text-2xl font-heading font-bold tracking-tight text-white/90">LikeInHouse</span>
           </div>
 
           {/* Central illustration */}
@@ -98,23 +98,23 @@ export default function LoginPage() {
             <div className="w-72 h-72 rounded-full border border-white/[0.08] flex items-center justify-center animate-[spin_30s_linear_infinite]">
               {/* Orbit icons */}
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <div className="h-7 w-7 rounded-lg bg-emerald-500/20 backdrop-blur-sm border border-emerald-400/20 flex items-center justify-center">
-                  <Plane className="h-3.5 w-3.5 text-emerald-300" />
+                <div className="h-7 w-7 rounded-lg bg-brand-orange/20 backdrop-blur-sm border border-brand-orange/30 flex items-center justify-center">
+                  <Plane className="h-3.5 w-3.5 text-brand-orange" />
                 </div>
               </div>
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2">
-                <div className="h-7 w-7 rounded-lg bg-cyan-500/20 backdrop-blur-sm border border-cyan-400/20 flex items-center justify-center">
-                  <Globe2 className="h-3.5 w-3.5 text-cyan-300" />
+                <div className="h-7 w-7 rounded-lg bg-brand-beige/20 backdrop-blur-sm border border-brand-beige/30 flex items-center justify-center">
+                  <Globe2 className="h-3.5 w-3.5 text-brand-beige" />
                 </div>
               </div>
               <div className="absolute top-1/2 -left-3 -translate-y-1/2">
-                <div className="h-7 w-7 rounded-lg bg-teal-500/20 backdrop-blur-sm border border-teal-400/20 flex items-center justify-center">
-                  <Mountain className="h-3.5 w-3.5 text-teal-300" />
+                <div className="h-7 w-7 rounded-lg bg-brand-teal/30 backdrop-blur-sm border border-brand-teal/40 flex items-center justify-center">
+                  <Mountain className="h-3.5 w-3.5 text-white/80" />
                 </div>
               </div>
               <div className="absolute top-1/2 -right-3 -translate-y-1/2">
-                <div className="h-7 w-7 rounded-lg bg-emerald-500/20 backdrop-blur-sm border border-emerald-400/20 flex items-center justify-center">
-                  <Compass className="h-3.5 w-3.5 text-emerald-300" />
+                <div className="h-7 w-7 rounded-lg bg-brand-orange/20 backdrop-blur-sm border border-brand-orange/30 flex items-center justify-center">
+                  <Compass className="h-3.5 w-3.5 text-brand-orange" />
                 </div>
               </div>
             </div>
@@ -124,8 +124,8 @@ export default function LoginPage() {
 
             {/* Center shield */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 backdrop-blur-xl border border-white/10 flex items-center justify-center shadow-2xl shadow-emerald-900/20">
-                <Shield className="h-14 w-14 text-emerald-300/80" />
+              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-brand-teal/25 to-brand-orange/15 backdrop-blur-xl border border-white/10 flex items-center justify-center shadow-2xl shadow-brand-darkTeal/30">
+                <Shield className="h-14 w-14 text-brand-beige/80" />
               </div>
             </div>
 
@@ -147,7 +147,7 @@ export default function LoginPage() {
             "text-center transition-all duration-700 delay-500",
             mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}>
-            <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-white to-emerald-200 bg-clip-text text-transparent">
+            <h2 className="text-3xl font-heading font-bold mb-3 bg-gradient-to-r from-white to-brand-beige bg-clip-text text-transparent">
               Panel de Gestion
             </h2>
             <p className="text-white/50 max-w-sm leading-relaxed text-sm">
@@ -158,9 +158,9 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="flex w-full lg:w-[45%] items-center justify-center px-6 py-12 bg-[#0f1117] relative">
+      <div className="flex w-full lg:w-[45%] items-center justify-center px-6 py-12 bg-brand-darkRed relative">
         {/* Subtle gradient on right panel */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-950/20 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-darkTeal/10 via-transparent to-transparent" />
 
         <div className={cn(
           "w-full max-w-[420px] relative z-10 transition-all duration-700 delay-100",
@@ -171,23 +171,23 @@ export default function LoginPage() {
             "flex flex-col items-center mb-10 lg:hidden transition-all duration-500",
             mounted ? "opacity-100" : "opacity-0"
           )}>
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-600/20 border border-emerald-500/20 mb-4">
-              <Map className="h-7 w-7 text-emerald-400" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-teal/20 border border-brand-teal/30 mb-4">
+              <Map className="h-7 w-7 text-brand-teal" />
             </div>
-            <span className="text-2xl font-bold text-white tracking-tight">LikeInHouse</span>
+            <span className="text-2xl font-heading font-bold text-white tracking-tight">LikeInHouse</span>
             <p className="text-white/40 text-sm mt-1">Panel de Gestion</p>
           </div>
 
           {/* Form card */}
           <div className={cn(
-            "bg-[#161923] rounded-3xl border border-white/[0.06] p-8 sm:p-10 shadow-2xl shadow-black/20 transition-all duration-700 delay-200",
+            "bg-[#1a1520] rounded-3xl border border-white/[0.06] p-8 sm:p-10 shadow-2xl shadow-black/20 transition-all duration-700 delay-200",
             mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}>
             <div className={cn(
               "transition-all duration-500 delay-300",
               mounted ? "opacity-100" : "opacity-0"
             )}>
-              <h1 className="text-2xl font-bold text-white text-center">
+              <h1 className="text-2xl font-heading font-bold text-white text-center">
                 Iniciar sesion
               </h1>
               <p className="text-white/40 text-center mt-2 mb-8 text-sm">
@@ -215,7 +215,7 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="email"
                   placeholder="tu@email.com"
-                  className="h-13 rounded-xl bg-white/[0.04] border-white/[0.08] px-4 text-sm text-white placeholder:text-white/20 focus:bg-white/[0.06] focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300"
+                  className="h-13 rounded-xl bg-white/[0.04] border-white/[0.08] px-4 text-sm text-white placeholder:text-white/20 focus:bg-white/[0.06] focus:border-brand-teal/50 focus:ring-1 focus:ring-brand-teal/20 transition-all duration-300"
                   {...register("email", {
                     required: "Email requerido",
                     pattern: {
@@ -243,7 +243,7 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     autoComplete="current-password"
                     placeholder="••••••••••"
-                    className="h-13 rounded-xl bg-white/[0.04] border-white/[0.08] px-4 pr-12 text-sm text-white placeholder:text-white/20 focus:bg-white/[0.06] focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300"
+                    className="h-13 rounded-xl bg-white/[0.04] border-white/[0.08] px-4 pr-12 text-sm text-white placeholder:text-white/20 focus:bg-white/[0.06] focus:border-brand-teal/50 focus:ring-1 focus:ring-brand-teal/20 transition-all duration-300"
                     {...register("password", {
                       required: "Password requerido",
                     })}
@@ -269,7 +269,7 @@ export default function LoginPage() {
               )}>
                 <Button
                   type="submit"
-                  className="w-full h-13 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-semibold text-sm shadow-lg shadow-emerald-900/30 transition-all duration-300 hover:shadow-emerald-800/40 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
+                  className="w-full h-13 rounded-xl bg-gradient-to-r from-brand-orange to-[#ff5a33] hover:from-[#ff5a33] hover:to-brand-orange text-white font-heading font-semibold text-sm shadow-lg shadow-brand-orange/20 transition-all duration-300 hover:shadow-brand-orange/30 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
                   disabled={isLoading}
                 >
                   {isLoading ? (

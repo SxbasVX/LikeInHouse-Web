@@ -293,13 +293,13 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                 </div>
 
                 {/* Destacado */}
-                <div className="flex items-center justify-between rounded-lg border p-4 bg-yellow-500/10 border-yellow-500/20">
+                <div className="flex items-center justify-between rounded-lg border p-4 bg-brand-orange/10 border-brand-orange/20">
                   <div>
-                    <Label className="text-base font-medium text-yellow-700 dark:text-yellow-600 flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                    <Label className="text-base font-medium text-brand-orange flex items-center gap-1">
+                      <Star className="h-4 w-4 fill-brand-orange text-brand-orange" />
                       Tour Destacado
                     </Label>
-                    <div className="text-sm text-yellow-700/80 dark:text-yellow-600/80 mt-1 text-balance">
+                    <div className="text-sm text-brand-orange/80 mt-1 text-balance">
                       Marca esta opción si quieres que este tour resalte en la página principal (Home).
                     </div>
                   </div>
@@ -645,7 +645,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
             <Card>
               <CardHeader className="pb-3 border-b mb-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-green-700 flex flex-col gap-1">
+                  <CardTitle className="text-brand-darkTeal flex flex-col gap-1">
                     <span>✅ Lo que Incluye</span>
                   </CardTitle>
                   <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => includes.append({ textEs: "", textEn: "" })}>
@@ -657,7 +657,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                 <div className="space-y-3">
                   {includes.fields.length === 0 && <div className="text-sm text-muted-foreground">Nada listado.</div>}
                   {includes.fields.map((field, index) => (
-                    <div key={field.id} className="flex gap-2 p-2 border rounded-lg bg-green-50/50">
+                    <div key={field.id} className="flex gap-2 p-2 border rounded-lg bg-brand-teal/5">
                       <div className="flex-1 space-y-2">
                         <Input placeholder="ES: Almuerzo bufet" {...register(`includes.${index}.textEs`)} className={`h-8 ${errors.includes?.[index]?.textEs ? "border-destructive" : ""}`} />
                         <Input placeholder="EN: Buffet lunch" {...register(`includes.${index}.textEn`)} className={`h-8 ${errors.includes?.[index]?.textEn ? "border-destructive" : ""}`} />
@@ -674,7 +674,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
             <Card>
               <CardHeader className="pb-3 border-b mb-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-red-700 flex flex-col gap-1">
+                  <CardTitle className="text-brand-orange flex flex-col gap-1">
                     <span>❌ Lo que No Incluye</span>
                   </CardTitle>
                   <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => excludes.append({ textEs: "", textEn: "" })}>
@@ -686,7 +686,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                 <div className="space-y-3">
                   {excludes.fields.length === 0 && <div className="text-sm text-muted-foreground">Nada listado.</div>}
                   {excludes.fields.map((field, index) => (
-                    <div key={field.id} className="flex gap-2 p-2 border rounded-lg bg-red-50/50">
+                    <div key={field.id} className="flex gap-2 p-2 border rounded-lg bg-brand-orange/5">
                       <div className="flex-1 space-y-2">
                         <Input placeholder="ES: Vuelos internacionales" {...register(`excludes.${index}.textEs`)} className={`h-8 ${errors.excludes?.[index]?.textEs ? "border-destructive" : ""}`} />
                         <Input placeholder="EN: International flights" {...register(`excludes.${index}.textEn`)} className={`h-8 ${errors.excludes?.[index]?.textEn ? "border-destructive" : ""}`} />

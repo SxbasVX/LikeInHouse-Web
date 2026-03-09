@@ -30,11 +30,11 @@ import {
 } from "lucide-react";
 
 const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  CONFIRMED: "bg-blue-100 text-blue-800",
-  PAID: "bg-green-100 text-green-800",
-  COMPLETED: "bg-gray-100 text-gray-800",
-  CANCELLED: "bg-red-100 text-red-800",
+  PENDING: "bg-brand-orange/15 text-brand-orange",
+  CONFIRMED: "bg-brand-teal/15 text-brand-darkTeal",
+  PAID: "bg-brand-teal/15 text-brand-darkTeal",
+  COMPLETED: "bg-brand-beige text-brand-darkRed",
+  CANCELLED: "bg-brand-darkRed/15 text-brand-darkRed",
 };
 
 export default function DashboardPage() {
@@ -68,28 +68,28 @@ export default function DashboardPage() {
       value: stats.publishedTours,
       subtitle: `${stats.totalTours} total`,
       icon: Map,
-      color: "text-blue-600",
+      color: "text-brand-teal",
     },
     {
       title: "Reservas Pendientes",
       value: stats.pendingReservations,
       subtitle: `${stats.totalReservations} total`,
       icon: CalendarCheck,
-      color: "text-yellow-600",
+      color: "text-brand-orange",
     },
     {
       title: "Pagos Pendientes",
       value: stats.pendingPayments,
       subtitle: "Por verificar",
       icon: CreditCard,
-      color: "text-green-600",
+      color: "text-brand-darkTeal",
     },
     {
       title: "Cotizaciones Abiertas",
       value: stats.openQuotations,
       subtitle: `${stats.totalClients} clientes`,
       icon: FileText,
-      color: "text-purple-600",
+      color: "text-brand-darkRed",
     },
   ];
 

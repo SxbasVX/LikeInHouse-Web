@@ -27,9 +27,9 @@ interface TourCardProps {
 }
 
 const difficultyColors: Record<string, string> = {
-  EASY: "bg-green-100 text-green-800",
-  MODERATE: "bg-yellow-100 text-yellow-800",
-  CHALLENGING: "bg-red-100 text-red-800",
+  EASY: "bg-brand-teal/15 text-brand-darkTeal",
+  MODERATE: "bg-brand-orange/15 text-brand-orange",
+  CHALLENGING: "bg-brand-darkRed/15 text-brand-darkRed",
 };
 
 export function TourCard({ tour }: TourCardProps) {
@@ -67,7 +67,7 @@ export function TourCard({ tour }: TourCardProps) {
             </div>
           )}
           {tour.isFeatured && (
-            <Badge className="absolute left-3 top-3 gap-1 bg-yellow-500">
+            <Badge className="absolute left-3 top-3 gap-1 bg-brand-orange text-white">
               <Star className="h-3 w-3" />
               Destacado
             </Badge>

@@ -66,9 +66,9 @@ const roleLabels: Record<string, string> = {
 };
 
 const roleColors: Record<string, string> = {
-  ADMIN: "bg-red-100 text-red-800",
-  SALES: "bg-blue-100 text-blue-800",
-  MARKETING: "bg-green-100 text-green-800",
+  ADMIN: "bg-brand-orange/15 text-brand-orange",
+  SALES: "bg-brand-teal/15 text-brand-darkTeal",
+  MARKETING: "bg-brand-darkTeal/15 text-brand-darkTeal",
 };
 
 export default function UsuariosPage() {

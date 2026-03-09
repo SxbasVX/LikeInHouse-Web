@@ -138,7 +138,7 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
                       <p className="text-xs text-muted-foreground">{tour.category}</p>
                     </div>
                     {tour.isFeatured && (
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <Star className="h-4 w-4 fill-brand-orange text-brand-orange" />
                     )}
                   </div>
                 </TableCell>

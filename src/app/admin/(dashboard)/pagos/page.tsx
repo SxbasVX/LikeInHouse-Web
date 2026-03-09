@@ -58,11 +58,11 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  PROCESSING: "bg-blue-100 text-blue-800",
-  COMPLETED: "bg-green-100 text-green-800",
-  FAILED: "bg-red-100 text-red-800",
-  REFUNDED: "bg-purple-100 text-purple-800",
+  PENDING: "bg-brand-orange/15 text-brand-orange",
+  PROCESSING: "bg-brand-teal/15 text-brand-darkTeal",
+  COMPLETED: "bg-brand-teal/15 text-brand-darkTeal",
+  FAILED: "bg-brand-darkRed/15 text-brand-darkRed",
+  REFUNDED: "bg-brand-beige text-brand-darkRed",
 };
 
 const methodLabels: Record<string, string> = {
@@ -111,10 +111,10 @@ export default function PagosPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Completados</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-600" />
+              <DollarSign className="h-4 w-4 text-brand-teal" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-brand-teal">
                 S/ {Number(stats.completed.total).toFixed(2)}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -125,10 +125,10 @@ export default function PagosPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
-              <Clock className="h-4 w-4 text-yellow-600" />
+              <Clock className="h-4 w-4 text-brand-orange" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">
+              <div className="text-2xl font-bold text-brand-orange">
                 S/ {Number(stats.pending.total).toFixed(2)}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -139,10 +139,10 @@ export default function PagosPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Reembolsados</CardTitle>
-              <TrendingUp className="h-4 w-4 text-purple-600" />
+              <TrendingUp className="h-4 w-4 text-brand-darkTeal" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-2xl font-bold text-brand-darkTeal">
                 S/ {Number(stats.refunded.total).toFixed(2)}
               </div>
               <p className="text-xs text-muted-foreground">

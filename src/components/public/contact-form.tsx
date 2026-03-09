@@ -43,8 +43,8 @@ export function ContactForm() {
   if (submitted) {
     return (
       <div className="animate-scale-in py-12 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-          <Mail className="h-8 w-8 text-green-600" />
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-teal/15">
+          <Mail className="h-8 w-8 text-brand-teal" />
         </div>
         <h3 className="text-lg font-semibold">{t("success")}</h3>
       </div>

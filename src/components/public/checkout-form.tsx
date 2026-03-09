@@ -178,8 +178,8 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
         return (
             <div className="max-w-lg mx-auto text-center space-y-6 py-12">
                 <div className="flex justify-center">
-                    <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center">
-                        <CheckCircle2 className="h-10 w-10 text-green-600" />
+                    <div className="h-20 w-20 rounded-full bg-brand-teal/15 flex items-center justify-center">
+                        <CheckCircle2 className="h-10 w-10 text-brand-teal" />
                     </div>
                 </div>
                 <h2 className="text-2xl font-bold">
@@ -392,11 +392,11 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
                                             type="button"
                                             onClick={() => setPaymentMethod("paypal")}
                                             className={`flex flex-col items-center justify-center p-5 rounded-lg border-2 transition-all ${paymentMethod === "paypal"
-                                                ? "border-blue-500 bg-blue-50"
-                                                : "border-border hover:border-blue-300"
+                                                ? "border-brand-teal bg-brand-teal/10"
+                                                : "border-border hover:border-brand-teal/50"
                                                 }`}
                                         >
-                                            <span className={`text-lg font-bold ${paymentMethod === "paypal" ? "text-blue-700" : ""}`}>
+                                            <span className={`text-lg font-bold ${paymentMethod === "paypal" ? "text-brand-darkTeal" : ""}`}>
                                                 PayPal
                                             </span>
                                             <span className="text-xs text-muted-foreground mt-1 text-center">
@@ -408,12 +408,12 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
                                             type="button"
                                             onClick={() => setPaymentMethod("card")}
                                             className={`flex flex-col items-center justify-center p-5 rounded-lg border-2 transition-all ${paymentMethod === "card"
-                                                ? "border-green-500 bg-green-50"
-                                                : "border-border hover:border-green-300"
+                                                ? "border-brand-orange bg-brand-orange/10"
+                                                : "border-border hover:border-brand-orange/50"
                                                 }`}
                                         >
-                                            <CreditCard className={`h-6 w-6 mb-1 ${paymentMethod === "card" ? "text-green-700" : ""}`} />
-                                            <span className={`text-lg font-bold ${paymentMethod === "card" ? "text-green-700" : ""}`}>
+                                            <CreditCard className={`h-6 w-6 mb-1 ${paymentMethod === "card" ? "text-brand-orange" : ""}`} />
+                                            <span className={`text-lg font-bold ${paymentMethod === "card" ? "text-brand-orange" : ""}`}>
                                                 {isEs ? "Tarjeta" : "Card"}
                                             </span>
                                             <span className="text-xs text-muted-foreground mt-1 text-center">
@@ -482,8 +482,8 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
                                 {isEs ? tour.nameEs : tour.nameEn}
                             </h3>
 
-                            <div className="rounded-md bg-blue-50 px-3 py-2 text-center">
-                                <span className="text-xs text-blue-700 font-medium">
+                            <div className="rounded-md bg-brand-teal/10 px-3 py-2 text-center">
+                                <span className="text-xs text-brand-darkTeal font-medium">
                                     {isEs
                                         ? "Pagos procesados en USD via PayPal"
                                         : "Payments processed in USD via PayPal"}
@@ -526,7 +526,7 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
                                     type="submit"
                                     form="checkout-form"
                                     size="lg"
-                                    className="w-full text-base h-14 bg-orange-600 hover:bg-orange-700"
+                                    className="w-full text-base h-14 bg-brand-orange hover:bg-brand-orange/90"
                                     disabled={createReservation.isPending}
                                 >
                                     {createReservation.isPending ? (
@@ -544,7 +544,7 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
                             )}
 
                             <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-1">
-                                <ShieldCheck className="w-4 h-4 text-green-600" />
+                                <ShieldCheck className="w-4 h-4 text-brand-teal" />
                                 <span>{isEs ? "Pago seguro via PayPal" : "Secure payment via PayPal"}</span>
                             </div>
                         </CardFooter>
@@ -576,7 +576,7 @@ function PayPalButtonsWrapper({
     if (isPending) {
         return (
             <div className="p-6 bg-muted/30 rounded-lg flex flex-col items-center justify-center min-h-[120px] gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-brand-teal" />
                 <p className="text-sm text-muted-foreground">
                     {isEs ? "Cargando PayPal..." : "Loading PayPal..."}
                 </p>
@@ -586,8 +586,8 @@ function PayPalButtonsWrapper({
 
     if (isRejected) {
         return (
-            <div className="p-6 bg-red-50 rounded-lg text-center min-h-[120px] flex flex-col items-center justify-center gap-2">
-                <p className="text-sm text-red-600 font-medium">
+            <div className="p-6 bg-brand-orange/10 rounded-lg text-center min-h-[120px] flex flex-col items-center justify-center gap-2">
+                <p className="text-sm text-brand-orange font-medium">
                     {isEs
                         ? "No se pudo cargar PayPal. Verifica tu conexion e intenta de nuevo."
                         : "Could not load PayPal. Check your connection and try again."}
@@ -656,7 +656,7 @@ function CardFieldsWrapper({
     if (isPending) {
         return (
             <div className="p-6 bg-muted/30 rounded-lg flex flex-col items-center justify-center min-h-[120px] gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-brand-teal" />
                 <p className="text-sm text-muted-foreground">
                     {isEs ? "Cargando formulario de pago..." : "Loading payment form..."}
                 </p>
@@ -666,8 +666,8 @@ function CardFieldsWrapper({
 
     if (isRejected) {
         return (
-            <div className="p-6 bg-red-50 rounded-lg text-center min-h-[120px] flex flex-col items-center justify-center gap-2">
-                <p className="text-sm text-red-600 font-medium">
+            <div className="p-6 bg-brand-orange/10 rounded-lg text-center min-h-[120px] flex flex-col items-center justify-center gap-2">
+                <p className="text-sm text-brand-orange font-medium">
                     {isEs
                         ? "No se pudo cargar el formulario de pago."
                         : "Could not load payment form."}
@@ -742,7 +742,7 @@ function SubmitCardPayment({ isEs }: { isEs: boolean }) {
         <Button
             onClick={handleClick}
             disabled={paying}
-            className="w-full h-12 text-base bg-green-600 hover:bg-green-700"
+            className="w-full h-12 text-base bg-brand-teal hover:bg-brand-darkTeal"
         >
             {paying ? (
                 <>

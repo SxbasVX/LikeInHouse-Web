@@ -81,12 +81,12 @@ export default async function ContactPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-green-50 border-green-200">
+          <Card className="bg-brand-teal/10 border-brand-teal/30">
             <CardContent className="p-6 text-center">
-              <MessageCircle className="mx-auto mb-2 h-8 w-8 text-green-600" />
-              <p className="font-medium text-green-900">{t("whatsapp_cta")}</p>
+              <MessageCircle className="mx-auto mb-2 h-8 w-8 text-brand-teal" />
+              <p className="font-medium text-brand-darkTeal">{t("whatsapp_cta")}</p>
               <Button
-                className="mt-3 bg-green-600 hover:bg-green-700"
+                className="mt-3 bg-brand-teal hover:bg-brand-darkTeal"
                 asChild
               >
                 <a
