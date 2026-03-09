@@ -1,8 +1,23 @@
 import { z } from "zod";
+import { Decimal } from "@prisma/client/runtime/library";
 import { router, roleProtectedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { createAuditLog } from "@/server/lib/audit";
 import { sendWhatsAppAlert } from "@/server/lib/whatsapp";
+
+function serializeDecimals<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (obj instanceof Decimal) return Number(obj) as unknown as T;
+  if (Array.isArray(obj)) return obj.map(serializeDecimals) as unknown as T;
+  if (typeof obj === "object" && !(obj instanceof Date)) {
+    const result: Record<string, unknown> = {};
+    for (const key of Object.keys(obj as Record<string, unknown>)) {
+      result[key] = serializeDecimals((obj as Record<string, unknown>)[key]);
+    }
+    return result as T;
+  }
+  return obj;
+}
 
 const adminOrSales = roleProtectedProcedure(["ADMIN", "SALES"]);
 
@@ -45,7 +60,7 @@ export const paymentRouter = router({
       ]);
 
       return {
-        payments,
+        payments: serializeDecimals(payments),
         total,
         pages: Math.ceil(total / limit),
         page,
@@ -78,7 +93,7 @@ export const paymentRouter = router({
       }),
     ]);
 
-    return {
+    return serializeDecimals({
       completed: {
         count: totalCompleted._count,
         total: totalCompleted._sum.amount ?? 0,
@@ -91,7 +106,7 @@ export const paymentRouter = router({
         count: totalRefunded._count,
         total: totalRefunded._sum.amount ?? 0,
       },
-    };
+    });
   }),
 
   markAsVerified: adminOrSales
@@ -137,6 +152,6 @@ export const paymentRouter = router({
         `✅ *Pago Verificado Manualmente*\nMonto: ${payment.amount}\nMétodo: ${payment.method}\nReserva ID: ${payment.reservationId}`
       ).catch(console.error);
 
-      return payment;
+      return serializeDecimals(payment);
     }),
 });

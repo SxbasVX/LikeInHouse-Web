@@ -1,10 +1,26 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { randomBytes } from "crypto";
+import { Decimal } from "@prisma/client/runtime/library";
 import { router, protectedProcedure, roleProtectedProcedure, rateLimitedProcedure } from "../trpc";
 import { RATE_LIMITS } from "@/server/lib/rate-limit";
 import { createAuditLog } from "@/server/lib/audit";
 import { sendWhatsAppAlert, sendWhatsAppToClient } from "@/server/lib/whatsapp";
+
+// Convierte Decimals de Prisma a números planos para serialización tRPC/SuperJSON
+function serializeDecimals<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (obj instanceof Decimal) return Number(obj) as unknown as T;
+  if (Array.isArray(obj)) return obj.map(serializeDecimals) as unknown as T;
+  if (typeof obj === "object" && !(obj instanceof Date)) {
+    const result: Record<string, unknown> = {};
+    for (const key of Object.keys(obj as Record<string, unknown>)) {
+      result[key] = serializeDecimals((obj as Record<string, unknown>)[key]);
+    }
+    return result as T;
+  }
+  return obj;
+}
 
 function generateReferenceCode(): string {
   const currentYear = new Date().getFullYear();
@@ -141,7 +157,7 @@ export const reservationRouter = router({
       // in the reservation object via findMany (no need for explicit select)
 
       return {
-        reservations: reservations.map(r => ({
+        reservations: reservations.map(r => serializeDecimals({
           ...r,
           referenceCode: isAdmin ? r.referenceCode : r.referenceCode.slice(0, 9) + "****",
         })),
@@ -190,7 +206,7 @@ export const reservationRouter = router({
         reservation.referenceCode = reservation.referenceCode.slice(0, 9) + "****";
       }
 
-      return reservation;
+      return serializeDecimals(reservation);
     }),
 
   create: adminOrSales
@@ -271,7 +287,7 @@ export const reservationRouter = router({
         `🔔 *Reserva Manual Creada*\nRef: ${reservation.referenceCode}\nTour: ${tour!.nameEs}\nMonto: ${reservation.currency} ${reservation.totalAmount.toString()}`
       ).catch(console.error);
 
-      return reservation;
+      return serializeDecimals(reservation);
     }),
 
   createGuestReservation: rateLimitedProcedure(RATE_LIMITS.guestReservation)
@@ -388,7 +404,7 @@ export const reservationRouter = router({
         ).catch(console.error);
       }
 
-      return reservation;
+      return serializeDecimals(reservation);
     }),
 
   updateStatus: protectedProcedure
@@ -454,7 +470,7 @@ export const reservationRouter = router({
         ).catch(console.error);
       }
 
-      return updated;
+      return serializeDecimals(updated);
     }),
 
   delete: roleProtectedProcedure(["ADMIN"])

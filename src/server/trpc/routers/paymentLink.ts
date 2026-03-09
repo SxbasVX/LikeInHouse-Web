@@ -1,9 +1,24 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { randomBytes } from "crypto";
+import { Decimal } from "@prisma/client/runtime/library";
 import { router, protectedProcedure, publicProcedure, rateLimitedProcedure, roleProtectedProcedure } from "../trpc";
 import { RATE_LIMITS } from "@/server/lib/rate-limit";
 import { createAuditLog } from "@/server/lib/audit";
+
+function serializeDecimals<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (obj instanceof Decimal) return Number(obj) as unknown as T;
+  if (Array.isArray(obj)) return obj.map(serializeDecimals) as unknown as T;
+  if (typeof obj === "object" && !(obj instanceof Date)) {
+    const result: Record<string, unknown> = {};
+    for (const key of Object.keys(obj as Record<string, unknown>)) {
+      result[key] = serializeDecimals((obj as Record<string, unknown>)[key]);
+    }
+    return result as T;
+  }
+  return obj;
+}
 
 const paymentLinkLimited = rateLimitedProcedure(RATE_LIMITS.paymentLink);
 const adminOrSales = roleProtectedProcedure(["ADMIN", "SALES"]);
@@ -97,7 +112,7 @@ export const paymentLinkRouter = router({
         ctx.db.paymentLink.count({ where }),
       ]);
 
-      return { links, total, pages: Math.ceil(total / limit), page };
+      return serializeDecimals({ links, total, pages: Math.ceil(total / limit), page });
     }),
 
   // Admin: create a payment link
@@ -181,7 +196,7 @@ export const paymentLinkRouter = router({
         });
       }
 
-      return link;
+      return serializeDecimals(link);
     }),
 
   // Admin: create from quotation (auto-fills data)
@@ -265,7 +280,7 @@ export const paymentLinkRouter = router({
         },
       });
 
-      return link;
+      return serializeDecimals(link);
     }),
 
   // Admin: cancel a payment link
@@ -281,10 +296,10 @@ export const paymentLinkRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "No puedes cancelar este link de pago" });
       }
 
-      return ctx.db.paymentLink.update({
+      return serializeDecimals(ctx.db.paymentLink.update({
         where: { id: input.id },
         data: { status: "CANCELLED" },
-      });
+      }));
     }),
 
   // PUBLIC: get payment link by token (for the payment page)
