@@ -11,10 +11,10 @@ export async function register() {
       AUTH_SECRET: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
       NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
       CRON_SECRET: process.env.CRON_SECRET,
-      PAYPAL_WEBHOOK_ID: process.env.PAYPAL_WEBHOOK_ID,
     };
 
     const recommended: Record<string, string | undefined> = {
+      PAYPAL_WEBHOOK_ID: process.env.PAYPAL_WEBHOOK_ID,
       RESEND_API_KEY: process.env.RESEND_API_KEY,
       PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID,
       PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET,
