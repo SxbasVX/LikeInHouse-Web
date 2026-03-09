@@ -15,9 +15,9 @@ export function Footer() {
   const { data: settings } = trpc.public.settings.useQuery(undefined, { staleTime: 10 * 60 * 1000 });
   const getSetting = (key: string, fallback: string) => {
     if (!settings) return fallback;
-    const arr = settings as unknown as Array<{ key: string; value: string }>;
-    const s = arr.find((item) => item.key === key);
-    return s?.value || fallback;
+    // settings is Record<string, string> from Object.fromEntries in cache.ts
+    const record = settings as Record<string, string>;
+    return record[key] || fallback;
   };
 
   const address = getSetting("address", "Av. El Sol 456, Cusco, Peru");
