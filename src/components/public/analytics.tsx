@@ -1,4 +1,5 @@
 import Script from 'next/script';
+import { Analytics as VercelAnalytics } from '@vercel/analytics/react';
 
 export function Analytics() {
     const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID;
@@ -7,6 +8,8 @@ export function Analytics() {
 
     return (
         <>
+            <VercelAnalytics />
+
             {/* 📊 Google Analytics 4 */}
             {GA_TRACKING_ID && (
                 <>
