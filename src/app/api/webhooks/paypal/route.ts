@@ -3,6 +3,9 @@ import { db } from "@/server/lib/db";
 import { sendWhatsAppAlert, sendWhatsAppToClient } from "@/server/lib/whatsapp";
 import { createAuditLog } from "@/server/lib/audit";
 
+// Vercel serverless: extend timeout for webhook processing (default 30s on Hobby)
+export const maxDuration = 60;
+
 // Generador de Token de Servidor (Duplicado limpio del tRPC)
 async function getPayPalAccessToken() {
     const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_MODE } = process.env;

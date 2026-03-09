@@ -262,7 +262,7 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
     return (
         <PayPalScriptProvider
             options={{
-                clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!,
+                clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "missing-paypal-client-id",
                 currency: "USD",
                 intent: "capture",
                 components: "buttons,card-fields",

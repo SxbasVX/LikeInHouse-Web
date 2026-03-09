@@ -4,6 +4,9 @@ import { db } from "@/server/lib/db";
 import { createAuditLog } from "@/server/lib/audit";
 import { sendWhatsAppAlert, sendWhatsAppToClient } from "@/server/lib/whatsapp";
 
+// Vercel serverless: extend timeout for webhook processing (default 30s on Hobby)
+export const maxDuration = 60;
+
 /**
  * Verify Culqi webhook HMAC signature.
  * Culqi signs webhooks with the merchant's secret key.

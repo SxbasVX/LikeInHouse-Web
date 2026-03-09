@@ -2,6 +2,9 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "@/server/trpc/root";
 import { createTRPCContext } from "@/server/trpc/trpc";
 
+// Vercel serverless: extend timeout for tRPC operations (Serializable transactions, etc.)
+export const maxDuration = 60;
+
 /**
  * CSRF protection: Validate Origin header on mutation requests.
  * tRPC mutations use POST with Content-Type: application/json which provides

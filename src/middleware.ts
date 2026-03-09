@@ -19,35 +19,42 @@ const SESSION_COOKIE_NAME =
 
 export default async function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
-  const isAdminHost =
+
+  // Dedicated admin subdomain: redirect root to /admin panel
+  const isDedicatedAdminHost =
     hostname === ADMIN_HOSTNAME ||
     hostname === "localhost" ||
     hostname.endsWith(".localhost");
 
-  // On admin subdomain: redirect root to /admin, allow /admin routes
-  if (isAdminHost) {
+  // Vercel preview/production deployments: allow both public site AND admin routes
+  const isVercelHost = hostname.endsWith(".vercel.app");
+
+  // On dedicated admin subdomain: redirect root to /admin, allow /admin routes
+  if (isDedicatedAdminHost) {
     if (pathname === "/" || pathname === "") {
       return NextResponse.redirect(new URL("/admin", request.url));
     }
-    if (pathname.startsWith("/admin")) {
-      // Auth check: protect all admin routes except login
-      const isPublicAdminPath = PUBLIC_ADMIN_PATHS.some((p) => pathname === p);
-      if (!isPublicAdminPath) {
-        const token = await getToken({
-          req: request,
-          cookieName: SESSION_COOKIE_NAME,
-          secret: process.env.AUTH_SECRET,
-        });
-        if (!token || !token.id) {
-          const loginUrl = new URL("/admin/login", request.url);
-          return NextResponse.redirect(loginUrl);
-        }
-      }
-      return NextResponse.next();
-    }
   }
 
-  // Block /admin on any other domain - return 404
+  // Allow /admin routes on dedicated admin host OR Vercel deployments
+  if (pathname.startsWith("/admin") && (isDedicatedAdminHost || isVercelHost)) {
+    // Auth check: protect all admin routes except login
+    const isPublicAdminPath = PUBLIC_ADMIN_PATHS.some((p) => pathname === p);
+    if (!isPublicAdminPath) {
+      const token = await getToken({
+        req: request,
+        cookieName: SESSION_COOKIE_NAME,
+        secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+      });
+      if (!token || !token.id) {
+        const loginUrl = new URL("/admin/login", request.url);
+        return NextResponse.redirect(loginUrl);
+      }
+    }
+    return NextResponse.next();
+  }
+
+  // Block /admin on any other domain (custom public domain) - return 404
   if (pathname.startsWith("/admin")) {
     return NextResponse.rewrite(new URL("/_not-found", request.url));
   }

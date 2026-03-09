@@ -283,7 +283,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
     return (
         <PayPalScriptProvider
             options={{
-                clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!,
+                clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "missing-paypal-client-id",
                 currency: "USD",
                 intent: "capture",
                 components: "buttons,card-fields",
