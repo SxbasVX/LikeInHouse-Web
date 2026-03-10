@@ -97,13 +97,14 @@ export const publicRouter = router({
       const tour = await ctx.db.tour.findUnique({
         where: { slug: input.slug, status: "PUBLISHED", isActive: true },
         include: {
-          images: { orderBy: { sortOrder: "asc" } },
+          images: { orderBy: { sortOrder: "asc" }, take: 12 },
           itinerary: { orderBy: { dayNumber: "asc" } },
           pricing: true,
           includes: { orderBy: { sortOrder: "asc" } },
           departures: {
             where: { status: "AVAILABLE", departureDate: { gte: new Date() } },
             orderBy: { departureDate: "asc" },
+            take: 12,
           },
           seasons: true,
         },

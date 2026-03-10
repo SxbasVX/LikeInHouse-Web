@@ -44,11 +44,19 @@ export function Navbar() {
   }, []);
 
   const { data: toursByDest } = trpc.public.toursByDestination.useQuery(undefined, {
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // 10 min - tour structure rarely changes
+    gcTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   const { data: featuredTours } = trpc.public.featuredTours.useQuery(undefined, {
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   const destinations = toursByDest ? Object.keys(toursByDest) : [];

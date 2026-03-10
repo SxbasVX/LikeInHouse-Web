@@ -83,18 +83,21 @@ export const getCachedToursByDestination = unstable_cache(
                 destination: true,
                 category: true,
             },
-            orderBy: [{ destination: "asc" }, { sortOrder: "asc" }, { nameEs: "asc" }],
+            orderBy: [{ destination: "asc" }, { sortOrder: "asc" }],
         });
 
+        // Group by destination, limit to 5 per destination for navbar mega menu
         const grouped: Record<string, typeof tours> = {};
         for (const tour of tours) {
             if (!grouped[tour.destination]) grouped[tour.destination] = [];
-            grouped[tour.destination].push(tour);
+            if (grouped[tour.destination].length < 5) {
+                grouped[tour.destination].push(tour);
+            }
         }
         return grouped;
     },
     ["tours-by-destination"],
-    { revalidate: 300, tags: [CACHE_TAGS.tours] }
+    { revalidate: 600, tags: [CACHE_TAGS.tours] } // 10 min - structure rarely changes
 );
 
 export const getCachedFaqs = unstable_cache(
