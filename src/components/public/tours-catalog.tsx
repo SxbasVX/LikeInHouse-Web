@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { trpc } from "@/lib/trpc";
@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 interface ToursCatalogProps {
   initialData: {
@@ -33,8 +33,11 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
 
   const searchParams = useSearchParams();
   const urlDestination = searchParams.get("destination") || undefined;
+  const urlSearch = searchParams.get("search") || undefined;
 
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState<string>(urlSearch || "");
+  const [activeSearch, setActiveSearch] = useState<string | undefined>(urlSearch);
   const [destination, setDestination] = useState<string | undefined>(urlDestination);
   const [category, setCategory] = useState<string | undefined>();
   const [sort, setSort] = useState<"newest" | "price_asc" | "price_desc" | "popular">("newest");
@@ -46,10 +49,31 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
     }
   }, [urlDestination]);
 
-  const hasFilters: boolean = page > 1 || !!destination || !!category || sort !== "newest";
+  useEffect(() => {
+    if (urlSearch !== undefined && urlSearch !== activeSearch) {
+      setSearch(urlSearch);
+      setActiveSearch(urlSearch);
+      setPage(1);
+    }
+  }, [urlSearch]);
+
+  function handleSearch(e: FormEvent) {
+    e.preventDefault();
+    const trimmed = search.trim();
+    setActiveSearch(trimmed || undefined);
+    setPage(1);
+  }
+
+  function clearSearch() {
+    setSearch("");
+    setActiveSearch(undefined);
+    setPage(1);
+  }
+
+  const hasFilters: boolean = page > 1 || !!destination || !!category || !!activeSearch || sort !== "newest";
 
   const { data, isLoading } = trpc.public.tours.useQuery(
-    { page, limit: 9, destination, category, sort },
+    { page, limit: 9, search: activeSearch, destination, category, sort },
     { initialData: hasFilters ? undefined : initialData, enabled: hasFilters as boolean }
   );
 
@@ -62,7 +86,33 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
         <p className="mt-2 text-muted-foreground">{t("catalog_subtitle")}</p>
       </div>
 
-      <div className="animate-fade-in mb-8 flex flex-wrap gap-3" style={{ animationDelay: "100ms" }}>
+      <div className="animate-fade-in mb-8 flex flex-wrap items-center gap-3" style={{ animationDelay: "100ms" }}>
+        {/* Barra de búsqueda */}
+        <form onSubmit={handleSearch} className="flex items-center gap-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("search_placeholder")}
+              className="h-10 w-56 rounded-md border border-input bg-background pl-9 pr-8 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <Button type="submit" size="sm" variant="secondary">
+            {tc("search")}
+          </Button>
+        </form>
+
         <Select
           value={destination || "all"}
           onValueChange={(v) => { setDestination(v === "all" ? undefined : v); setPage(1); }}

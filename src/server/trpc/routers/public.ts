@@ -37,6 +37,7 @@ export const publicRouter = router({
       z.object({
         page: z.number().int().positive().default(1),
         limit: z.number().int().positive().max(24).default(9),
+        search: z.string().max(100).optional(),
         destination: z.string().optional(),
         category: z.string().optional(),
         difficulty: z.enum(["EASY", "MODERATE", "CHALLENGING"]).optional(),
@@ -46,10 +47,23 @@ export const publicRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const { page, limit, destination, category, difficulty, sort } = input;
+      const { page, limit, search, destination, category, difficulty, sort } = input;
       const skip = (page - 1) * limit;
 
       const where: any = { status: "PUBLISHED", isActive: true };
+
+      if (search) {
+        const term = search.trim();
+        where.OR = [
+          { nameEs: { contains: term, mode: "insensitive" } },
+          { nameEn: { contains: term, mode: "insensitive" } },
+          { shortDescEs: { contains: term, mode: "insensitive" } },
+          { shortDescEn: { contains: term, mode: "insensitive" } },
+          { destination: { contains: term, mode: "insensitive" } },
+          { category: { contains: term, mode: "insensitive" } },
+        ];
+      }
+
       if (destination) where.destination = { contains: destination, mode: "insensitive" };
       if (category) where.category = { contains: category, mode: "insensitive" };
       if (difficulty) where.difficulty = difficulty;
