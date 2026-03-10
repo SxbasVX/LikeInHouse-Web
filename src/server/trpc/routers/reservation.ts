@@ -1,44 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { randomBytes } from "crypto";
-import { Decimal } from "@prisma/client/runtime/library";
 import { router, protectedProcedure, roleProtectedProcedure, rateLimitedProcedure } from "../trpc";
 import { RATE_LIMITS } from "@/server/lib/rate-limit";
 import { createAuditLog } from "@/server/lib/audit";
 import { sendWhatsAppAlert, sendWhatsAppToClient } from "@/server/lib/whatsapp";
-
-// Convierte Decimals de Prisma a números planos para serialización tRPC/SuperJSON
-function serializeDecimals<T>(obj: T): T {
-  if (obj === null || obj === undefined) return obj;
-  if (obj instanceof Decimal) return Number(obj) as unknown as T;
-  if (Array.isArray(obj)) return obj.map(serializeDecimals) as unknown as T;
-  if (typeof obj === "object" && !(obj instanceof Date)) {
-    const result: Record<string, unknown> = {};
-    for (const key of Object.keys(obj as Record<string, unknown>)) {
-      result[key] = serializeDecimals((obj as Record<string, unknown>)[key]);
-    }
-    return result as T;
-  }
-  return obj;
-}
-
-function generateReferenceCode(): string {
-  const currentYear = new Date().getFullYear();
-  const randomChars = randomBytes(4).toString("hex").substring(0, 5).toUpperCase();
-  return `LIH-${currentYear}-${randomChars}`;
-}
-
-// Generate unique reference code with retry on collision
-async function generateUniqueReferenceCode(tx: any, maxRetries = 5): Promise<string> {
-  for (let i = 0; i < maxRetries; i++) {
-    const code = generateReferenceCode();
-    const existing = await tx.reservation.findUnique({ where: { referenceCode: code } });
-    if (!existing) return code;
-  }
-  // Fallback: use longer random for guaranteed uniqueness
-  const fallback = `LIH-${new Date().getFullYear()}-${randomBytes(8).toString("hex").toUpperCase()}`;
-  return fallback;
-}
+import { serializeDecimals } from "@/server/lib/serialize";
+import { generateUniqueReservationRef } from "@/server/lib/references";
 
 // Valid status transitions
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -264,7 +231,7 @@ export const reservationRouter = router({
           });
         }
 
-        const referenceCode = await generateUniqueReferenceCode(tx);
+        const referenceCode = await generateUniqueReservationRef(tx);
 
         const reservation = await tx.reservation.create({
           data: {
@@ -346,7 +313,7 @@ export const reservationRouter = router({
           });
         }
 
-        const referenceCode = await generateUniqueReferenceCode(tx);
+        const referenceCode = await generateUniqueReservationRef(tx);
 
         // Upsert client based on email
         const client = await tx.client.upsert({

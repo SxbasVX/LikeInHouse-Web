@@ -12,22 +12,8 @@ import {
   tourCreateSchema,
   tourUpdateSchema,
 } from "@/lib/validators/tour";
-import { Decimal } from "@prisma/client/runtime/library";
 import { CACHE_TAGS } from "@/server/lib/cache";
-
-function serializeDecimals<T>(obj: T): T {
-  if (obj === null || obj === undefined) return obj;
-  if (obj instanceof Decimal) return Number(obj) as unknown as T;
-  if (Array.isArray(obj)) return obj.map(serializeDecimals) as unknown as T;
-  if (typeof obj === 'object' && obj.constructor === Object) {
-    const result: any = {};
-    for (const key of Object.keys(obj as any)) {
-      result[key] = serializeDecimals((obj as any)[key]);
-    }
-    return result as T;
-  }
-  return obj;
-}
+import { serializeDecimals } from "@/server/lib/serialize";
 
 const adminOrMarketing = roleProtectedProcedure(["ADMIN", "MARKETING"]);
 const adminOnly = roleProtectedProcedure(["ADMIN"]);
@@ -144,62 +130,65 @@ export const tourRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { itinerary, pricing, includes, excludes, images, departures, ...tourData } = input;
 
-      const existing = await ctx.db.tour.findUnique({ where: { slug: tourData.slug } });
-      if (existing) {
-        throw new TRPCError({ code: "CONFLICT", message: "Ya existe un tour con ese slug" });
-      }
+      // Wrap in transaction to ensure atomicity (tour + all relations)
+      const tour = await ctx.db.$transaction(async (tx) => {
+        const existing = await tx.tour.findUnique({ where: { slug: tourData.slug } });
+        if (existing) {
+          throw new TRPCError({ code: "CONFLICT", message: "Ya existe un tour con ese slug" });
+        }
 
-      const tour = await ctx.db.tour.create({
-        data: {
-          ...tourData,
-          status: "DRAFT",
-          itinerary: itinerary.length > 0 ? {
-            create: itinerary.map((day) => ({
-              dayNumber: day.dayNumber,
-              titleEs: day.titleEs,
-              titleEn: day.titleEn,
-              descriptionEs: day.descriptionEs,
-              descriptionEn: day.descriptionEn,
-            })),
-          } : undefined,
-          ...(pricing ? {
-            pricing: {
-              create: {
-                basePriceUsdAdult: pricing.basePriceUsdAdult,
-                basePriceUsdChild: pricing.basePriceUsdChild,
-                groupDiscountPercent: pricing.groupDiscountPercent,
-                groupMinPersons: pricing.groupMinPersons,
-                promoDiscountPercent: pricing.promoDiscountPercent,
-                promoStartDate: pricing.promoStartDate ? new Date(pricing.promoStartDate) : undefined,
-                promoEndDate: pricing.promoEndDate ? new Date(pricing.promoEndDate) : undefined,
-                promoLabelEs: pricing.promoLabelEs,
-                promoLabelEn: pricing.promoLabelEn,
+        return tx.tour.create({
+          data: {
+            ...tourData,
+            status: "DRAFT",
+            itinerary: itinerary.length > 0 ? {
+              create: itinerary.map((day) => ({
+                dayNumber: day.dayNumber,
+                titleEs: day.titleEs,
+                titleEn: day.titleEn,
+                descriptionEs: day.descriptionEs,
+                descriptionEn: day.descriptionEn,
+              })),
+            } : undefined,
+            ...(pricing ? {
+              pricing: {
+                create: {
+                  basePriceUsdAdult: pricing.basePriceUsdAdult,
+                  basePriceUsdChild: pricing.basePriceUsdChild,
+                  groupDiscountPercent: pricing.groupDiscountPercent,
+                  groupMinPersons: pricing.groupMinPersons,
+                  promoDiscountPercent: pricing.promoDiscountPercent,
+                  promoStartDate: pricing.promoStartDate ? new Date(pricing.promoStartDate) : undefined,
+                  promoEndDate: pricing.promoEndDate ? new Date(pricing.promoEndDate) : undefined,
+                  promoLabelEs: pricing.promoLabelEs,
+                  promoLabelEn: pricing.promoLabelEn,
+                },
               },
+            } : {}),
+            includes: {
+              create: [
+                ...includes.map((inc, i) => ({ type: "INCLUDE", textEs: inc.textEs, textEn: inc.textEn, sortOrder: i })),
+                ...excludes.map((exc, i) => ({ type: "EXCLUDE", textEs: exc.textEs, textEn: exc.textEn, sortOrder: i })),
+              ],
             },
-          } : {}),
-          includes: {
-            create: [
-              ...includes.map((inc, i) => ({ type: "INCLUDE", textEs: inc.textEs, textEn: inc.textEn, sortOrder: i })),
-              ...excludes.map((exc, i) => ({ type: "EXCLUDE", textEs: exc.textEs, textEn: exc.textEn, sortOrder: i })),
-            ],
+            images: {
+              create: images.map((img, i) => ({
+                cloudinaryId: img.cloudinaryId,
+                url: img.url,
+                altEs: img.altEs,
+                altEn: img.altEn,
+                isPrimary: img.isPrimary,
+                sortOrder: i,
+              })),
+            },
+            departures: {
+              create: departures.map((dep) => ({
+                departureDate: new Date(dep.departureDate),
+                maxCapacity: dep.maxCapacity,
+              })),
+            },
           },
-          images: {
-            create: images.map((img, i) => ({
-              cloudinaryId: img.cloudinaryId,
-              url: img.url,
-              altEs: img.altEs,
-              altEn: img.altEn,
-              isPrimary: img.isPrimary,
-              sortOrder: i,
-            })),
-          },
-          departures: {
-            create: departures.map((dep) => ({
-              departureDate: new Date(dep.departureDate),
-              maxCapacity: dep.maxCapacity,
-            })),
-          },
-        },
+        });
       });
 
       revalidateTag(CACHE_TAGS.tours);

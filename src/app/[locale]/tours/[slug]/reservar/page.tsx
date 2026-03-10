@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/server/lib/db";
 import { CheckoutForm } from "@/components/public/checkout-form";
@@ -7,6 +8,22 @@ interface CheckoutPageProps {
         locale: string;
         slug: string;
     }>;
+}
+
+export async function generateMetadata({ params }: CheckoutPageProps): Promise<Metadata> {
+    const { slug, locale } = await params;
+    const tour = await db.tour.findUnique({
+        where: { slug },
+        select: { nameEs: true, nameEn: true },
+    });
+
+    const name = tour ? (locale === "es" ? tour.nameEs : tour.nameEn) : "";
+    const title = locale === "es" ? `Reservar ${name}` : `Book ${name}`;
+
+    return {
+        title,
+        robots: { index: false, follow: false },
+    };
 }
 
 export default async function CheckoutPage({ params }: CheckoutPageProps) {

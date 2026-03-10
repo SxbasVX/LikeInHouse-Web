@@ -1,47 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { randomBytes } from "crypto";
-import { Decimal } from "@prisma/client/runtime/library";
 import { router, protectedProcedure, publicProcedure, rateLimitedProcedure, roleProtectedProcedure } from "../trpc";
 import { RATE_LIMITS } from "@/server/lib/rate-limit";
 import { createAuditLog } from "@/server/lib/audit";
-
-function serializeDecimals<T>(obj: T): T {
-  if (obj === null || obj === undefined) return obj;
-  if (obj instanceof Decimal) return Number(obj) as unknown as T;
-  if (Array.isArray(obj)) return obj.map(serializeDecimals) as unknown as T;
-  if (typeof obj === "object" && !(obj instanceof Date)) {
-    const result: Record<string, unknown> = {};
-    for (const key of Object.keys(obj as Record<string, unknown>)) {
-      result[key] = serializeDecimals((obj as Record<string, unknown>)[key]);
-    }
-    return result as T;
-  }
-  return obj;
-}
+import { serializeDecimals } from "@/server/lib/serialize";
+import { generateSecureToken, generateUniqueReservationRef } from "@/server/lib/references";
 
 const paymentLinkLimited = rateLimitedProcedure(RATE_LIMITS.paymentLink);
 const adminOrSales = roleProtectedProcedure(["ADMIN", "SALES"]);
-
-function generateSecureToken(): string {
-  const randomPart = randomBytes(6).toString("hex").toUpperCase();
-  return `PAY-${Date.now().toString(36).toUpperCase()}-${randomPart}`;
-}
-
-function generateReferenceCode(): string {
-  const currentYear = new Date().getFullYear();
-  const randomChars = randomBytes(4).toString("hex").substring(0, 5).toUpperCase();
-  return `LIH-${currentYear}-${randomChars}`;
-}
-
-async function generateUniquePaymentLinkRef(db: any, maxRetries = 5): Promise<string> {
-  for (let i = 0; i < maxRetries; i++) {
-    const code = generateReferenceCode();
-    const existing = await db.reservation.findUnique({ where: { referenceCode: code } });
-    if (!existing) return code;
-  }
-  return `LIH-${new Date().getFullYear()}-${randomBytes(8).toString("hex").toUpperCase()}`;
-}
 
 const paymentLinkCreateSchema = z.object({
   quotationId: z.string().optional(),
@@ -416,9 +382,9 @@ export const paymentLinkRouter = router({
             where: { id: link.quotationId },
             select: { referenceCode: true },
           });
-          referenceCode = quotationForCode?.referenceCode || await generateUniquePaymentLinkRef(tx);
+          referenceCode = quotationForCode?.referenceCode || await generateUniqueReservationRef(tx);
         } else {
-          referenceCode = await generateUniquePaymentLinkRef(tx);
+          referenceCode = await generateUniqueReservationRef(tx);
         }
 
         // Find first tour mentioned in quotation items (if any)

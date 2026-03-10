@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations, useLocale } from "next-intl";
-import { Card, CardContent } from "@/components/ui/card";
 import { Star, Quote } from "lucide-react";
 
 interface Testimonial {
@@ -20,42 +19,56 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
   const isEs = locale === "es";
 
   return (
-    <section className="bg-gray-50 py-16 lg:py-20">
+    <section className="bg-white py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="animate-slide-up text-center mb-12">
-          <h2 className="text-3xl font-bold">{t("testimonials")}</h2>
+        <div className="animate-slide-up text-center mb-14">
+          <h2 className="font-heading text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl">
+            {t("testimonials")}
+          </h2>
         </div>
 
         <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {testimonials.slice(0, 3).map((test) => (
-            <Card key={test.id} className="relative transition-shadow hover:shadow-lg">
-              <CardContent className="pt-6">
-                <Quote className="absolute right-4 top-4 h-8 w-8 text-primary/10" />
-                <div className="mb-3 flex gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      aria-label={i < test.rating ? "filled star" : "empty star"}
-                      className={`h-4 w-4 transition-colors ${
-                        i < test.rating
-                          ? "fill-brand-orange text-brand-orange"
-                          : "text-gray-200"
-                      }`}
-                    />
-                  ))}
+            <div
+              key={test.id}
+              className="group relative rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 sm:p-8"
+            >
+              <Quote className="absolute right-6 top-6 h-8 w-8 text-brand-orange/10" />
+
+              {/* Stars */}
+              <div className="mb-4 flex gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    aria-label={i < test.rating ? "filled star" : "empty star"}
+                    className={`h-4 w-4 ${
+                      i < test.rating
+                        ? "fill-brand-orange text-brand-orange"
+                        : "text-gray-200"
+                    }`}
+                  />
+                ))}
+              </div>
+
+              {/* Text */}
+              <p className="mb-6 text-sm leading-relaxed text-gray-600">
+                &ldquo;{isEs ? test.textEs : (test.textEn || test.textEs)}&rdquo;
+              </p>
+
+              {/* Author */}
+              <div className="flex items-center gap-3 border-t border-gray-100 pt-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-teal to-brand-orange text-sm font-bold text-white">
+                  {test.clientName.charAt(0)}
                 </div>
-                <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
-                  &ldquo;{isEs ? test.textEs : (test.textEn || test.textEs)}&rdquo;
-                </p>
                 <div>
-                  <p className="font-medium text-sm">{test.clientName}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-semibold text-gray-900">{test.clientName}</p>
+                  <p className="text-xs text-gray-400">
                     {test.country || ""}
-                    {test.tourName && `${test.country ? " | " : ""}${test.tourName}`}
+                    {test.tourName && `${test.country ? " · " : ""}${test.tourName}`}
                   </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       </div>

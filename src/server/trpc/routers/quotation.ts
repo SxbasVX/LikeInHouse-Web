@@ -1,28 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { randomBytes } from "crypto";
 import { router, protectedProcedure, roleProtectedProcedure } from "../trpc";
 import { sendEmail } from "../../../lib/mail";
-
-function generateReferenceCode(): string {
-  const currentYear = new Date().getFullYear();
-  const randomChars = randomBytes(4).toString("hex").substring(0, 5).toUpperCase();
-  return `LIH-${currentYear}-${randomChars}`;
-}
-
-async function generateUniqueQuotationRef(db: any, maxRetries = 5): Promise<string> {
-  for (let i = 0; i < maxRetries; i++) {
-    const code = generateReferenceCode();
-    const existing = await db.quotation.findUnique({ where: { referenceCode: code } });
-    if (!existing) return code;
-  }
-  return `LIH-${new Date().getFullYear()}-${randomBytes(8).toString("hex").toUpperCase()}`;
-}
-
-function generateSecureToken(): string {
-  const randomPart = randomBytes(6).toString("hex").toUpperCase();
-  return `PAY-${Date.now().toString(36).toUpperCase()}-${randomPart}`;
-}
+import { generateUniqueQuotationRef, generateSecureToken } from "@/server/lib/references";
 
 const adminOrSales = roleProtectedProcedure(["ADMIN", "SALES"]);
 
@@ -172,18 +152,21 @@ export const quotationRouter = router({
         });
       }
 
-      const referenceCode = await generateUniqueQuotationRef(ctx.db);
+      // Wrap in transaction to ensure atomicity (quotation + items)
+      return ctx.db.$transaction(async (tx) => {
+        const referenceCode = await generateUniqueQuotationRef(tx);
 
-      return ctx.db.quotation.create({
-        data: {
-          ...data,
-          referenceCode,
-          createdByUserId: userId,
-          items: {
-            create: validatedItems,
+        return tx.quotation.create({
+          data: {
+            ...data,
+            referenceCode,
+            createdByUserId: userId,
+            items: {
+              create: validatedItems,
+            },
           },
-        },
-        include: { items: true },
+          include: { items: true },
+        });
       });
     }),
 

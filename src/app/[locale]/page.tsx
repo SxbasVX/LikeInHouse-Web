@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { getServerCaller } from "@/lib/trpc-server";
 import { HeroSection } from "@/components/public/sections/hero";
+import { GalleryCarousel } from "@/components/public/sections/gallery-carousel";
 import { FeaturedToursSection } from "@/components/public/sections/featured-tours";
 import { TestimonialsSection } from "@/components/public/sections/testimonials";
 import { CTASection } from "@/components/public/sections/cta";
@@ -37,8 +38,9 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="page-transition">
+    <div>
       <HeroSection />
+      <GalleryCarousel />
       <FeaturedToursSection tours={tours} />
       {testimonials.length > 0 && (
         <TestimonialsSection testimonials={testimonials} />

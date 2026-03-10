@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { Decimal } from "@prisma/client/runtime/library";
 import { router, publicProcedure, rateLimitedProcedure } from "../trpc";
 import { RATE_LIMITS } from "@/server/lib/rate-limit";
 import { sanitizePlainText } from "@/server/lib/sanitize";
@@ -14,21 +13,7 @@ import {
   getCachedTestimonials,
   getCachedSettings,
 } from "@/server/lib/cache";
-
-// Convierte Decimals de Prisma a números planos (necesario para RSC → Client Components)
-function serializeDecimals<T>(obj: T): T {
-  if (obj === null || obj === undefined) return obj;
-  if (obj instanceof Decimal) return Number(obj) as unknown as T;
-  if (Array.isArray(obj)) return obj.map(serializeDecimals) as unknown as T;
-  if (typeof obj === 'object' && obj.constructor === Object) {
-    const result: any = {};
-    for (const key of Object.keys(obj as any)) {
-      result[key] = serializeDecimals((obj as any)[key]);
-    }
-    return result as T;
-  }
-  return obj;
-}
+import { serializeDecimals } from "@/server/lib/serialize";
 
 export const publicRouter = router({
   // Tours publicados con paginación y filtros

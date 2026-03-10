@@ -47,9 +47,9 @@ export default async function LocaleLayout({
             <WhatsAppButton />
             <TrafficTracker />
             <Toaster />
+            <Analytics />
           </TRPCProvider>
         </NextIntlClientProvider>
-        <Analytics />
       </body>
     </html>
   );
