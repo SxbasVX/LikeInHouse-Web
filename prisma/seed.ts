@@ -205,9 +205,7 @@ async function main() {
   await prisma.tourPricing.create({
     data: {
       tourId: tour.id,
-      basePricePenAdult: 1850.0,
       basePriceUsdAdult: 499.0,
-      basePricePenChild: 1295.0,
       basePriceUsdChild: 349.0,
       groupDiscountPercent: 10,
       groupMinPersons: 4,
@@ -451,7 +449,7 @@ async function main() {
     { key: "contactPhone", value: "+51 84 123 456" },
     { key: "whatsappNumber", value: "+51984123456" },
     { key: "address", value: "Av. El Sol 456, Cusco, Peru" },
-    { key: "defaultCurrency", value: "PEN" },
+    { key: "defaultCurrency", value: "USD" },
     { key: "depositPercent", value: 30 },
     { key: "socialFacebook", value: "https://facebook.com/perutours" },
     { key: "socialInstagram", value: "https://instagram.com/perutours" },

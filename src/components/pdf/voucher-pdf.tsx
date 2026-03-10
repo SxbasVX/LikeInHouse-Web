@@ -141,7 +141,7 @@ interface VoucherProps {
 
 export function VoucherPDF({ data }: { data: VoucherProps }) {
     const { isEs } = data;
-    const currencySymbol = data.currency === "USD" ? "$" : "S/";
+    const currencySymbol = "$";
 
     return (
         <Document>

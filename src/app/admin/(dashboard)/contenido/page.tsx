@@ -7,7 +7,7 @@ import DOMPurify from "dompurify";
 
 // Sanitize HTML to prevent XSS using browser-native DOMPurify
 function sanitizeClientHtml(html: string): string {
-  if (typeof window === "undefined") return html;
+  if (typeof window === "undefined") return ""; // Never render unsanitized HTML during SSR
   return DOMPurify.sanitize(html);
 }
 
@@ -83,27 +83,27 @@ export default function ContenidoPage() {
         </TabsList>
 
         <TabsContent value="faqs" className="mt-6">
-          <FAQsSection />
+          {activeTab === "faqs" && <FAQsSection />}
         </TabsContent>
 
         <TabsContent value="testimonials" className="mt-6">
-          <TestimonialsSection />
+          {activeTab === "testimonials" && <TestimonialsSection />}
         </TabsContent>
 
         <TabsContent value="blog" className="mt-6">
-          <BlogSection />
+          {activeTab === "blog" && <BlogSection />}
         </TabsContent>
 
         <TabsContent value="contact" className="mt-6">
-          <ContactMessagesSection />
+          {activeTab === "contact" && <ContactMessagesSection />}
         </TabsContent>
 
         <TabsContent value="sections" className="mt-6">
-          <HomeSectionsSection />
+          {activeTab === "sections" && <HomeSectionsSection />}
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
-          <SettingsSection />
+          {activeTab === "settings" && <SettingsSection />}
         </TabsContent>
       </Tabs>
     </div>

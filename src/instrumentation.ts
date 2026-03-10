@@ -14,12 +14,24 @@ export async function register() {
     };
 
     const recommended: Record<string, string | undefined> = {
-      PAYPAL_WEBHOOK_ID: process.env.PAYPAL_WEBHOOK_ID,
       RESEND_API_KEY: process.env.RESEND_API_KEY,
-      PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID,
-      PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET,
       CULQI_SECRET_KEY: process.env.CULQI_SECRET_KEY,
     };
+
+    // PayPal vars are required when PayPal is the active payment gateway
+    const paypalRequired: Record<string, string | undefined> = {
+      PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID,
+      PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET,
+      PAYPAL_WEBHOOK_ID: process.env.PAYPAL_WEBHOOK_ID,
+    };
+
+    const missingPaypal = Object.entries(paypalRequired).filter(([, v]) => !v).map(([k]) => k);
+    if (missingPaypal.length > 0) {
+      console.error(
+        `🚫 Missing PAYPAL environment variables: ${missingPaypal.join(", ")}. ` +
+        `Payment processing will NOT work.`
+      );
+    }
 
     const missing = Object.entries(required).filter(([, v]) => !v).map(([k]) => k);
     if (missing.length > 0) {

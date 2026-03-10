@@ -46,9 +46,7 @@ interface Departure {
 }
 
 interface Pricing {
-  basePricePenAdult: any;
   basePriceUsdAdult: any;
-  basePricePenChild: any;
   basePriceUsdChild: any;
 }
 
@@ -95,12 +93,12 @@ export function TourDetail({ tour }: { tour: TourData }) {
   const shortDesc = isEs ? tour.shortDescEs : (tour.shortDescEn || tour.shortDescEs);
   const desc = isEs ? tour.longDescEs : (tour.longDescEn || tour.longDescEs);
   const price = tour.pricing
-    ? Number(isEs ? tour.pricing.basePricePenAdult : tour.pricing.basePriceUsdAdult)
+    ? Number(tour.pricing.basePriceUsdAdult)
     : null;
   const childPrice = tour.pricing
-    ? Number(isEs ? tour.pricing.basePricePenChild : tour.pricing.basePriceUsdChild)
+    ? Number(tour.pricing.basePriceUsdChild)
     : null;
-  const currency = isEs ? "S/" : "$";
+  const currency = "$";
 
   const included = tour.includes.filter((i) => i.type === "INCLUDED");
   const excluded = tour.includes.filter((i) => i.type === "EXCLUDED");

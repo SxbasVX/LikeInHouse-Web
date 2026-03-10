@@ -40,10 +40,17 @@ function validateOrigin(req: Request): boolean {
   // Check exact match first
   if (allowedOrigins.has(sourceOrigin)) return true;
 
-  // Allow Vercel preview/production deployments (*.vercel.app)
+  // Allow Vercel preview/production deployments (project-specific *.vercel.app)
   try {
     const url = new URL(sourceOrigin);
-    if (url.hostname.endsWith(".vercel.app")) return true;
+    if (url.hostname.endsWith(".vercel.app")) {
+      // Only allow our own Vercel deployments (project name prefix)
+      const projectPrefix = process.env.VERCEL_PROJECT_PRODUCTION_URL?.replace(".vercel.app", "") || "likeinhouseperu";
+      if (url.hostname === `${projectPrefix}.vercel.app` || url.hostname.startsWith(`${projectPrefix}-`)) {
+        return true;
+      }
+      return false;
+    }
   } catch {
     return false;
   }

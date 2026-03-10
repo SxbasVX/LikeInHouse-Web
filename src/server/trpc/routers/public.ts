@@ -70,7 +70,7 @@ export const publicRouter = router({
           orderBy,
           include: {
             images: { where: { isPrimary: true }, take: 1 },
-            pricing: { select: { basePricePenAdult: true, basePriceUsdAdult: true } },
+            pricing: { select: { basePriceUsdAdult: true } },
             _count: { select: { departures: true } },
           },
         }),

@@ -43,7 +43,7 @@ interface Tour {
   durationDays: number;
   durationNights: number;
   images: { url: string; altEs: string | null }[];
-  pricing: { basePricePenAdult: any; basePriceUsdAdult: any } | null;
+  pricing: { basePriceUsdAdult: any } | null;
   _count: { reservations: number; departures: number };
 }
 

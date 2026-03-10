@@ -47,9 +47,7 @@ interface TourData {
     slug: string;
     pricing: {
         basePriceUsdAdult: number;
-        basePricePenAdult: number;
         basePriceUsdChild: number;
-        basePricePenChild: number;
     } | null;
     departures: {
         id: string;
@@ -76,7 +74,7 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
     const currencySymbol = "$";
 
     const { register, handleSubmit, watch, formState: { errors } } = useForm<CheckoutFormData>({
-        resolver: zodResolver(checkoutSchema) as any,
+        resolver: zodResolver(checkoutSchema),
         defaultValues: { adults: 1, children: 0 },
     });
 
@@ -260,180 +258,180 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
     }
 
     return (
-        <PayPalScriptProvider
-            options={{
-                clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "missing-paypal-client-id",
-                currency: "USD",
-                intent: "capture",
-                components: "buttons,card-fields",
-            }}
-        >
-            <div className="grid lg:grid-cols-12 gap-8 items-start">
-                {/* Step Indicator (M5) */}
-                <div className="lg:col-span-12 flex items-center justify-center gap-2 mb-2">
-                    {[
-                        { key: "details", label: isEs ? "1. Datos" : "1. Details" },
-                        { key: "payment", label: isEs ? "2. Pago" : "2. Payment" },
-                        { key: "success", label: isEs ? "3. Confirmación" : "3. Confirmation" },
-                    ].map((s, i) => (
-                        <div key={s.key} className="flex items-center gap-2">
-                            {i > 0 && <div className={`h-px w-8 ${["payment","success"].indexOf(step) >= i ? "bg-primary" : "bg-border"}`} />}
-                            <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${step === s.key ? "bg-primary text-primary-foreground" : ["payment","success"].indexOf(step) > ["details","payment","success"].indexOf(s.key) ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                                {s.label}
-                            </div>
+        <div className="grid lg:grid-cols-12 gap-8 items-start">
+            {/* Step Indicator (M5) */}
+            <div className="lg:col-span-12 flex items-center justify-center gap-2 mb-2">
+                {[
+                    { key: "details", label: isEs ? "1. Datos" : "1. Details" },
+                    { key: "payment", label: isEs ? "2. Pago" : "2. Payment" },
+                    { key: "success", label: isEs ? "3. Confirmación" : "3. Confirmation" },
+                ].map((s, i) => (
+                    <div key={s.key} className="flex items-center gap-2">
+                        {i > 0 && <div className={`h-px w-8 ${["payment", "success"].indexOf(step) >= i ? "bg-primary" : "bg-border"}`} />}
+                        <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${step === s.key ? "bg-primary text-primary-foreground" : ["payment", "success"].indexOf(step) > ["details", "payment", "success"].indexOf(s.key) ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                            {s.label}
                         </div>
-                    ))}
-                </div>
-                {/* LEFT: Form / Payment */}
-                <div className="lg:col-span-8 space-y-6">
-                    {step === "details" && (
-                        <form id="checkout-form" onSubmit={handleSubmit(onSubmit as any)} className="space-y-6">
-                            <Card className="border-t-4 border-t-primary">
-                                <CardHeader>
-                                    <CardTitle>{isEs ? "Tus Datos" : "Your Details"}</CardTitle>
-                                    <CardDescription>
-                                        {isEs ? "Ingresa tu informacion para confirmar la reserva." : "Enter your info to confirm the booking."}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="firstName">{isEs ? "Nombres" : "First Name"}</Label>
-                                            <Input id="firstName" {...register("firstName")} />
-                                            {errors.firstName && <span className="text-sm text-destructive">{errors.firstName.message}</span>}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="lastName">{isEs ? "Apellidos" : "Last Name"}</Label>
-                                            <Input id="lastName" {...register("lastName")} />
-                                            {errors.lastName && <span className="text-sm text-destructive">{errors.lastName.message}</span>}
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="email">{isEs ? "Correo Electronico" : "Email"}</Label>
-                                            <Input id="email" type="email" placeholder="viajero@email.com" {...register("email")} />
-                                            {errors.email && <span className="text-sm text-destructive">{errors.email.message}</span>}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="phone">{isEs ? "Telefono / WhatsApp" : "Phone"}</Label>
-                                            <Input id="phone" type="tel" placeholder="+51 999 888 777" {...register("phone")} />
-                                            {errors.phone && <span className="text-sm text-destructive">{errors.phone.message}</span>}
-                                        </div>
-                                    </div>
-
+                    </div>
+                ))}
+            </div>
+            {/* LEFT: Form / Payment */}
+            <div className="lg:col-span-8 space-y-6">
+                {step === "details" && (
+                    <form id="checkout-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                        <Card className="border-t-4 border-t-primary">
+                            <CardHeader>
+                                <CardTitle>{isEs ? "Tus Datos" : "Your Details"}</CardTitle>
+                                <CardDescription>
+                                    {isEs ? "Ingresa tu informacion para confirmar la reserva." : "Enter your info to confirm the booking."}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="country">{isEs ? "Pais de Residencia" : "Country"}</Label>
-                                        <Input id="country" placeholder="Peru, USA, Espana..." {...register("country")} />
-                                        {errors.country && <span className="text-sm text-destructive">{errors.country.message}</span>}
+                                        <Label htmlFor="firstName">{isEs ? "Nombres" : "First Name"}</Label>
+                                        <Input id="firstName" {...register("firstName")} />
+                                        {errors.firstName && <span className="text-sm text-destructive">{errors.firstName.message}</span>}
                                     </div>
-                                </CardContent>
-                            </Card>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="lastName">{isEs ? "Apellidos" : "Last Name"}</Label>
+                                        <Input id="lastName" {...register("lastName")} />
+                                        {errors.lastName && <span className="text-sm text-destructive">{errors.lastName.message}</span>}
+                                    </div>
+                                </div>
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>{isEs ? "Detalles del Tour" : "Tour Details"}</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    {tour.departures.length > 0 && (
-                                        <div className="space-y-3">
-                                            <Label>{isEs ? "Selecciona una Fecha" : "Select a Date"}</Label>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                                {tour.departures.map((dep) => {
-                                                    const available = dep.maxCapacity - dep.bookedCount;
-                                                    const dateObj = new Date(dep.departureDate);
-                                                    const isSelected = selectedDeparture === dep.id;
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email">{isEs ? "Correo Electronico" : "Email"}</Label>
+                                        <Input id="email" type="email" placeholder="viajero@email.com" {...register("email")} />
+                                        {errors.email && <span className="text-sm text-destructive">{errors.email.message}</span>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="phone">{isEs ? "Telefono / WhatsApp" : "Phone"}</Label>
+                                        <Input id="phone" type="tel" placeholder="+51 999 888 777" {...register("phone")} />
+                                        {errors.phone && <span className="text-sm text-destructive">{errors.phone.message}</span>}
+                                    </div>
+                                </div>
 
-                                                    return (
-                                                        <button
-                                                            key={dep.id}
-                                                            type="button"
-                                                            onClick={() => setSelectedDeparture(dep.id)}
-                                                            className={`flex flex-col text-left p-3 rounded-md border transition-all ${isSelected
-                                                                ? "border-primary bg-primary/10 ring-1 ring-primary"
-                                                                : "hover:border-primary/50"
-                                                                }`}
-                                                        >
-                                                            <span className="font-semibold text-sm">
-                                                                {format(dateObj, "dd MMM yyyy", { locale: isEs ? es : undefined })}
-                                                            </span>
-                                                            <span className="text-xs text-muted-foreground mt-1">
-                                                                {available} {isEs ? "cupos disponibles" : "spots left"}
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
+                                <div className="space-y-2">
+                                    <Label htmlFor="country">{isEs ? "Pais de Residencia" : "Country"}</Label>
+                                    <Input id="country" placeholder="Peru, USA, Espana..." {...register("country")} />
+                                    {errors.country && <span className="text-sm text-destructive">{errors.country.message}</span>}
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                                    <Separator />
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>{isEs ? "Detalles del Tour" : "Tour Details"}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {tour.departures.length > 0 && (
+                                    <div className="space-y-3">
+                                        <Label>{isEs ? "Selecciona una Fecha" : "Select a Date"}</Label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                            {tour.departures.map((dep) => {
+                                                const available = dep.maxCapacity - dep.bookedCount;
+                                                const dateObj = new Date(dep.departureDate);
+                                                const isSelected = selectedDeparture === dep.id;
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label>{isEs ? "Adultos" : "Adults"}</Label>
-                                            <Input type="number" min="1" {...register("adults", { valueAsNumber: true })} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>{isEs ? "Ninos" : "Children"}</Label>
-                                            <Input type="number" min="0" {...register("children", { valueAsNumber: true })} />
+                                                return (
+                                                    <button
+                                                        key={dep.id}
+                                                        type="button"
+                                                        onClick={() => setSelectedDeparture(dep.id)}
+                                                        className={`flex flex-col text-left p-3 rounded-md border transition-all ${isSelected
+                                                            ? "border-primary bg-primary/10 ring-1 ring-primary"
+                                                            : "hover:border-primary/50"
+                                                            }`}
+                                                    >
+                                                        <span className="font-semibold text-sm">
+                                                            {format(dateObj, "dd MMM yyyy", { locale: isEs ? es : undefined })}
+                                                        </span>
+                                                        <span className="text-xs text-muted-foreground mt-1">
+                                                            {available} {isEs ? "cupos disponibles" : "spots left"}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        </form>
-                    )}
+                                )}
 
-                    {step === "payment" && (
-                        <div className="space-y-6">
-                            <Card className="border-t-4 border-t-primary">
-                                <CardHeader>
-                                    <CardTitle>{isEs ? "Metodo de Pago" : "Payment Method"}</CardTitle>
-                                    <CardDescription>
-                                        {isEs
-                                            ? `Reserva ${referenceCode} - Selecciona como deseas pagar`
-                                            : `Booking ${referenceCode} - Select how you'd like to pay`}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    {/* Payment method selector */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setPaymentMethod("paypal")}
-                                            className={`flex flex-col items-center justify-center p-5 rounded-lg border-2 transition-all ${paymentMethod === "paypal"
-                                                ? "border-brand-teal bg-brand-teal/10"
-                                                : "border-border hover:border-brand-teal/50"
-                                                }`}
-                                        >
-                                            <span className={`text-lg font-bold ${paymentMethod === "paypal" ? "text-brand-darkTeal" : ""}`}>
-                                                PayPal
-                                            </span>
-                                            <span className="text-xs text-muted-foreground mt-1 text-center">
-                                                {isEs ? "Cuenta PayPal" : "PayPal Account"}
-                                            </span>
-                                        </button>
+                                <Separator />
 
-                                        <button
-                                            type="button"
-                                            onClick={() => setPaymentMethod("card")}
-                                            className={`flex flex-col items-center justify-center p-5 rounded-lg border-2 transition-all ${paymentMethod === "card"
-                                                ? "border-brand-orange bg-brand-orange/10"
-                                                : "border-border hover:border-brand-orange/50"
-                                                }`}
-                                        >
-                                            <CreditCard className={`h-6 w-6 mb-1 ${paymentMethod === "card" ? "text-brand-orange" : ""}`} />
-                                            <span className={`text-lg font-bold ${paymentMethod === "card" ? "text-brand-orange" : ""}`}>
-                                                {isEs ? "Tarjeta" : "Card"}
-                                            </span>
-                                            <span className="text-xs text-muted-foreground mt-1 text-center">
-                                                Visa, Mastercard, Amex
-                                            </span>
-                                        </button>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>{isEs ? "Adultos" : "Adults"}</Label>
+                                        <Input type="number" min="1" {...register("adults", { valueAsNumber: true })} />
                                     </div>
+                                    <div className="space-y-2">
+                                        <Label>{isEs ? "Ninos" : "Children"}</Label>
+                                        <Input type="number" min="0" {...register("children", { valueAsNumber: true })} />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </form>
+                )}
 
-                                    {/* PayPal Buttons */}
-                                    {paymentMethod === "paypal" && reservationId && (
+                {step === "payment" && (
+                    <div className="space-y-6">
+                        <Card className="border-t-4 border-t-primary">
+                            <CardHeader>
+                                <CardTitle>{isEs ? "Metodo de Pago" : "Payment Method"}</CardTitle>
+                                <CardDescription>
+                                    {isEs
+                                        ? `Reserva ${referenceCode} - Selecciona como deseas pagar`
+                                        : `Booking ${referenceCode} - Select how you'd like to pay`}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {/* Payment method selector */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaymentMethod("paypal")}
+                                        className={`flex flex-col items-center justify-center p-5 rounded-lg border-2 transition-all ${paymentMethod === "paypal"
+                                            ? "border-brand-teal bg-brand-teal/10"
+                                            : "border-border hover:border-brand-teal/50"
+                                            }`}
+                                    >
+                                        <span className={`text-lg font-bold ${paymentMethod === "paypal" ? "text-brand-darkTeal" : ""}`}>
+                                            PayPal
+                                        </span>
+                                        <span className="text-xs text-muted-foreground mt-1 text-center">
+                                            {isEs ? "Cuenta PayPal" : "PayPal Account"}
+                                        </span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaymentMethod("card")}
+                                        className={`flex flex-col items-center justify-center p-5 rounded-lg border-2 transition-all ${paymentMethod === "card"
+                                            ? "border-brand-orange bg-brand-orange/10"
+                                            : "border-border hover:border-brand-orange/50"
+                                            }`}
+                                    >
+                                        <CreditCard className={`h-6 w-6 mb-1 ${paymentMethod === "card" ? "text-brand-orange" : ""}`} />
+                                        <span className={`text-lg font-bold ${paymentMethod === "card" ? "text-brand-orange" : ""}`}>
+                                            {isEs ? "Tarjeta" : "Card"}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground mt-1 text-center">
+                                            Visa, Mastercard, Amex
+                                        </span>
+                                    </button>
+                                </div>
+
+                                {/* PayPal Buttons */}
+                                {paymentMethod === "paypal" && reservationId && (
+                                    <PayPalScriptProvider
+                                        options={{
+                                            clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "missing-paypal-client-id",
+                                            currency: "USD",
+                                            intent: "capture",
+                                            components: "buttons,card-fields",
+                                        }}
+                                    >
                                         <PayPalButtonsWrapper
                                             reservationId={reservationId}
                                             isEs={isEs}
@@ -441,10 +439,19 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
                                             onApprove={handleOnApprove}
                                             toast={toast}
                                         />
-                                    )}
+                                    </PayPalScriptProvider>
+                                )}
 
-                                    {/* Card Fields (Advanced Checkout) */}
-                                    {paymentMethod === "card" && reservationId && (
+                                {/* Card Fields (Advanced Checkout) */}
+                                {paymentMethod === "card" && reservationId && (
+                                    <PayPalScriptProvider
+                                        options={{
+                                            clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "missing-paypal-client-id",
+                                            currency: "USD",
+                                            intent: "capture",
+                                            components: "buttons,card-fields",
+                                        }}
+                                    >
                                         <CardFieldsWrapper
                                             reservationId={reservationId}
                                             isEs={isEs}
@@ -452,116 +459,116 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
                                             onApprove={handleOnApprove}
                                             toast={toast}
                                         />
-                                    )}
+                                    </PayPalScriptProvider>
+                                )}
 
-                                    {!paymentMethod && (
-                                        <p className="text-center text-sm text-muted-foreground">
-                                            {isEs
-                                                ? "Selecciona un metodo de pago para continuar"
-                                                : "Select a payment method to continue"}
-                                        </p>
-                                    )}
-                                </CardContent>
-                            </Card>
+                                {!paymentMethod && (
+                                    <p className="text-center text-sm text-muted-foreground">
+                                        {isEs
+                                            ? "Selecciona un metodo de pago para continuar"
+                                            : "Select a payment method to continue"}
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
 
-                            <Button
-                                variant="ghost"
-                                onClick={() => { setStep("details"); setPaymentMethod(null); }}
-                                className="gap-2"
-                            >
-                                <ArrowLeft className="h-4 w-4" />
-                                {isEs ? "Volver a datos" : "Back to details"}
-                            </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={() => { setStep("details"); setPaymentMethod(null); }}
+                            className="gap-2"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            {isEs ? "Volver a datos" : "Back to details"}
+                        </Button>
+                    </div>
+                )}
+            </div>
+
+            {/* RIGHT: Order Summary */}
+            <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-4">
+                <Card className="border-2 border-primary/20 shadow-lg">
+                    <CardHeader className="bg-muted/40 pb-4">
+                        <CardTitle>{isEs ? "Resumen de Compra" : "Order Summary"}</CardTitle>
+                    </CardHeader>
+                    {tour.image && (
+                        <div className="aspect-[21/9] w-full relative overflow-hidden">
+                            <img src={tour.image} alt={tour.nameEs} className="object-cover w-full h-full" />
                         </div>
                     )}
-                </div>
+                    <CardContent className="p-5 space-y-4">
+                        <h3 className="font-bold text-lg leading-tight">
+                            {isEs ? tour.nameEs : tour.nameEn}
+                        </h3>
 
-                {/* RIGHT: Order Summary */}
-                <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-4">
-                    <Card className="border-2 border-primary/20 shadow-lg">
-                        <CardHeader className="bg-muted/40 pb-4">
-                            <CardTitle>{isEs ? "Resumen de Compra" : "Order Summary"}</CardTitle>
-                        </CardHeader>
-                        {tour.image && (
-                            <div className="aspect-[21/9] w-full relative overflow-hidden">
-                                <img src={tour.image} alt={tour.nameEs} className="object-cover w-full h-full" />
+                        <div className="rounded-md bg-brand-teal/10 px-3 py-2 text-center">
+                            <span className="text-xs text-brand-darkTeal font-medium">
+                                {isEs
+                                    ? "Pagos procesados en USD via PayPal"
+                                    : "Payments processed in USD via PayPal"}
+                            </span>
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">{adults}x {isEs ? "Adultos" : "Adults"}</span>
+                                <span>{currencySymbol} {totalAdults.toFixed(2)}</span>
+                            </div>
+                            {children > 0 && (
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">{children}x {isEs ? "Ninos" : "Children"}</span>
+                                    <span>{currencySymbol} {totalChildren.toFixed(2)}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <Separator />
+
+                        <div className="flex justify-between items-center text-lg font-bold">
+                            <span>Total</span>
+                            <span className="text-primary text-2xl">{currencySymbol} {grandTotal.toFixed(2)}</span>
+                        </div>
+
+                        {referenceCode && (
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">{isEs ? "Codigo" : "Code"}</span>
+                                <span className="font-mono font-semibold">{referenceCode}</span>
                             </div>
                         )}
-                        <CardContent className="p-5 space-y-4">
-                            <h3 className="font-bold text-lg leading-tight">
-                                {isEs ? tour.nameEs : tour.nameEn}
-                            </h3>
+                    </CardContent>
 
-                            <div className="rounded-md bg-brand-teal/10 px-3 py-2 text-center">
-                                <span className="text-xs text-brand-darkTeal font-medium">
-                                    {isEs
-                                        ? "Pagos procesados en USD via PayPal"
-                                        : "Payments processed in USD via PayPal"}
-                                </span>
-                            </div>
-
-                            <Separator />
-
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">{adults}x {isEs ? "Adultos" : "Adults"}</span>
-                                    <span>{currencySymbol} {totalAdults.toFixed(2)}</span>
-                                </div>
-                                {children > 0 && (
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">{children}x {isEs ? "Ninos" : "Children"}</span>
-                                        <span>{currencySymbol} {totalChildren.toFixed(2)}</span>
-                                    </div>
+                    <CardFooter className="bg-muted/40 p-5 flex-col gap-3">
+                        {step === "details" && (
+                            <Button
+                                type="submit"
+                                form="checkout-form"
+                                size="lg"
+                                className="w-full text-base h-14 bg-brand-orange hover:bg-brand-orange/90"
+                                disabled={createReservation.isPending}
+                            >
+                                {createReservation.isPending ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                        {isEs ? "Procesando..." : "Processing..."}
+                                    </>
+                                ) : (
+                                    <>
+                                        <CreditCard className="w-5 h-5 mr-2" />
+                                        {isEs ? "Confirmar y Pagar" : "Confirm & Pay"}
+                                    </>
                                 )}
-                            </div>
+                            </Button>
+                        )}
 
-                            <Separator />
-
-                            <div className="flex justify-between items-center text-lg font-bold">
-                                <span>Total</span>
-                                <span className="text-primary text-2xl">{currencySymbol} {grandTotal.toFixed(2)}</span>
-                            </div>
-
-                            {referenceCode && (
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">{isEs ? "Codigo" : "Code"}</span>
-                                    <span className="font-mono font-semibold">{referenceCode}</span>
-                                </div>
-                            )}
-                        </CardContent>
-
-                        <CardFooter className="bg-muted/40 p-5 flex-col gap-3">
-                            {step === "details" && (
-                                <Button
-                                    type="submit"
-                                    form="checkout-form"
-                                    size="lg"
-                                    className="w-full text-base h-14 bg-brand-orange hover:bg-brand-orange/90"
-                                    disabled={createReservation.isPending}
-                                >
-                                    {createReservation.isPending ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                            {isEs ? "Procesando..." : "Processing..."}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <CreditCard className="w-5 h-5 mr-2" />
-                                            {isEs ? "Confirmar y Pagar" : "Confirm & Pay"}
-                                        </>
-                                    )}
-                                </Button>
-                            )}
-
-                            <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-1">
-                                <ShieldCheck className="w-4 h-4 text-brand-teal" />
-                                <span>{isEs ? "Pago seguro via PayPal" : "Secure payment via PayPal"}</span>
-                            </div>
-                        </CardFooter>
-                    </Card>
-                </div>
+                        <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-1">
+                            <ShieldCheck className="w-4 h-4 text-brand-teal" />
+                            <span>{isEs ? "Pago seguro via PayPal" : "Secure payment via PayPal"}</span>
+                        </div>
+                    </CardFooter>
+                </Card>
             </div>
-        </PayPalScriptProvider>
+        </div>
     );
 }
 

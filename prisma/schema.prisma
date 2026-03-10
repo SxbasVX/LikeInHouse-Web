@@ -161,9 +161,7 @@ model TourPricing {
   tourId               String   @unique
   tour                 Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
 
-  basePricePenAdult    Decimal  @db.Decimal(10, 2)
   basePriceUsdAdult    Decimal  @db.Decimal(10, 2)
-  basePricePenChild    Decimal  @db.Decimal(10, 2)
   basePriceUsdChild    Decimal  @db.Decimal(10, 2)
 
   groupDiscountPercent Decimal? @db.Decimal(5, 2)

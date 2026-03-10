@@ -70,9 +70,7 @@ interface TourFormData {
     descriptionEn: string;
   }[];
   pricing: {
-    basePricePenAdult: number;
     basePriceUsdAdult: number;
-    basePricePenChild: number;
     basePriceUsdChild: number;
     groupDiscountPercent?: number;
     groupMinPersons?: number;
@@ -132,9 +130,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
       isFeatured: false,
       itinerary: [],
       pricing: {
-        basePricePenAdult: 0,
         basePriceUsdAdult: 0,
-        basePricePenChild: 0,
         basePriceUsdChild: 0,
       },
       includes: [],
@@ -167,8 +163,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
     if (nameEs) setValue("slug", slugify(nameEs));
   };
 
-  // Auto-save cada 30s cuando hay cambios
-  const watchAll = watch();
+  // Auto-save cada 30s cuando hay cambios (uses isDirty instead of serializing entire form)
   useEffect(() => {
     if (!onAutoSave || !isDirty || !initialData?.slug) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
@@ -180,7 +175,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
-  }, [JSON.stringify(watchAll)]);
+  }, [isDirty, onAutoSave, initialData?.slug, getValues]);
 
   const onFormSubmit = (data: any) => {
     const submitData: any = { ...data };

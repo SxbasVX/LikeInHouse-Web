@@ -22,7 +22,7 @@ interface TourCardProps {
     isFeatured: boolean;
     tourType?: string;
     images: { url: string; altEs?: string | null; altEn?: string | null }[];
-    pricing: { basePricePenAdult: any; basePriceUsdAdult: any } | null;
+    pricing: { basePriceUsdAdult: any } | null;
   };
 }
 
@@ -42,11 +42,11 @@ export function TourCard({ tour }: TourCardProps) {
   const image = tour.images[0];
   const price = tour.pricing
     ? (() => {
-        const raw = Number(isEs ? tour.pricing.basePricePenAdult : tour.pricing.basePriceUsdAdult);
-        return isFinite(raw) ? raw : null;
-      })()
+      const raw = Number(tour.pricing.basePriceUsdAdult);
+      return isFinite(raw) ? raw : null;
+    })()
     : null;
-  const currency = isEs ? "S/" : "$";
+  const currency = "$";
 
   return (
     <Link href={`/tours/${tour.slug}`}>

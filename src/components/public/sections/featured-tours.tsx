@@ -20,7 +20,7 @@ interface Tour {
   durationNights: number;
   isFeatured: boolean;
   images: { url: string; altEs: string | null; altEn: string | null }[];
-  pricing: { basePricePenAdult: any; basePriceUsdAdult: any } | null;
+  pricing: { basePriceUsdAdult: any } | null;
 }
 
 export function FeaturedToursSection({ tours }: { tours: Tour[] }) {

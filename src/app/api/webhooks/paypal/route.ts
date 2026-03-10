@@ -85,11 +85,7 @@ export async function POST(req: NextRequest) {
 
         if (!process.env.PAYPAL_WEBHOOK_ID) {
             console.error("[PayPal Webhook] PAYPAL_WEBHOOK_ID not configured - rejecting webhook");
-            if (process.env.NODE_ENV === "production") {
-                return NextResponse.json({ error: "Webhook verification not configured" }, { status: 500 });
-            }
-            // In development, warn but continue
-            console.warn("[PayPal Webhook] Skipping signature verification in development");
+            return NextResponse.json({ error: "Webhook verification not configured" }, { status: 500 });
         }
 
         const isValid = await verifyWebhookSignature(req, body, token, api);

@@ -43,9 +43,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
         slug: tour.slug,
         pricing: tour.pricing ? {
             basePriceUsdAdult: Number(tour.pricing.basePriceUsdAdult),
-            basePricePenAdult: Number(tour.pricing.basePricePenAdult),
             basePriceUsdChild: Number(tour.pricing.basePriceUsdChild),
-            basePricePenChild: Number(tour.pricing.basePricePenChild),
         } : null,
         departures: tour.departures.map((d: any) => ({
             id: d.id,

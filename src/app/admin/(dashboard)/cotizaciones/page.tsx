@@ -812,7 +812,7 @@ function CreateQuotationDialog({
           <div className="flex items-center justify-between text-lg font-bold">
             <span>Total</span>
             <span className="text-primary">
-              {currency === "USD" ? "$" : "S/"} {grandTotal.toFixed(2)}
+              $ {grandTotal.toFixed(2)}
             </span>
           </div>
 

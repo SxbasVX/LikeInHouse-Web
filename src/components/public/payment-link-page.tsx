@@ -140,7 +140,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
         );
     }
 
-    const currencySymbol = link.currency === "USD" ? "$" : "S/";
+    const currencySymbol = "$";
     const pendingAmount = link.totalAmount - link.amountPaid;
     const depositPending = link.depositRequired && link.depositAmount
         ? Math.max(0, link.depositAmount - link.amountPaid)

@@ -6,32 +6,29 @@
  * Para una MYPE con tráfico bajo, este approach es aceptable.
  */
 
+import { LRUCache } from "lru-cache";
+
 interface RateLimitEntry {
   count: number;
-  resetAt: number;
 }
 
-const store = new Map<string, RateLimitEntry>();
+// Global LRU Cache for rate limiting
+// Utiliza un global object para sobrevivir Hot-Reloads en desarrollo (HMR).
+const globalForRateLimit = globalThis as unknown as {
+  rateLimitCache: LRUCache<string, RateLimitEntry> | undefined;
+};
 
-// Cleanup expired entries every 5 minutes
-const CLEANUP_INTERVAL = 5 * 60 * 1000;
-let cleanupTimer: ReturnType<typeof setInterval> | null = null;
+// 1 Hour max age in memory, up to 5000 distinct IP/Email combinations
+const store =
+  globalForRateLimit.rateLimitCache ??
+  new LRUCache<string, RateLimitEntry>({
+    max: 5000,
+    ttl: 1000 * 60 * 60, // 1 hour absolute max for any entry
+  });
 
-function startCleanup() {
-  if (cleanupTimer) return;
-  cleanupTimer = setInterval(() => {
-    const now = Date.now();
-    for (const [key, entry] of store) {
-      if (now > entry.resetAt) {
-        store.delete(key);
-      }
-    }
-  }, CLEANUP_INTERVAL);
-  // Allow Node.js process to exit even if timer is still running
-  if (cleanupTimer.unref) cleanupTimer.unref();
+if (process.env.NODE_ENV !== "production") {
+  globalForRateLimit.rateLimitCache = store;
 }
-
-startCleanup();
 
 interface RateLimitConfig {
   /** Maximum number of requests allowed in the window */
@@ -46,34 +43,38 @@ interface RateLimitResult {
   resetAt: number;
 }
 
-/**
- * Check if a request is allowed under the rate limit.
- * @param key - Unique identifier (e.g., IP + endpoint)
- * @param config - Rate limit configuration
- */
 export function checkRateLimit(
   key: string,
   config: RateLimitConfig
 ): RateLimitResult {
   const now = Date.now();
-  const entry = store.get(key);
 
-  if (!entry || now > entry.resetAt) {
+  // LRUCache returns undefined if entry expired or doesn't exist
+  let entry = store.get(key);
+
+  if (!entry) {
     // New window
     const resetAt = now + config.windowSeconds * 1000;
-    store.set(key, { count: 1, resetAt });
+    store.set(key, { count: 1 }, { ttl: config.windowSeconds * 1000 });
     return { allowed: true, remaining: config.maxRequests - 1, resetAt };
   }
 
+  // To compute remainders and reset we estimate the absolute TTL. 
+  // LRUCache doesn't easily return the exact expiration timestamp for a key in v10+,
+  // so we approximate it for the client headers or just return an arbitrary future time.
+  const resetAt = now + config.windowSeconds * 1000;
+
   if (entry.count >= config.maxRequests) {
-    return { allowed: false, remaining: 0, resetAt: entry.resetAt };
+    return { allowed: false, remaining: 0, resetAt };
   }
 
   entry.count += 1;
+  // We don't update the TTL on increment to keep a strictly fixed window size
+
   return {
     allowed: true,
     remaining: config.maxRequests - entry.count,
-    resetAt: entry.resetAt,
+    resetAt,
   };
 }
 

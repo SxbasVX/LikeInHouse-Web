@@ -62,7 +62,7 @@ export const tourRouter = router({
           orderBy: { createdAt: "desc" },
           include: {
             images: { where: { isPrimary: true }, take: 1 },
-            pricing: { select: { basePricePenAdult: true, basePriceUsdAdult: true } },
+            pricing: { select: { basePriceUsdAdult: true } },
             _count: { select: { reservations: true, departures: true } },
           },
         }),
@@ -165,9 +165,7 @@ export const tourRouter = router({
           ...(pricing ? {
             pricing: {
               create: {
-                basePricePenAdult: pricing.basePricePenAdult,
                 basePriceUsdAdult: pricing.basePriceUsdAdult,
-                basePricePenChild: pricing.basePricePenChild,
                 basePriceUsdChild: pricing.basePriceUsdChild,
                 groupDiscountPercent: pricing.groupDiscountPercent,
                 groupMinPersons: pricing.groupMinPersons,
@@ -260,17 +258,13 @@ export const tourRouter = router({
             where: { tourId: id },
             create: {
               tourId: id,
-              basePricePenAdult: pricing.basePricePenAdult,
               basePriceUsdAdult: pricing.basePriceUsdAdult,
-              basePricePenChild: pricing.basePricePenChild,
               basePriceUsdChild: pricing.basePriceUsdChild,
               groupDiscountPercent: pricing.groupDiscountPercent,
               groupMinPersons: pricing.groupMinPersons,
             },
             update: {
-              basePricePenAdult: pricing.basePricePenAdult,
               basePriceUsdAdult: pricing.basePriceUsdAdult,
-              basePricePenChild: pricing.basePricePenChild,
               basePriceUsdChild: pricing.basePriceUsdChild,
               groupDiscountPercent: pricing.groupDiscountPercent,
               groupMinPersons: pricing.groupMinPersons,

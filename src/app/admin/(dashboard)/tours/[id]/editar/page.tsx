@@ -105,9 +105,7 @@ export default function EditarTourPage() {
     })),
     pricing: tour.pricing
       ? {
-        basePricePenAdult: Number(tour.pricing.basePricePenAdult),
         basePriceUsdAdult: Number(tour.pricing.basePriceUsdAdult),
-        basePricePenChild: Number(tour.pricing.basePricePenChild),
         basePriceUsdChild: Number(tour.pricing.basePriceUsdChild),
         groupDiscountPercent: tour.pricing.groupDiscountPercent
           ? Number(tour.pricing.groupDiscountPercent)
@@ -115,9 +113,7 @@ export default function EditarTourPage() {
         groupMinPersons: tour.pricing.groupMinPersons || undefined,
       }
       : {
-        basePricePenAdult: 0,
         basePriceUsdAdult: 0,
-        basePricePenChild: 0,
         basePriceUsdChild: 0,
       },
     includes: tour.includes

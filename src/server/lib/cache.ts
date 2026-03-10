@@ -37,7 +37,7 @@ export const getCachedFeaturedTours = unstable_cache(
             orderBy: { sortOrder: "asc" },
             include: {
                 images: { where: { isPrimary: true }, take: 1 },
-                pricing: { select: { basePricePenAdult: true, basePriceUsdAdult: true } },
+                pricing: { select: { basePriceUsdAdult: true } },
             },
         });
         return tours.map((t) => ({ ...t, pricing: serializeDecimals(t.pricing) }));

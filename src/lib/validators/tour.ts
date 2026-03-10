@@ -47,9 +47,7 @@ const tourDepartureSchema = z.object({
 });
 
 const pricingSchema = z.object({
-  basePricePenAdult: z.number().positive("Precio requerido"),
   basePriceUsdAdult: z.number().positive("Precio requerido"),
-  basePricePenChild: z.number().nonnegative().default(0),
   basePriceUsdChild: z.number().nonnegative().default(0),
   groupDiscountPercent: z.number().min(0, "Mínimo 0").max(100, "Máximo 100").optional(),
   groupMinPersons: z.number().int("Debe ser entero").positive("Debe ser al menos 1 persona").optional(),
