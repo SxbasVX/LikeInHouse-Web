@@ -67,29 +67,29 @@ export function HeroSection() {
 
         {/* Search bar — pointer-events re-enabled */}
         <div
-          className="animate-slide-up pointer-events-auto w-full max-w-2xl"
+          className="animate-slide-up pointer-events-auto w-full max-w-3xl"
           style={{ animationDelay: "250ms", animationFillMode: "both" }}
         >
           <form
             onSubmit={handleSearch}
-            className="flex items-center gap-2 rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/20 p-2 shadow-[0_8px_40px_rgba(0,0,0,0.4)]"
+            className="flex items-center gap-0 rounded-2xl bg-white p-2 shadow-[0_12px_50px_rgba(0,0,0,0.5)]"
           >
             <div className="flex-1 flex items-center gap-3 pl-4">
-              <Search className="h-5 w-5 text-white/50 shrink-0" />
+              <Search className="h-5 w-5 text-gray-400 shrink-0" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("search_placeholder", { fallback: "Destino, tour o actividad..." })}
-                className="flex-1 bg-transparent text-white placeholder:text-white/40 text-base lg:text-lg outline-none py-3 min-w-0"
+                className="flex-1 bg-transparent text-gray-800 placeholder:text-gray-400 text-base lg:text-lg outline-none py-3.5 min-w-0"
               />
             </div>
             <button
               type="submit"
-              className="shrink-0 h-13 px-6 rounded-xl bg-brand-orange hover:bg-[#e33e1a] flex items-center gap-2 text-white font-semibold text-sm transition-all hover:scale-105 shadow-[0_0_20px_rgba(252,69,31,0.4)] py-3.5"
+              className="shrink-0 px-7 py-3.5 rounded-xl bg-brand-orange hover:bg-[#e33e1a] flex items-center gap-2 text-white font-semibold text-sm lg:text-base transition-all hover:scale-[1.02] shadow-[0_0_20px_rgba(252,69,31,0.3)]"
             >
-              <span className="hidden sm:inline">{t("hero_cta", { fallback: "Explorar" })}</span>
-              <ArrowUpRight className="h-5 w-5" />
+              <span>{t("hero_cta", { fallback: "Explorar" })}</span>
+              <ArrowUpRight className="h-4 w-4" />
             </button>
           </form>
 
@@ -100,7 +100,7 @@ export function HeroSection() {
                 key={term}
                 type="button"
                 onClick={() => handleQuick(term)}
-                className="rounded-full border border-white/20 bg-white/[0.06] px-4 py-1.5 text-xs text-white/70 hover:text-white hover:bg-white/15 hover:border-white/40 transition-all backdrop-blur-md"
+                className="rounded-full border border-white/25 bg-white/[0.08] px-4 py-1.5 text-xs text-white/80 hover:text-white hover:bg-white/20 hover:border-white/50 transition-all backdrop-blur-md"
               >
                 {term}
               </button>
