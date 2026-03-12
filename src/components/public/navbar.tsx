@@ -17,7 +17,6 @@ import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/lib/cart-store";
 import Image from "next/image";
-import logoImg from "@/../img/Logo.svg";
 
 const rightLinks = [
   { key: "about", href: "/nosotros" },
@@ -124,9 +123,11 @@ export function Navbar() {
 
         {/* Left Side: Logo (Always visible) */}
         <Link href="/" className="pointer-events-auto flex items-center group relative z-20">
-          <Image 
-            src={logoImg} 
-            alt="Like In House Logo" 
+          <Image
+            src="/Logo.svg"
+            alt="Like In House Logo"
+            width={240}
+            height={80}
             className="w-40 sm:w-48 lg:w-[240px] h-auto object-[left_center] object-contain drop-shadow-md transition-transform group-hover:scale-105"
             priority
           />

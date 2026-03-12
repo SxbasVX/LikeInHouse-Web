@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
-import logoImg from "@/../img/Logo.svg";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -109,9 +108,11 @@ export default function LoginPage() {
           {/* Header */}
           <div className="flex flex-col items-center mb-9 text-center relative z-10">
             <div className="bg-white px-6 py-4 rounded-2xl shadow-xl mb-6">
-              <Image 
-                src={logoImg} 
-                alt="LikeInHouse Logo" 
+              <Image
+                src="/Logo.svg"
+                alt="LikeInHouse Logo"
+                width={192}
+                height={64}
                 className="w-40 sm:w-48 h-auto object-contain"
                 priority
               />
