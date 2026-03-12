@@ -1,4 +1,4 @@
-import { Montserrat, Lato } from "next/font/google";
+import { Montserrat, Lato, Playfair_Display } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { TRPCProvider } from "@/lib/trpc-provider";
@@ -24,6 +24,13 @@ const lato = Lato({
   variable: "--font-lato",
 });
 
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  display: "swap",
+  variable: "--font-playfair",
+});
+
 export default async function LocaleLayout({
   children,
   params,
@@ -36,7 +43,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className={`${lato.variable} ${montserrat.variable} font-sans antialiased text-brand-darkRed bg-brand-beige/20`}>
+      <body className={`${lato.variable} ${montserrat.variable} ${playfair.variable} font-sans antialiased text-brand-darkRed bg-brand-beige/20`}>
         <NextIntlClientProvider messages={messages}>
           <TRPCProvider>
             <div className="flex min-h-screen flex-col">

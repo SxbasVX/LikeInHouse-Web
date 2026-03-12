@@ -5,10 +5,13 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Clock, Star } from "lucide-react";
+import { MapPin, Clock, Star, ShoppingCart, Check } from "lucide-react";
+import { useCartStore } from "@/lib/cart-store";
+import { useToast } from "@/hooks/use-toast";
 
 interface TourCardProps {
   tour: {
+    id: string;
     slug: string;
     nameEs: string;
     nameEn: string;
@@ -34,8 +37,12 @@ const difficultyColors: Record<string, string> = {
 
 export function TourCard({ tour }: TourCardProps) {
   const t = useTranslations("tours");
+  const tc = useTranslations("cart");
   const locale = useLocale();
   const isEs = locale === "es";
+  const { addItem, isInCart } = useCartStore();
+  const { toast } = useToast();
+  const inCart = isInCart(tour.id);
 
   const name = isEs ? tour.nameEs : tour.nameEn;
   const desc = isEs ? tour.shortDescEs : tour.shortDescEn;
@@ -47,6 +54,25 @@ export function TourCard({ tour }: TourCardProps) {
     })()
     : null;
   const currency = "$";
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (inCart) return;
+    addItem({
+      id: tour.id,
+      slug: tour.slug,
+      nameEs: tour.nameEs,
+      nameEn: tour.nameEn,
+      destination: tour.destination,
+      durationDays: tour.durationDays,
+      durationNights: tour.durationNights,
+      imageUrl: image?.url || null,
+      priceUsd: price,
+      tourType: tour.tourType || "BOOKABLE",
+    });
+    toast({ title: tc("added_to_cart") });
+  };
 
   return (
     <Link href={`/tours/${tour.slug}`}>
@@ -78,6 +104,18 @@ export function TourCard({ tour }: TourCardProps) {
           >
             {t(`difficulty_${tour.difficulty.toLowerCase()}`)}
           </Badge>
+          {/* Add to Cart button */}
+          <button
+            onClick={handleAddToCart}
+            className={`absolute left-3 bottom-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur-md transition-all ${
+              inCart
+                ? "bg-brand-teal/90 text-white"
+                : "bg-black/50 text-white hover:bg-brand-orange"
+            }`}
+          >
+            {inCart ? <Check className="h-3.5 w-3.5" /> : <ShoppingCart className="h-3.5 w-3.5" />}
+            {inCart ? tc("in_cart") : tc("add_to_cart")}
+          </button>
         </div>
 
         {/* Content */}

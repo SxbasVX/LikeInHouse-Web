@@ -9,10 +9,12 @@ import { Separator } from "@/components/ui/separator";
 import {
   MapPin, Clock, Star, Calendar, Check, X, Users,
   ChevronLeft, ChevronRight, ChevronDown, Mountain,
-  Share2, Image as ImageIcon,
+  Share2, ShoppingCart,
 } from "lucide-react";
 import { useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
+import { useCartStore } from "@/lib/cart-store";
+import { useToast } from "@/hooks/use-toast";
 
 interface TourImage {
   id: string;
@@ -83,11 +85,15 @@ const difficultyColors: Record<string, string> = {
 export function TourDetail({ tour }: { tour: TourData }) {
   const t = useTranslations("tours");
   const tc = useTranslations("common");
+  const tCart = useTranslations("cart");
   const locale = useLocale();
   const isEs = locale === "es";
   const [currentImage, setCurrentImage] = useState(0);
   const [activeTab, setActiveTab] = useState<"overview" | "itinerary" | "includes" | "gallery">("overview");
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1]));
+  const { addItem, removeItem, isInCart } = useCartStore();
+  const { toast } = useToast();
+  const inCart = isInCart(tour.id);
 
   const name = isEs ? tour.nameEs : tour.nameEn;
   const shortDesc = isEs ? tour.shortDescEs : (tour.shortDescEn || tour.shortDescEs);
@@ -484,7 +490,36 @@ export function TourDetail({ tour }: { tour: TourData }) {
 
                   <Button
                     className="mt-2 w-full gap-2"
-                    variant={tour.tourType === "INFORMATIONAL" ? "outline" : "outline"}
+                    variant={inCart ? "secondary" : "outline"}
+                    onClick={() => {
+                      if (inCart) {
+                        removeItem(tour.id);
+                        toast({ title: tCart("removed_from_cart") });
+                      } else {
+                        const priceVal = tour.pricing ? Number(tour.pricing.basePriceUsdAdult) : null;
+                        addItem({
+                          id: tour.id,
+                          slug: tour.slug,
+                          nameEs: tour.nameEs,
+                          nameEn: tour.nameEn,
+                          destination: tour.destination,
+                          durationDays: tour.durationDays,
+                          durationNights: tour.durationNights,
+                          imageUrl: tour.images[0]?.url || null,
+                          priceUsd: priceVal && isFinite(priceVal) ? priceVal : null,
+                          tourType: tour.tourType || "BOOKABLE",
+                        });
+                        toast({ title: tCart("added_to_cart") });
+                      }
+                    }}
+                  >
+                    {inCart ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
+                    {inCart ? tCart("in_cart") : tCart("add_to_cart")}
+                  </Button>
+
+                  <Button
+                    className="mt-2 w-full gap-2"
+                    variant="outline"
                     onClick={() => {
                       if (typeof window !== "undefined") {
                         const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "51984123456";

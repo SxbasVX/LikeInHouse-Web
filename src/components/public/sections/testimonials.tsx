@@ -2,6 +2,7 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import { Star, Quote } from "lucide-react";
+import { useScrollAnimation, useStaggerAnimation } from "@/hooks/use-scroll-animation";
 
 interface Testimonial {
   id: string;
@@ -17,17 +18,19 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
   const t = useTranslations("home");
   const locale = useLocale();
   const isEs = locale === "es";
+  const header = useScrollAnimation({ threshold: 0.2 });
+  const cards = useStaggerAnimation({ threshold: 0.1 });
 
   return (
     <section className="bg-white py-20 lg:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="animate-slide-up text-center mb-14">
+        <div ref={header.ref} className={`${header.isVisible ? "scroll-visible" : "scroll-hidden"} text-center mb-14`}>
           <h2 className="font-heading text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl">
             {t("testimonials")}
           </h2>
         </div>
 
-        <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div ref={cards.ref} className={`grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 ${cards.className}`}>
           {testimonials.slice(0, 3).map((test) => (
             <div
               key={test.id}
