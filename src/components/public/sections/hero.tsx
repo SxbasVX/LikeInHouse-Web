@@ -37,11 +37,8 @@ export function HeroSection() {
           className="object-cover scale-105 animate-[pulse_40s_ease-in-out_infinite]"
           sizes="100vw"
         />
-        {/* Stronger base overlay — ensures text contrast over any part of the image */}
-        <div className="absolute inset-0 bg-black/50" />
-        {/* Extra dark gradient at center where text lives */}
-        <div className="absolute inset-x-0 top-1/4 bottom-0 bg-gradient-to-b from-black/30 via-black/50 to-[#0A0D0C]" />
-        <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-[#0A0D0C]/90 to-transparent" />
+        {/* Single smooth overlay — uniform readability without banding */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0A0D0C]/75 via-black/45 to-[#0A0D0C]/95" />
       </div>
 
       {/* Main centered content */}
@@ -61,7 +58,7 @@ export function HeroSection() {
           style={{
             animationDelay: "100ms",
             animationFillMode: "both",
-            textShadow: "0 2px 20px rgba(0,0,0,0.8), 0 4px 40px rgba(0,0,0,0.6)",
+            textShadow: "0 2px 20px rgba(0,0,0,0.6), 0 4px 40px rgba(0,0,0,0.45)",
           }}
         >
           <span className="block text-white">{t("hero_title_1")}</span>
