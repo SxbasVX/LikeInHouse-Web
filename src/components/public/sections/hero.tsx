@@ -86,10 +86,10 @@ export function HeroSection() {
             </div>
             <button
               type="submit"
-              className="shrink-0 px-7 py-3.5 rounded-xl bg-brand-orange hover:bg-[#e33e1a] flex items-center gap-2 text-white font-semibold text-sm lg:text-base transition-all hover:scale-[1.02] shadow-[0_0_20px_rgba(252,69,31,0.3)]"
+              className="shrink-0 rounded-xl bg-brand-orange hover:bg-[#e33e1a] flex items-center gap-2 text-white font-semibold transition-all hover:scale-[1.02] shadow-[0_0_20px_rgba(252,69,31,0.3)] px-4 py-3.5 sm:px-7"
             >
-              <span>{t("hero_cta", { fallback: "Explorar" })}</span>
-              <ArrowUpRight className="h-4 w-4" />
+              <span className="hidden sm:inline text-sm lg:text-base">{t("hero_cta", { fallback: "Explorar" })}</span>
+              <ArrowUpRight className="h-5 w-5" />
             </button>
           </form>
 

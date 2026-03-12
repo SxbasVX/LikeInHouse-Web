@@ -183,9 +183,24 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
           )}
         </>
       ) : (
-        <div className="animate-fade-in py-20 text-center">
-          <Search className="mx-auto h-12 w-12 text-muted-foreground/50" />
-          <p className="mt-4 text-lg text-muted-foreground">{tc("no_results")}</p>
+        <div className="animate-fade-in py-20 text-center max-w-md mx-auto">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+            <Search className="h-8 w-8 text-muted-foreground/60" />
+          </div>
+          <h3 className="text-xl font-semibold text-foreground mb-2">{tc("no_results")}</h3>
+          {activeSearch && (
+            <p className="text-muted-foreground mb-6">
+              {t("search_placeholder").includes("Search") ? "No tours found for" : "No encontramos tours para"}{" "}
+              <span className="font-medium text-foreground">&ldquo;{activeSearch}&rdquo;</span>
+            </p>
+          )}
+          <button
+            onClick={() => { clearSearch(); setDestination(undefined); setCategory(undefined); }}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+          >
+            <X className="h-4 w-4" />
+            {t("filter_all")}
+          </button>
         </div>
       )}
     </div>
