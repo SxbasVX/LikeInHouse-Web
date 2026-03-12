@@ -5,7 +5,6 @@ import { Link, useRouter } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
-import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
 const HERO_BG = "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=1920&q=80";
 
@@ -31,10 +30,6 @@ export function HeroSection() {
   const t = useTranslations("home");
   const tc = useTranslations("common");
   const router = useRouter();
-  const badge = useScrollAnimation({ threshold: 0.3 });
-  const title = useScrollAnimation({ threshold: 0.2 });
-  const glassBox = useScrollAnimation({ threshold: 0.2 });
-  const floatingCards = useScrollAnimation({ threshold: 0.15 });
 
   return (
     <section className="relative -mt-[100px] min-h-screen lg:min-h-[110vh] overflow-hidden bg-[#0A0D0C] flex flex-col justify-between">
@@ -55,12 +50,12 @@ export function HeroSection() {
 
       {/* Hero Center Typography */}
       <div className="relative z-20 flex-1 flex flex-col items-center justify-center text-center px-4 w-full mt-24 lg:mt-32 pointer-events-none">
-        <div ref={badge.ref} className={`${badge.isVisible ? "scroll-visible" : "scroll-hidden"} inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-1.5 backdrop-blur-md mb-8`}>
+        <div className="animate-slide-down inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-1.5 backdrop-blur-md mb-8">
           <span className="h-1.5 w-1.5 rounded-full bg-brand-orange animate-pulse" />
           <span className="text-xs uppercase tracking-[0.2em] text-brand-beige">{t("hero_badge", { fallback: "Explora Perú como en casa" })}</span>
         </div>
 
-        <h1 ref={title.ref} className={`${title.isVisible ? "scroll-visible" : "scroll-hidden"} flex flex-col font-heading text-5xl sm:text-7xl lg:text-[7rem] font-light leading-[1.05] tracking-tight text-white drop-shadow-2xl`}>
+        <h1 className="animate-slide-up flex flex-col font-heading text-5xl sm:text-7xl lg:text-[7rem] font-light leading-[1.05] tracking-tight text-white drop-shadow-2xl" style={{ animationDelay: "100ms", animationFillMode: "both" }}>
           <span className="block text-white/90">{t("hero_title_1")}</span>
           <span className="block font-serif italic font-normal text-brand-beige transform -rotate-1 my-1 lg:my-0 lg:-ml-12 drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]">
             {t("hero_title_2")}
@@ -71,9 +66,9 @@ export function HeroSection() {
 
       {/* Bottom Layout - Glass Panels & Floating Architecture */}
       <div className="relative z-30 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pb-10 lg:pb-16 flex flex-col lg:flex-row items-end justify-between gap-10">
-        
+
         {/* Left Side: Luxurious Information Glass Box */}
-        <div ref={glassBox.ref} className={`${glassBox.isVisible ? "scroll-visible-left" : "scroll-hidden-left"} w-full lg:max-w-[24rem] p-7 lg:p-9 rounded-[2rem] lg:rounded-[2.5rem] bg-white/[0.03] backdrop-blur-[20px] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] pointer-events-auto`}>
+        <div className="animate-slide-up w-full lg:max-w-[24rem] p-7 lg:p-9 rounded-[2rem] lg:rounded-[2.5rem] bg-white/[0.03] backdrop-blur-[20px] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] pointer-events-auto" style={{ animationDelay: "250ms", animationFillMode: "both" }}>
           
           <div className="flex items-center gap-4 mb-6">
             <div className="flex -space-x-3">
@@ -110,7 +105,7 @@ export function HeroSection() {
         </div>
 
         {/* Right Side: Architectural Floating Cards (Bento Style) */}
-        <div ref={floatingCards.ref} className={`${floatingCards.isVisible ? "scroll-visible" : "scroll-hidden"} hidden md:flex gap-4 lg:gap-5 pointer-events-auto pb-4`}>
+        <div className="animate-slide-up hidden md:flex gap-4 lg:gap-5 pointer-events-auto pb-4" style={{ animationDelay: "350ms", animationFillMode: "both" }}>
           {FLOATING_IMAGES.map((img, i) => (
             <div
               key={i}

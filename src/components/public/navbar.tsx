@@ -138,8 +138,7 @@ export function Navbar() {
           <nav 
             ref={navRef}
             className={cn(
-            "pointer-events-auto flex items-center gap-0.5 rounded-full p-1.5 shadow-2xl transition-all duration-300 border backdrop-blur-xl relative",
-            scrolled ? "bg-black/40 border-white/10" : "bg-white/10 border-white/20"
+            "pointer-events-auto flex items-center gap-0.5 rounded-full p-1.5 shadow-2xl border backdrop-blur-xl relative bg-black/40 border-white/10"
           )}>
             {/* Sliding Pill Indicator */}
             <div 
@@ -189,8 +188,7 @@ export function Navbar() {
 
         {/* Right Side: Actions (Desktop only) */}
         <div className={cn(
-          "pointer-events-auto hidden lg:flex items-center gap-2 rounded-full p-1.5 pl-3 shadow-2xl transition-all duration-300 border backdrop-blur-xl relative z-20",
-          scrolled ? "bg-black/40 border-white/10" : "bg-white/10 border-white/20"
+          "pointer-events-auto hidden lg:flex items-center gap-2 rounded-full p-1.5 pl-3 shadow-2xl border backdrop-blur-xl relative z-20 bg-black/40 border-white/10"
         )}>
           {/* Cart */}
           <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white/90 hover:text-white hover:bg-white/20 focus-visible:ring-0 relative">
