@@ -3,11 +3,10 @@
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Clock, Star, ShoppingCart, Check } from "lucide-react";
+import { MapPin, Clock, Star, ShoppingCart, Check, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 interface TourCardProps {
   tour: {
@@ -29,10 +28,10 @@ interface TourCardProps {
   };
 }
 
-const difficultyColors: Record<string, string> = {
-  EASY: "bg-brand-teal/15 text-brand-darkTeal",
-  MODERATE: "bg-brand-orange/15 text-brand-orange",
-  CHALLENGING: "bg-brand-darkRed/15 text-brand-darkRed",
+const difficultyLabel: Record<string, { es: string; en: string; color: string }> = {
+  EASY:        { es: "Fácil",      en: "Easy",        color: "bg-brand-teal/20 text-brand-darkTeal" },
+  MODERATE:    { es: "Moderado",   en: "Moderate",    color: "bg-brand-orange/15 text-brand-orange" },
+  CHALLENGING: { es: "Desafiante", en: "Challenging",  color: "bg-brand-darkRed/15 text-brand-darkRed" },
 };
 
 export function TourCard({ tour }: TourCardProps) {
@@ -48,12 +47,10 @@ export function TourCard({ tour }: TourCardProps) {
   const desc = isEs ? tour.shortDescEs : tour.shortDescEn;
   const image = tour.images[0];
   const price = tour.pricing
-    ? (() => {
-      const raw = Number(tour.pricing.basePriceUsdAdult);
-      return isFinite(raw) ? raw : null;
-    })()
+    ? (() => { const raw = Number(tour.pricing.basePriceUsdAdult); return isFinite(raw) ? raw : null; })()
     : null;
-  const currency = "$";
+
+  const diff = difficultyLabel[tour.difficulty];
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -75,81 +72,92 @@ export function TourCard({ tour }: TourCardProps) {
   };
 
   return (
-    <Link href={`/tours/${tour.slug}`}>
-      <Card className="group flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-        {/* Image */}
-        <div className="relative aspect-[4/3] overflow-hidden">
-          {image ? (
-            <Image
-              src={image.url}
-              alt={(isEs ? image.altEs : image.altEn) || name}
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-muted">
-              <MapPin className="h-12 w-12 text-muted-foreground" />
-            </div>
-          )}
-          {tour.isFeatured && (
-            <Badge className="absolute left-3 top-3 gap-1 bg-brand-orange text-white">
-              <Star className="h-3 w-3" />
-              Destacado
-            </Badge>
-          )}
-          <Badge
-            variant="secondary"
-            className={`absolute right-3 top-3 ${difficultyColors[tour.difficulty] || ""}`}
-          >
-            {t(`difficulty_${tour.difficulty.toLowerCase()}`)}
-          </Badge>
-          {/* Add to Cart button */}
-          <button
-            onClick={handleAddToCart}
-            className={`absolute left-3 bottom-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur-md transition-all ${
-              inCart
-                ? "bg-brand-teal/90 text-white"
-                : "bg-black/50 text-white hover:bg-brand-orange"
-            }`}
-          >
-            {inCart ? <Check className="h-3.5 w-3.5" /> : <ShoppingCart className="h-3.5 w-3.5" />}
-            {inCart ? tc("in_cart") : tc("add_to_cart")}
-          </button>
-        </div>
-
-        {/* Content */}
-        <CardContent className="flex flex-col flex-1 p-4">
-          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-            <MapPin className="h-3 w-3" />
-            {tour.destination}
-            <span className="mx-1">|</span>
-            <Clock className="h-3 w-3" />
-            {tour.durationDays}{t("days")} / {tour.durationNights}{t("nights")}
+    <Link href={`/tours/${tour.slug}`} className="flex flex-col group">
+      {/* Image */}
+      <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] bg-gray-100 mb-5">
+        {image ? (
+          <Image
+            src={image.url}
+            alt={(isEs ? image.altEs : image.altEn) || name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <MapPin className="h-12 w-12 text-gray-300" />
           </div>
+        )}
 
-          <h3 className="mb-1 text-base font-bold leading-tight line-clamp-1 group-hover:text-primary transition-colors">
-            {name}
-          </h3>
-          <p className="mb-3 text-sm text-muted-foreground line-clamp-2">
-            {desc}
+        {/* Badges */}
+        {tour.isFeatured && (
+          <span className="absolute left-4 top-4 flex items-center gap-1 rounded-full bg-brand-orange px-3 py-1 text-[11px] font-semibold text-white shadow">
+            <Star className="h-3 w-3" />
+            Destacado
+          </span>
+        )}
+        {diff && (
+          <span className={`absolute right-4 top-4 rounded-full px-3 py-1 text-[11px] font-semibold ${diff.color}`}>
+            {isEs ? diff.es : diff.en}
+          </span>
+        )}
+
+        {/* Cart button */}
+        <button
+          onClick={handleAddToCart}
+          className={`absolute bottom-4 left-4 flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium backdrop-blur-md transition-all ${
+            inCart
+              ? "bg-brand-teal/90 text-white"
+              : "bg-black/50 text-white hover:bg-brand-orange"
+          }`}
+        >
+          {inCart ? <Check className="h-3.5 w-3.5" /> : <ShoppingCart className="h-3.5 w-3.5" />}
+          {inCart ? tc("in_cart") : tc("add_to_cart")}
+        </button>
+      </div>
+
+      {/* Meta */}
+      <div className="flex items-center gap-3 text-xs text-gray-400 font-light mb-2">
+        <span className="flex items-center gap-1">
+          <MapPin className="h-3 w-3" />
+          {tour.destination}
+        </span>
+        <span className="h-[3px] w-[3px] rounded-full bg-gray-300" />
+        <span className="flex items-center gap-1">
+          <Clock className="h-3 w-3" />
+          {tour.durationDays}{t("days")} / {tour.durationNights}{t("nights")}
+        </span>
+      </div>
+
+      {/* Title */}
+      <h3 className="text-xl font-semibold text-brand-darkRed mb-2 leading-tight line-clamp-2 group-hover:text-brand-orange transition-colors">
+        {name}
+      </h3>
+
+      {/* Description */}
+      <p className="text-[14px] text-gray-500 font-light leading-relaxed line-clamp-2 flex-grow mb-5">
+        {desc}
+      </p>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between mt-auto">
+        {tour.tourType === "INFORMATIONAL" ? (
+          <span className="text-sm font-medium text-gray-400">{isEs ? "Solo informativo" : "Info only"}</span>
+        ) : price ? (
+          <p className="text-lg font-bold text-brand-darkRed">
+            ${price.toFixed(0)}{" "}
+            <span className="text-[13px] font-light text-gray-500">/ {t("per_person")}</span>
           </p>
+        ) : <span />}
 
-          {tour.tourType === "INFORMATIONAL" ? (
-            <Badge variant="secondary" className="text-xs">
-              {isEs ? "Solo informativo" : "Info only"}
-            </Badge>
-          ) : price ? (
-            <div className="flex items-baseline gap-1">
-              <span className="text-xs text-muted-foreground">{t("from_price")}</span>
-              <span className="text-lg font-bold text-primary">
-                {currency} {price.toFixed(0)}
-              </span>
-              <span className="text-xs text-muted-foreground">/ {t("per_person")}</span>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+        <Button
+          variant="outline"
+          className="rounded-full border-gray-200 hover:border-brand-orange hover:bg-brand-orange hover:text-white px-5 h-10 font-medium transition-all group-hover:shadow-[0_4px_14px_rgba(252,69,31,0.2)]"
+        >
+          {t("book_now")}
+          <ArrowRight className="ml-1.5 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+        </Button>
+      </div>
     </Link>
   );
 }

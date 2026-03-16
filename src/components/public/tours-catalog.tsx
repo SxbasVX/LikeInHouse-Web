@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, X } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 
 interface ToursCatalogProps {
   initialData: {
@@ -64,9 +64,11 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
     setPage(1);
   }
 
-  function clearSearch() {
+  function clearAll() {
     setSearch("");
     setActiveSearch(undefined);
+    setDestination(undefined);
+    setCategory(undefined);
     setPage(1);
   }
 
@@ -78,138 +80,205 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
   );
 
   const displayData = data || initialData;
+  const activeFilterCount = [destination, category, activeSearch].filter(Boolean).length;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <div className="animate-slide-up mb-8 text-center">
-        <h1 className="text-3xl font-bold sm:text-4xl">{t("catalog")}</h1>
-        <p className="mt-2 text-muted-foreground">{t("catalog_subtitle")}</p>
-      </div>
+    <section className="bg-white min-h-screen">
 
-      <div className="animate-fade-in mb-8 flex flex-wrap items-center gap-3" style={{ animationDelay: "100ms" }}>
-        {/* Barra de búsqueda */}
-        <form onSubmit={handleSearch} className="flex items-center gap-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("search_placeholder")}
-              className="h-10 w-56 rounded-md border border-input bg-background pl-9 pr-8 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-            {search && (
+      {/* Hero Header */}
+      <div className="bg-[#faf8f5] border-b border-gray-100">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12 py-20 lg:py-28">
+          <div className="text-center">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-teal mb-4">
+              {t("catalog_subtitle")}
+            </p>
+            <h1 className="font-heading text-4xl font-light text-brand-darkRed sm:text-5xl lg:text-[3.5rem] tracking-tight leading-[1.1]">
+              {t("catalog").split(" ")[0]}{" "}
+              <span className="font-serif italic font-normal text-brand-teal">
+                {t("catalog").split(" ").slice(1).join(" ")}
+              </span>
+            </h1>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3 flex-wrap">
+            {/* Search */}
+            <form onSubmit={handleSearch} className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t("search_placeholder")}
+                  className="h-12 w-64 rounded-full border border-gray-200 bg-white pl-10 pr-10 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal transition-colors shadow-sm"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearch(""); setActiveSearch(undefined); setPage(1); }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <Button type="submit" className="h-12 rounded-full bg-brand-darkRed hover:bg-brand-orange text-white px-6 font-medium shadow-sm transition-all">
+                {tc("search")}
+              </Button>
+            </form>
+
+            <div className="h-6 w-px bg-gray-200 hidden sm:block" />
+
+            {/* Destination */}
+            <Select value={destination || "all"} onValueChange={(v) => { setDestination(v === "all" ? undefined : v); setPage(1); }}>
+              <SelectTrigger className="h-12 w-48 rounded-full border-gray-200 bg-white shadow-sm text-sm focus:ring-brand-teal/30">
+                <SelectValue placeholder={t("filter_destination")} />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl">
+                <SelectItem value="all">{t("filter_all")}</SelectItem>
+                {destinations.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              </SelectContent>
+            </Select>
+
+            {/* Category */}
+            <Select value={category || "all"} onValueChange={(v) => { setCategory(v === "all" ? undefined : v); setPage(1); }}>
+              <SelectTrigger className="h-12 w-48 rounded-full border-gray-200 bg-white shadow-sm text-sm focus:ring-brand-teal/30">
+                <SelectValue placeholder={t("filter_category")} />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl">
+                <SelectItem value="all">{t("filter_all")}</SelectItem>
+                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+
+            {/* Sort */}
+            <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
+              <SelectTrigger className="h-12 w-48 rounded-full border-gray-200 bg-white shadow-sm text-sm focus:ring-brand-teal/30">
+                <SelectValue placeholder={t("sort_by")} />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl">
+                <SelectItem value="newest">{t("sort_newest")}</SelectItem>
+                <SelectItem value="price_asc">{t("sort_price_asc")}</SelectItem>
+                <SelectItem value="price_desc">{t("sort_price_desc")}</SelectItem>
+                <SelectItem value="popular">{t("sort_popular")}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {activeFilterCount > 0 && (
               <button
-                type="button"
-                onClick={clearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={clearAll}
+                className="flex items-center gap-1.5 h-12 rounded-full px-5 text-sm font-medium text-gray-500 hover:text-brand-darkRed border border-gray-200 bg-white transition-colors"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
+                Limpiar ({activeFilterCount})
               </button>
             )}
           </div>
-          <Button type="submit" size="sm" variant="secondary">
-            {tc("search")}
-          </Button>
-        </form>
-
-        <Select
-          value={destination || "all"}
-          onValueChange={(v) => { setDestination(v === "all" ? undefined : v); setPage(1); }}
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder={t("filter_destination")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("filter_all")}</SelectItem>
-            {destinations.map((d) => (
-              <SelectItem key={d} value={d}>{d}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={category || "all"}
-          onValueChange={(v) => { setCategory(v === "all" ? undefined : v); setPage(1); }}
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder={t("filter_category")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("filter_all")}</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
-          <SelectTrigger className="w-44">
-            <SelectValue placeholder={t("sort_by")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">{t("sort_newest")}</SelectItem>
-            <SelectItem value="price_asc">{t("sort_price_asc")}</SelectItem>
-            <SelectItem value="price_desc">{t("sort_price_desc")}</SelectItem>
-            <SelectItem value="popular">{t("sort_popular")}</SelectItem>
-          </SelectContent>
-        </Select>
+        </div>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-80 rounded-lg" />
-          ))}
-        </div>
-      ) : displayData.tours.length > 0 ? (
-        <>
-          <div className="stagger-children grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {displayData.tours.map((tour: any) => (
-              <TourCard key={tour.id} tour={tour} />
+      {/* Grid */}
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12 py-16 lg:py-20">
+
+        {/* Results count */}
+        {!isLoading && (
+          <p className="text-sm text-gray-400 font-light mb-10">
+            {displayData.total} {displayData.total === 1 ? "tour encontrado" : "tours encontrados"}
+            {activeFilterCount > 0 && " · "}
+            {activeFilterCount > 0 && (
+              <button onClick={clearAll} className="text-brand-teal hover:underline">
+                ver todos
+              </button>
+            )}
+          </p>
+        )}
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex flex-col gap-4">
+                <Skeleton className="aspect-[4/3] rounded-[2rem]" />
+                <Skeleton className="h-4 w-2/3 rounded-full" />
+                <Skeleton className="h-6 w-full rounded-full" />
+                <Skeleton className="h-4 w-full rounded-full" />
+                <Skeleton className="h-4 w-3/4 rounded-full" />
+              </div>
             ))}
           </div>
-
-          {displayData.pages > 1 && (
-            <div className="mt-10 flex items-center justify-center gap-3">
-              <Button variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                {tc("previous")}
-              </Button>
-              <span className="text-sm text-muted-foreground">{displayData.page} / {displayData.pages}</span>
-              <Button variant="outline" disabled={page >= displayData.pages} onClick={() => setPage((p) => p + 1)}>
-                {tc("next")}
-              </Button>
+        ) : displayData.tours.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+              {displayData.tours.map((tour: any) => (
+                <TourCard key={tour.id} tour={tour} />
+              ))}
             </div>
-          )}
-        </>
-      ) : (
-        <div className="animate-fade-in py-20 text-center max-w-md mx-auto">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-            <Search className="h-8 w-8 text-muted-foreground/60" />
+
+            {displayData.pages > 1 && (
+              <div className="mt-16 flex items-center justify-center gap-3">
+                <Button
+                  variant="outline"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="h-12 rounded-full px-8 border-gray-200 hover:border-brand-darkRed hover:text-brand-darkRed transition-colors"
+                >
+                  {tc("previous")}
+                </Button>
+                <span className="text-sm text-gray-400 font-light px-4">
+                  {displayData.page} / {displayData.pages}
+                </span>
+                <Button
+                  variant="outline"
+                  disabled={page >= displayData.pages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="h-12 rounded-full px-8 border-gray-200 hover:border-brand-darkRed hover:text-brand-darkRed transition-colors"
+                >
+                  {tc("next")}
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="py-24 text-center max-w-sm mx-auto">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[1.5rem] bg-gray-50 border border-gray-100">
+              <SlidersHorizontal className="h-8 w-8 text-gray-300" />
+            </div>
+            <h3 className="text-xl font-semibold text-brand-darkRed mb-2">{tc("no_results")}</h3>
+            {activeSearch && (
+              <p className="text-gray-500 font-light mb-6 text-sm">
+                No encontramos tours para{" "}
+                <span className="font-medium text-gray-700">&ldquo;{activeSearch}&rdquo;</span>
+              </p>
+            )}
+            <Button
+              onClick={clearAll}
+              className="rounded-full bg-brand-darkRed hover:bg-brand-orange text-white px-8 h-12 font-medium transition-all"
+            >
+              <X className="h-4 w-4 mr-2" />
+              {t("filter_all")}
+            </Button>
           </div>
-          <h3 className="text-xl font-semibold text-foreground mb-2">{tc("no_results")}</h3>
-          {activeSearch && (
-            <p className="text-muted-foreground mb-6">
-              {t("search_placeholder").includes("Search") ? "No tours found for" : "No encontramos tours para"}{" "}
-              <span className="font-medium text-foreground">&ldquo;{activeSearch}&rdquo;</span>
-            </p>
-          )}
-          <button
-            onClick={() => { clearSearch(); setDestination(undefined); setCategory(undefined); }}
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
-          >
-            <X className="h-4 w-4" />
-            {t("filter_all")}
-          </button>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </section>
   );
 }
 
 export function ToursCatalog(props: ToursCatalogProps) {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-12"><div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">{[...Array(6)].map((_, i) => (<Skeleton key={i} className="h-80 rounded-lg" />))}</div></div>}>
+    <Suspense fallback={
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12 py-16">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex flex-col gap-4">
+              <Skeleton className="aspect-[4/3] rounded-[2rem]" />
+              <Skeleton className="h-4 w-2/3 rounded-full" />
+              <Skeleton className="h-6 w-full rounded-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    }>
       <ToursCatalogInner {...props} />
     </Suspense>
   );
