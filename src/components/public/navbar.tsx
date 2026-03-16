@@ -43,7 +43,7 @@ export function Navbar() {
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => setScrolled(window.scrollY > 80);
     window.addEventListener("scroll", handleScroll);
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
@@ -105,10 +105,10 @@ export function Navbar() {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 w-full transition-all duration-500 ease-in-out",
+        "fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ease-in-out",
         heroMode
           ? "pointer-events-none bg-transparent shadow-none"
-          : "pointer-events-auto bg-white/97 backdrop-blur-md shadow-sm"
+          : "pointer-events-auto bg-white shadow-md"
       )}
     >
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between relative">
@@ -130,7 +130,7 @@ export function Navbar() {
               width={200}
               height={51}
               className={cn(
-                "w-full h-auto object-contain transition-all duration-500 ease-in-out group-hover:scale-105",
+                "w-full h-auto object-contain transition-all duration-300 ease-in-out group-hover:scale-105",
                 heroMode ? "opacity-0" : "opacity-100"
               )}
               priority
@@ -142,7 +142,7 @@ export function Navbar() {
               width={200}
               height={51}
               className={cn(
-                "absolute inset-0 w-full h-auto object-contain transition-all duration-500 ease-in-out group-hover:scale-105",
+                "absolute inset-0 w-full h-auto object-contain transition-all duration-300 ease-in-out group-hover:scale-105",
                 heroMode ? "opacity-100" : "opacity-0"
               )}
               priority
@@ -155,7 +155,7 @@ export function Navbar() {
           <nav
             ref={navRef}
             className={cn(
-              "pointer-events-auto hidden lg:flex items-center gap-0.5 rounded-full relative transition-all duration-500 ease-in-out",
+              "pointer-events-auto hidden lg:flex items-center gap-0.5 rounded-full relative transition-all duration-300 ease-in-out",
               heroMode
                 ? "p-1.5 shadow-2xl border backdrop-blur-xl bg-black/45 border-white/10"
                 : "p-1 bg-transparent border-transparent shadow-none"
@@ -222,7 +222,7 @@ export function Navbar() {
         {/* ── Acciones Desktop ── */}
         <div
           className={cn(
-            "hidden lg:flex items-center gap-2 rounded-full transition-all duration-500 ease-in-out relative z-20",
+            "hidden lg:flex items-center gap-2 rounded-full transition-all duration-300 ease-in-out relative z-20",
             heroMode
               ? "pointer-events-auto p-1.5 pl-3 shadow-2xl border backdrop-blur-xl bg-black/45 border-white/10"
               : "pointer-events-auto p-0 bg-transparent border-transparent shadow-none"
