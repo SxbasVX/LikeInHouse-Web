@@ -26,7 +26,7 @@ export function HeroSection() {
   }
 
   return (
-    <section className="relative min-h-[calc(100vh-80px)] lg:min-h-[calc(100vh-80px)] overflow-hidden bg-[#0A0D0C] flex flex-col">
+    <section className="relative -mt-20 min-h-screen overflow-hidden bg-[#0A0D0C] flex flex-col">
       {/* Background Image with stronger overlay for readability */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <Image

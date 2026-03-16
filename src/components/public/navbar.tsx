@@ -100,8 +100,10 @@ export function Navbar() {
 
   return (
     <header className={cn(
-      "sticky top-0 z-50 w-full bg-white transition-shadow duration-300",
-      scrolled ? "shadow-md" : "shadow-none border-b border-gray-100"
+      "fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300",
+      scrolled
+        ? "bg-white/97 backdrop-blur-md shadow-md"
+        : "bg-transparent"
     )}>
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
 
@@ -137,7 +139,11 @@ export function Navbar() {
             data-active={isActive("/")}
             className={cn(
               "relative z-10 px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200",
-              isActive("/") ? "text-brand-darkRed" : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-50"
+              isActive("/")
+                ? "text-brand-darkRed"
+                : scrolled
+                ? "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100"
+                : "text-white/90 hover:text-white hover:bg-white/10"
             )}
           >
             {t("home")}
@@ -150,6 +156,7 @@ export function Navbar() {
             isEs={isEs}
             isActive={isActive("/tours")}
             toursLabel={t("tours", { fallback: "Packages" })}
+            scrolled={scrolled}
           />
 
           {rightLinks.slice(0, 3).map((link) => (
@@ -159,7 +166,11 @@ export function Navbar() {
               data-active={isActive(link.href)}
               className={cn(
                 "relative z-10 px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200",
-                isActive(link.href) ? "text-brand-darkRed" : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-50"
+                isActive(link.href)
+                  ? "text-brand-darkRed"
+                  : scrolled
+                  ? "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100"
+                  : "text-white/90 hover:text-white hover:bg-white/10"
               )}
             >
               {t(link.key)}
@@ -170,7 +181,7 @@ export function Navbar() {
         {/* Desktop Actions */}
         <div className="hidden lg:flex items-center gap-2 shrink-0">
           {/* Cart */}
-          <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-600 hover:text-brand-darkRed hover:bg-gray-100 focus-visible:ring-0 relative">
+          <Button asChild variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full focus-visible:ring-0 relative transition-colors", scrolled ? "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100" : "text-white/90 hover:text-white hover:bg-white/10")}>
             <Link href="/carrito">
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
@@ -184,7 +195,7 @@ export function Navbar() {
           {/* Language Switcher */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-600 hover:text-brand-darkRed hover:bg-gray-100 focus-visible:ring-0">
+              <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full focus-visible:ring-0 transition-colors", scrolled ? "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100" : "text-white/90 hover:text-white hover:bg-white/10")}>
                 <Globe className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
@@ -195,10 +206,10 @@ export function Navbar() {
           </DropdownMenu>
 
           {/* Book Now */}
-          <Button asChild className="h-10 lg:h-11 rounded-full bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-1.5 text-[14px] font-semibold transition-all ml-1 group shadow-sm">
+          <Button asChild className={cn("h-10 lg:h-11 rounded-full pl-5 pr-1.5 text-[14px] font-semibold transition-all ml-1 group", scrolled ? "bg-brand-darkRed hover:bg-brand-orange text-white shadow-sm" : "bg-white/15 hover:bg-white text-white hover:text-brand-darkRed border border-white/30")}>
             <Link href="/contacto" className="flex items-center gap-2.5">
               {t("book", { fallback: "Reservar" })}
-              <div className="flex items-center justify-center bg-white/20 rounded-full h-8 w-8 group-hover:bg-white group-hover:text-brand-darkRed transition-colors duration-300">
+              <div className={cn("flex items-center justify-center rounded-full h-8 w-8 transition-colors duration-300", scrolled ? "bg-white/20 group-hover:bg-white group-hover:text-brand-darkRed" : "bg-white/20 group-hover:bg-brand-orange")}>
                 <ArrowUpRight className="h-4 w-4 group-hover:rotate-12 transition-transform" />
               </div>
             </Link>
@@ -207,7 +218,7 @@ export function Navbar() {
 
         {/* Mobile Menu Trigger */}
         <div className="flex lg:hidden items-center gap-2">
-          <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-600 hover:bg-gray-100 relative">
+          <Button asChild variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full relative transition-colors", scrolled ? "text-gray-600 hover:bg-gray-100" : "text-white hover:bg-white/10")}>
             <Link href="/carrito">
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
@@ -219,7 +230,7 @@ export function Navbar() {
           </Button>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-700 border border-gray-200 hover:bg-gray-100">
+              <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full transition-colors", scrolled ? "text-gray-700 border border-gray-200 hover:bg-gray-100" : "text-white border border-white/30 hover:bg-white/10")}>
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -290,6 +301,7 @@ function ToursMegaMenu({
   isEs,
   isActive,
   toursLabel,
+  scrolled,
 }: {
   destinations: string[];
   toursByDest: Record<string, { slug: string; nameEs: string; nameEn: string; destination: string; category: string }[]> | undefined;
@@ -297,6 +309,7 @@ function ToursMegaMenu({
   isEs: boolean;
   isActive: boolean;
   toursLabel: string;
+  scrolled: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -315,16 +328,18 @@ function ToursMegaMenu({
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, []);
 
+  const linkCn = (active: boolean) => cn(
+    "relative z-10 px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200",
+    active
+      ? "text-brand-darkRed"
+      : scrolled
+      ? "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100"
+      : "text-white/90 hover:text-white hover:bg-white/10"
+  );
+
   if (destinations.length === 0) {
     return (
-      <Link
-        href="/tours"
-        data-active={isActive}
-        className={cn(
-          "relative z-10 px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200",
-          isActive ? "text-brand-darkRed" : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-50"
-        )}
-      >
+      <Link href="/tours" data-active={isActive} className={linkCn(isActive)}>
         {toursLabel}
       </Link>
     );
@@ -335,10 +350,7 @@ function ToursMegaMenu({
       <Link
         href="/tours"
         data-active={isActive}
-        className={cn(
-          "relative z-10 flex items-center gap-1 px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200",
-          isActive ? "text-brand-darkRed" : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-50"
-        )}
+        className={cn(linkCn(isActive), "flex items-center gap-1")}
       >
         {toursLabel}
         <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", open && "rotate-180")} />
