@@ -101,219 +101,148 @@ export function Navbar() {
   // Hero mode: homepage + not scrolled
   const heroMode = isActive("/") && !scrolled;
 
-  // ─── SINGLE NAVBAR: transiciones suaves entre hero y scrolled ─────────────
-  return (
-    <header
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ease-in-out",
-        heroMode
-          ? "pointer-events-none bg-transparent shadow-none"
-          : "pointer-events-auto bg-white shadow-md"
-      )}
-    >
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between relative">
+  // ─── HERO MODE ────────────────────────────────────────────────────────────
+  if (heroMode) {
+    return (
+      <header className="fixed top-0 left-0 right-0 z-50 w-full pointer-events-none py-4">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
 
-        {/* ── Logo: crossfade entre Logo.svg y Logo-Azul.svg ── */}
-        <Link
-          href="/"
-          className={cn(
-            "flex items-center shrink-0 group relative z-20",
-            heroMode && "pointer-events-auto"
-          )}
-        >
-          {/* Contenedor con tamaño fijo para el crossfade */}
-          <div className="relative w-36 sm:w-44 lg:w-[200px]">
-            {/* Logo Azul — define la altura del contenedor */}
-            <Image
-              src="/Logo-Azul.svg"
-              alt="Like In House Logo"
-              width={200}
-              height={51}
-              className={cn(
-                "w-full h-auto object-contain transition-all duration-300 ease-in-out group-hover:scale-105",
-                heroMode ? "opacity-0" : "opacity-100"
-              )}
+          <Link href="/" className="pointer-events-auto flex items-center shrink-0 group relative z-20">
+            <Image src="/Logo.svg" alt="Like In House Logo" width={200} height={51}
+              className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
               priority
             />
-            {/* Logo blanco/beige — superpuesto */}
-            <Image
-              src="/Logo.svg"
-              alt="Like In House Logo"
-              width={200}
-              height={51}
-              className={cn(
-                "absolute inset-0 w-full h-auto object-contain transition-all duration-300 ease-in-out group-hover:scale-105",
-                heroMode ? "opacity-100" : "opacity-0"
-              )}
-              priority
-            />
+          </Link>
+
+          <div className="pointer-events-none absolute left-0 right-0 flex justify-center" style={{ top: '50%', transform: 'translateY(-50%)' }}>
+            <nav ref={navRef} className="pointer-events-auto flex items-center gap-0.5 rounded-full p-1.5 shadow-2xl border backdrop-blur-xl relative bg-black/45 border-white/10">
+              <div className="absolute h-[calc(100%-12px)] top-[6px] rounded-full bg-white shadow-lg transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] pointer-events-none z-0"
+                style={{ left: `${indicatorStyle.left}px`, width: `${indicatorStyle.width}px`, opacity: indicatorStyle.opacity }}
+              />
+              <Link href="/" data-active={isActive("/")} className={cn("relative z-10 px-5 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-200", isActive("/") ? "text-brand-darkRed" : "text-white/85 hover:text-white hover:bg-white/10")}>
+                {t("home")}
+              </Link>
+              <ToursMegaMenu destinations={destinations} toursByDest={toursByDest} featuredTours={featuredTours?.slice(0, 2) || []} isEs={isEs} isActive={isActive("/tours")} toursLabel={t("tours", { fallback: "Packages" })} heroMode />
+              {rightLinks.slice(0, 3).map((link) => (
+                <Link key={link.key} href={link.href} data-active={isActive(link.href)}
+                  className={cn("relative z-10 px-5 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-200", isActive(link.href) ? "text-brand-darkRed" : "text-white/85 hover:text-white hover:bg-white/10")}
+                >
+                  {t(link.key)}
+                </Link>
+              ))}
+            </nav>
           </div>
+
+          <div className="pointer-events-auto hidden lg:flex items-center gap-2 rounded-full p-1.5 pl-3 shadow-2xl border backdrop-blur-xl relative z-20 bg-black/45 border-white/10">
+            <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white/90 hover:text-white hover:bg-white/15 focus-visible:ring-0 relative">
+              <Link href="/carrito">
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{cartCount}</span>}
+              </Link>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white/90 hover:text-white hover:bg-white/15 focus-visible:ring-0">
+                  <Globe className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="rounded-xl border-white/10 bg-black/80 backdrop-blur-xl text-white">
+                <DropdownMenuItem onClick={() => switchLocale("es")} className="rounded-lg cursor-pointer focus:bg-white/20">Español</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => switchLocale("en")} className="rounded-lg cursor-pointer focus:bg-white/20">English</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button asChild className="h-10 lg:h-11 rounded-full bg-white/20 hover:bg-white text-white hover:text-brand-darkRed border border-white/30 pl-5 pr-1.5 text-[14px] font-semibold transition-all ml-1 group">
+              <Link href="/contacto" className="flex items-center gap-2.5">
+                {t("book", { fallback: "Reservar" })}
+                <div className="flex items-center justify-center bg-white text-brand-darkRed rounded-full h-8 w-8 group-hover:bg-brand-orange group-hover:text-white transition-colors duration-300">
+                  <ArrowUpRight className="h-4 w-4 group-hover:rotate-12 transition-transform" />
+                </div>
+              </Link>
+            </Button>
+          </div>
+
+          <div className="pointer-events-auto flex lg:hidden items-center gap-2">
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white border border-white/30 hover:bg-white/10">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <MobileMenuContent t={t} isEs={isEs} cartCount={cartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} />
+            </Sheet>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  // ─── SCROLLED MODE: barra blanca con animación de entrada ─────────────────
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white shadow-md animate-in fade-in slide-in-from-top-2 duration-300">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+
+        <Link href="/" className="flex items-center shrink-0 group">
+          <Image src="/Logo-Azul.svg" alt="Like In House Logo" width={200} height={51}
+            className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
+            priority
+          />
         </Link>
 
-        {/* ── Centro: Nav centrado absolutamente (igual en ambos modos) ── */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
-          <nav
-            ref={navRef}
-            className={cn(
-              "pointer-events-auto hidden lg:flex items-center gap-0.5 rounded-full relative transition-all duration-300 ease-in-out",
-              heroMode
-                ? "p-1.5 shadow-2xl border backdrop-blur-xl bg-black/45 border-white/10"
-                : "p-1 bg-transparent border-transparent shadow-none"
-            )}
-          >
-            {/* Sliding Pill Indicator */}
-            <div
-              className={cn(
-                "absolute rounded-full pointer-events-none z-0 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]",
-                heroMode
-                  ? "h-[calc(100%-12px)] top-[6px] bg-white shadow-lg"
-                  : "h-[calc(100%-4px)] top-[2px] bg-brand-darkRed/8"
-              )}
-              style={{ left: `${indicatorStyle.left}px`, width: `${indicatorStyle.width}px`, opacity: indicatorStyle.opacity }}
-            />
-
-            <Link
-              href="/"
-              data-active={isActive("/")}
-              className={cn(
-                "relative z-10 rounded-full font-medium transition-all duration-300",
-                heroMode ? "px-5 py-2.5 text-[13px]" : "px-4 py-2 text-[13px]",
-                isActive("/")
-                  ? "text-brand-darkRed"
-                  : heroMode
-                  ? "text-white/85 hover:text-white hover:bg-white/10"
-                  : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100"
-              )}
+        <nav ref={navRef} className="hidden lg:flex items-center gap-0.5 flex-1 justify-center relative">
+          <div className="absolute h-[calc(100%-4px)] top-[2px] rounded-full bg-brand-darkRed/8 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] pointer-events-none z-0"
+            style={{ left: `${indicatorStyle.left}px`, width: `${indicatorStyle.width}px`, opacity: indicatorStyle.opacity }}
+          />
+          <Link href="/" data-active={isActive("/")} className={cn("relative z-10 px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200", isActive("/") ? "text-brand-darkRed" : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100")}>
+            {t("home")}
+          </Link>
+          <ToursMegaMenu destinations={destinations} toursByDest={toursByDest} featuredTours={featuredTours?.slice(0, 2) || []} isEs={isEs} isActive={isActive("/tours")} toursLabel={t("tours", { fallback: "Packages" })} heroMode={false} />
+          {rightLinks.slice(0, 3).map((link) => (
+            <Link key={link.key} href={link.href} data-active={isActive(link.href)}
+              className={cn("relative z-10 px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200", isActive(link.href) ? "text-brand-darkRed" : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100")}
             >
-              {t("home")}
+              {t(link.key)}
             </Link>
+          ))}
+        </nav>
 
-            <ToursMegaMenu
-              destinations={destinations}
-              toursByDest={toursByDest}
-              featuredTours={featuredTours?.slice(0, 2) || []}
-              isEs={isEs}
-              isActive={isActive("/tours")}
-              toursLabel={t("tours", { fallback: "Packages" })}
-              heroMode={heroMode}
-            />
-
-            {rightLinks.slice(0, 3).map((link) => (
-              <Link
-                key={link.key}
-                href={link.href}
-                data-active={isActive(link.href)}
-                className={cn(
-                  "relative z-10 rounded-full font-medium transition-all duration-300",
-                  heroMode ? "px-5 py-2.5 text-[13px]" : "px-4 py-2 text-[13px]",
-                  isActive(link.href)
-                    ? "text-brand-darkRed"
-                    : heroMode
-                    ? "text-white/85 hover:text-white hover:bg-white/10"
-                    : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100"
-                )}
-              >
-                {t(link.key)}
-              </Link>
-            ))}
-          </nav>
-        </div>
-
-        {/* ── Acciones Desktop ── */}
-        <div
-          className={cn(
-            "hidden lg:flex items-center gap-2 rounded-full transition-all duration-300 ease-in-out relative z-20",
-            heroMode
-              ? "pointer-events-auto p-1.5 pl-3 shadow-2xl border backdrop-blur-xl bg-black/45 border-white/10"
-              : "pointer-events-auto p-0 bg-transparent border-transparent shadow-none"
-          )}
-        >
-          {/* Cart */}
-          <Button asChild variant="ghost" size="icon"
-            className={cn(
-              "h-10 w-10 rounded-full focus-visible:ring-0 relative transition-colors duration-300",
-              heroMode
-                ? "text-white/90 hover:text-white hover:bg-white/15"
-                : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100"
-            )}
-          >
+        <div className="hidden lg:flex items-center gap-2 shrink-0">
+          <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-600 hover:text-brand-darkRed hover:bg-gray-100 focus-visible:ring-0 relative">
             <Link href="/carrito">
               <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">
-                  {cartCount}
-                </span>
-              )}
+              {cartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{cartCount}</span>}
             </Link>
           </Button>
-
-          {/* Idioma */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon"
-                className={cn(
-                  "h-10 w-10 rounded-full focus-visible:ring-0 transition-colors duration-300",
-                  heroMode
-                    ? "text-white/90 hover:text-white hover:bg-white/15"
-                    : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100"
-                )}
-              >
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-600 hover:text-brand-darkRed hover:bg-gray-100 focus-visible:ring-0">
                 <Globe className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className={cn("rounded-xl", heroMode && "border-white/10 bg-black/80 backdrop-blur-xl text-white")}>
-              <DropdownMenuItem onClick={() => switchLocale("es")} className={cn("rounded-lg cursor-pointer", heroMode && "focus:bg-white/20")}>Español</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => switchLocale("en")} className={cn("rounded-lg cursor-pointer", heroMode && "focus:bg-white/20")}>English</DropdownMenuItem>
+            <DropdownMenuContent align="end" className="rounded-xl">
+              <DropdownMenuItem onClick={() => switchLocale("es")} className="rounded-lg cursor-pointer">Español</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => switchLocale("en")} className="rounded-lg cursor-pointer">English</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {/* Reservar */}
-          <Button asChild
-            className={cn(
-              "h-10 lg:h-11 rounded-full pl-5 pr-1.5 text-[14px] font-semibold transition-all duration-500 ml-1 group",
-              heroMode
-                ? "bg-white/20 hover:bg-white text-white hover:text-brand-darkRed border border-white/30 shadow-none"
-                : "bg-brand-darkRed hover:bg-brand-orange text-white border-0 shadow-sm"
-            )}
-          >
+          <Button asChild className="h-10 lg:h-11 rounded-full bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-1.5 text-[14px] font-semibold transition-all ml-1 group shadow-sm">
             <Link href="/contacto" className="flex items-center gap-2.5">
               {t("book", { fallback: "Reservar" })}
-              <div className={cn(
-                "flex items-center justify-center rounded-full h-8 w-8 transition-colors duration-300",
-                heroMode
-                  ? "bg-white text-brand-darkRed group-hover:bg-brand-orange group-hover:text-white"
-                  : "bg-white/20 group-hover:bg-white group-hover:text-brand-darkRed"
-              )}>
+              <div className="flex items-center justify-center bg-white/20 rounded-full h-8 w-8 group-hover:bg-white group-hover:text-brand-darkRed transition-colors duration-300">
                 <ArrowUpRight className="h-4 w-4 group-hover:rotate-12 transition-transform" />
               </div>
             </Link>
           </Button>
         </div>
 
-        {/* ── Mobile ── */}
-        <div className={cn("flex lg:hidden items-center gap-2", heroMode && "pointer-events-auto")}>
-          {!heroMode && (
-            <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-600 hover:bg-gray-100 relative">
-              <Link href="/carrito">
-                <ShoppingCart className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
-            </Button>
-          )}
+        <div className="flex lg:hidden items-center gap-2">
+          <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-600 hover:bg-gray-100 relative">
+            <Link href="/carrito">
+              <ShoppingCart className="h-5 w-5" />
+              {cartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{cartCount}</span>}
+            </Link>
+          </Button>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon"
-                className={cn(
-                  "h-10 w-10 rounded-full border",
-                  heroMode
-                    ? "text-white border-white/30 hover:bg-white/10"
-                    : "text-gray-700 border-gray-200 hover:bg-gray-100"
-                )}
-              >
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-700 border border-gray-200 hover:bg-gray-100">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
