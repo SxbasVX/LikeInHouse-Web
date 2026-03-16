@@ -113,8 +113,8 @@ export function Navbar() {
               src="/Logo.svg"
               alt="Like In House Logo"
               width={200}
-              height={66}
-              className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain drop-shadow-md transition-transform group-hover:scale-105"
+              height={51}
+              className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
               priority
             />
           </Link>
@@ -218,7 +218,7 @@ export function Navbar() {
             src="/Logo-Azul.svg"
             alt="Like In House Logo"
             width={200}
-            height={66}
+            height={51}
             className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
             priority
           />

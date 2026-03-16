@@ -37,7 +37,7 @@ export function Footer() {
                 src="/Logo-Azul.svg"
                 alt="Like In House Logo"
                 width={200}
-                height={66}
+                height={51}
                 className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain"
               />
             </Link>
