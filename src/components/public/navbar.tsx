@@ -104,7 +104,7 @@ export function Navbar() {
   // ─── HERO MODE: floating glass pill layout ────────────────────────────────
   if (heroMode) {
     return (
-      <header className="fixed top-0 left-0 right-0 z-50 w-full pointer-events-none py-5 lg:py-7">
+      <header className="fixed top-0 left-0 right-0 z-50 w-full pointer-events-none">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 flex items-center justify-between relative h-20">
 
           {/* Logo */}
@@ -114,7 +114,7 @@ export function Navbar() {
               alt="Like In House Logo"
               width={200}
               height={51}
-              className="h-10 lg:h-12 w-auto object-contain transition-transform group-hover:scale-105"
+              className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
               priority
             />
           </Link>
@@ -219,7 +219,7 @@ export function Navbar() {
             alt="Like In House Logo"
             width={200}
             height={51}
-            className="h-10 lg:h-12 w-auto object-contain transition-transform group-hover:scale-105"
+            className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
             priority
           />
         </Link>

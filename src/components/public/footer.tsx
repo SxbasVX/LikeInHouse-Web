@@ -38,7 +38,7 @@ export function Footer() {
                 alt="Like In House Logo"
                 width={200}
                 height={51}
-                className="h-10 lg:h-12 w-auto object-contain"
+                className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain"
               />
             </Link>
             <p className="text-[15px] font-light text-gray-500 leading-relaxed">
