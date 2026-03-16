@@ -114,7 +114,7 @@ export function Navbar() {
               alt="Like In House Logo"
               width={200}
               height={51}
-              className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
+              className="h-10 lg:h-12 w-auto object-contain transition-transform group-hover:scale-105"
               priority
             />
           </Link>
@@ -219,7 +219,7 @@ export function Navbar() {
             alt="Like In House Logo"
             width={200}
             height={51}
-            className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
+            className="h-10 lg:h-12 w-auto object-contain transition-transform group-hover:scale-105"
             priority
           />
         </Link>
