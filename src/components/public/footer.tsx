@@ -36,9 +36,9 @@ export function Footer() {
               <Image
                 src="/Logo-Azul.svg"
                 alt="Like In House Logo"
-                width={180}
-                height={60}
-                className="h-14 w-auto"
+                width={200}
+                height={66}
+                className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain"
               />
             </Link>
             <p className="text-[15px] font-light text-gray-500 leading-relaxed">
