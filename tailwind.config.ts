@@ -19,14 +19,15 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-lato)", "sans-serif"],
         heading: ["var(--font-montserrat)", "sans-serif"],
+        serif: ["var(--font-playfair)", "serif"],
       },
       colors: {
         brand: {
-          teal: "#16A59E",
-          orange: "#FC431F",
-          beige: "#E5CFBE",
+          teal: "#15A58E",
+          orange: "#FC451F",
+          beige: "#FBEDBE",
           darkRed: "#441514",
-          darkTeal: "#0E6660"
+          darkTeal: "#0E6650"
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
