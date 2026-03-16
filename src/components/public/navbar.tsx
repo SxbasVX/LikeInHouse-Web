@@ -178,7 +178,7 @@ export function Navbar() {
 
   // ─── SCROLLED MODE: barra blanca con animación de entrada ─────────────────
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white shadow-md animate-in fade-in slide-in-from-top-2 duration-300">
+    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white shadow-md animate-slide-down">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
 
         <Link href="/" className="flex items-center shrink-0 group">
