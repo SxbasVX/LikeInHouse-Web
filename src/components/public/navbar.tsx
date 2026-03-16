@@ -105,7 +105,7 @@ export function Navbar() {
   if (heroMode) {
     return (
       <header className="fixed top-0 left-0 right-0 z-50 w-full pointer-events-none py-5 lg:py-7">
-        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 flex items-center justify-between relative h-14">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 flex items-center justify-between relative h-20">
 
           {/* Logo */}
           <Link href="/" className="pointer-events-auto flex items-center shrink-0 group relative z-20">
