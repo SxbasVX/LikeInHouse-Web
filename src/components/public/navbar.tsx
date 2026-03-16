@@ -151,7 +151,7 @@ export function Navbar() {
         </Link>
 
         {/* ── Centro: Nav centrado absolutamente (igual en ambos modos) ── */}
-        <div className="pointer-events-none absolute left-0 right-0 flex justify-center top-1/2 -translate-y-1/2 z-10">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
           <nav
             ref={navRef}
             className={cn(
