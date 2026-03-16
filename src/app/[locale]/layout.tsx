@@ -48,7 +48,7 @@ export default async function LocaleLayout({
           <TRPCProvider>
             <div className="flex min-h-screen flex-col">
               <Navbar />
-              <main className="flex-1 pt-[100px]">{children}</main>
+              <main className="flex-1">{children}</main>
               <Footer />
             </div>
             <WhatsAppButton />
