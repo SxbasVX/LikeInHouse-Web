@@ -110,7 +110,7 @@ export function Navbar() {
           {/* Logo */}
           <Link href="/" className="pointer-events-auto flex items-center shrink-0 group relative z-20">
             <Image
-              src="/Logo-Azul.svg"
+              src="/Logo.svg"
               alt="Like In House Logo"
               width={200}
               height={66}
@@ -215,7 +215,7 @@ export function Navbar() {
         {/* Logo */}
         <Link href="/" className="flex items-center shrink-0 group">
           <Image
-            src="/Logo.svg"
+            src="/Logo-Azul.svg"
             alt="Like In House Logo"
             width={200}
             height={66}
