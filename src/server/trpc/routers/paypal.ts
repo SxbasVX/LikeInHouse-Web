@@ -191,24 +191,32 @@ export const paypalRouter = router({
                     });
                 }
 
-                await ctx.db.$transaction([
-                    ctx.db.reservation.update({
-                        where: { id: input.reservationId },
-                        data: { status: "PAID" },
-                    }),
-                    ctx.db.payment.create({
-                        data: {
-                            reservationId: input.reservationId,
-                            amount: capturedAmount,
-                            currency: captureInfo.amount.currency_code || "USD",
-                            method: "PAYPAL",
-                            status: "COMPLETED",
-                            paypalOrderId: input.orderId,
-                            gatewayResponse: captureData,
-                            processedAt: new Date(),
-                        },
-                    }),
-                ]);
+                try {
+                    await ctx.db.$transaction([
+                        ctx.db.reservation.update({
+                            where: { id: input.reservationId },
+                            data: { status: "PAID" },
+                        }),
+                        ctx.db.payment.create({
+                            data: {
+                                reservationId: input.reservationId,
+                                amount: capturedAmount,
+                                currency: captureInfo.amount.currency_code || "USD",
+                                method: "PAYPAL",
+                                status: "COMPLETED",
+                                paypalOrderId: input.orderId,
+                                gatewayResponse: captureData,
+                                processedAt: new Date(),
+                            },
+                        }),
+                    ]);
+                } catch (dbErr: any) {
+                    // Unique constraint violation: another request already recorded this payment
+                    if (dbErr?.code === "P2002") {
+                        return { success: true, referenceCode: reservation.referenceCode };
+                    }
+                    throw dbErr;
+                }
 
                 // Audit log for payment capture (fire-and-forget)
                 createAuditLog({

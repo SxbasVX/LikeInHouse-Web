@@ -332,8 +332,8 @@ model Payment {
   amount           Decimal       @db.Decimal(10, 2)
   currency         String        @default("PEN")
 
-  culqiChargeId    String?
-  paypalOrderId    String?
+  culqiChargeId    String?       @unique
+  paypalOrderId    String?       @unique
   gatewayResponse  Json?
 
   manualVerifiedBy String?
@@ -347,8 +347,6 @@ model Payment {
 
   @@index([reservationId])
   @@index([status])
-  @@index([culqiChargeId])
-  @@index([paypalOrderId])
 }
 
 // ============================================================
