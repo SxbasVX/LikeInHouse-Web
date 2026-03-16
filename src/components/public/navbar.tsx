@@ -135,10 +135,11 @@ export function Navbar() {
 
         {/* Center: Glass Pill Navigation (Desktop only) */}
         <div className="hidden lg:flex flex-1 justify-center z-20 mx-6 pointer-events-none absolute left-0 right-0 top-1/2 -translate-y-1/2">
-          <nav 
+          <nav
             ref={navRef}
             className={cn(
-            "pointer-events-auto flex items-center gap-0.5 rounded-full p-1.5 shadow-2xl border backdrop-blur-xl relative bg-black/40 border-white/10"
+            "pointer-events-auto flex items-center gap-0.5 rounded-full p-1.5 shadow-2xl border backdrop-blur-xl relative transition-colors duration-300",
+            scrolled ? "bg-white/95 border-gray-200/80" : "bg-black/40 border-white/10"
           )}>
             {/* Sliding Pill Indicator */}
             <div 
@@ -155,7 +156,11 @@ export function Navbar() {
               data-active={isActive("/")}
               className={cn(
                 "relative z-10 px-5 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-300",
-                isActive("/") ? "text-brand-darkRed" : "text-white/80 hover:text-white hover:bg-white/10"
+                isActive("/")
+                  ? "text-brand-darkRed"
+                  : scrolled
+                  ? "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
               )}
             >
               {t("home")}
@@ -168,6 +173,7 @@ export function Navbar() {
               isEs={isEs}
               isActive={isActive("/tours")}
               toursLabel={t("tours", { fallback: "Packages" })}
+              scrolled={scrolled}
             />
 
             {rightLinks.slice(0, 3).map((link) => (
@@ -177,7 +183,11 @@ export function Navbar() {
                 data-active={isActive(link.href)}
                 className={cn(
                   "relative z-10 px-5 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-300",
-                  isActive(link.href) ? "text-brand-darkRed" : "text-white/80 hover:text-white hover:bg-white/10"
+                  isActive(link.href)
+                    ? "text-brand-darkRed"
+                    : scrolled
+                    ? "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
                 )}
               >
                 {t(link.key)}
@@ -188,10 +198,11 @@ export function Navbar() {
 
         {/* Right Side: Actions (Desktop only) */}
         <div className={cn(
-          "pointer-events-auto hidden lg:flex items-center gap-2 rounded-full p-1.5 pl-3 shadow-2xl border backdrop-blur-xl relative z-20 bg-black/40 border-white/10"
+          "pointer-events-auto hidden lg:flex items-center gap-2 rounded-full p-1.5 pl-3 shadow-2xl border backdrop-blur-xl relative z-20 transition-colors duration-300",
+          scrolled ? "bg-white/95 border-gray-200/80" : "bg-black/40 border-white/10"
         )}>
           {/* Cart */}
-          <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white/90 hover:text-white hover:bg-white/20 focus-visible:ring-0 relative">
+          <Button asChild variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full focus-visible:ring-0 relative transition-colors", scrolled ? "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100" : "text-white/90 hover:text-white hover:bg-white/20")}>
             <Link href="/carrito">
               <ShoppingCart className="h-5 w-5" />
               {cartCount > 0 && (
@@ -205,7 +216,7 @@ export function Navbar() {
           {/* Language Switcher */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white/90 hover:text-white hover:bg-white/20 focus-visible:ring-0">
+              <Button variant="ghost" size="icon" className={cn("h-10 w-10 rounded-full focus-visible:ring-0 transition-colors", scrolled ? "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100" : "text-white/90 hover:text-white hover:bg-white/20")}>
                 <Globe className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
@@ -216,10 +227,10 @@ export function Navbar() {
           </DropdownMenu>
 
           {/* Book Now Button styled as in reference */}
-          <Button asChild className="h-10 lg:h-11 rounded-full bg-white/20 hover:bg-white text-white hover:text-brand-darkRed border border-white/30 pl-5 pr-1.5 text-[14px] font-semibold shadow-none transition-all ml-1 group">
+          <Button asChild className={cn("h-10 lg:h-11 rounded-full pl-5 pr-1.5 text-[14px] font-semibold shadow-none transition-all ml-1 group", scrolled ? "bg-brand-darkRed hover:bg-brand-orange text-white border border-brand-darkRed/20" : "bg-white/20 hover:bg-white text-white hover:text-brand-darkRed border border-white/30")}>
             <Link href="/contacto" className="flex items-center gap-2.5">
               {t("book", { fallback: "Book now" })}
-              <div className="flex items-center justify-center bg-white text-brand-darkRed rounded-full h-8 w-8 group-hover:bg-brand-orange group-hover:text-white transition-colors duration-300 shadow-sm">
+              <div className={cn("flex items-center justify-center rounded-full h-8 w-8 transition-colors duration-300 shadow-sm", scrolled ? "bg-white/20 text-white group-hover:bg-white group-hover:text-brand-darkRed" : "bg-white text-brand-darkRed group-hover:bg-brand-orange group-hover:text-white")}>
                 <ArrowUpRight className="h-4 w-4 group-hover:rotate-12 transition-transform" />
               </div>
             </Link>
@@ -312,6 +323,7 @@ function ToursMegaMenu({
   isEs,
   isActive,
   toursLabel,
+  scrolled,
 }: {
   destinations: string[];
   toursByDest: Record<string, { slug: string; nameEs: string; nameEn: string; destination: string; category: string }[]> | undefined;
@@ -319,6 +331,7 @@ function ToursMegaMenu({
   isEs: boolean;
   isActive: boolean;
   toursLabel: string;
+  scrolled: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -347,7 +360,11 @@ function ToursMegaMenu({
         data-active={isActive}
         className={cn(
           "relative z-10 px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors",
-          isActive ? "text-brand-darkRed" : "text-white/70 hover:text-white hover:bg-white/5"
+          isActive
+            ? "text-brand-darkRed"
+            : scrolled
+            ? "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100"
+            : "text-white/70 hover:text-white hover:bg-white/5"
         )}
       >
         {toursLabel}
@@ -362,7 +379,13 @@ function ToursMegaMenu({
         data-active={isActive}
         className={cn(
           "relative z-10 flex items-center gap-1 px-5 py-2.5 rounded-full text-[13px] font-medium transition-all duration-300 cursor-default",
-          isActive ? "text-brand-darkRed" : (open ? "bg-white text-brand-darkRed shadow-lg" : "text-white/80 hover:text-white hover:bg-white/10")
+          isActive
+            ? "text-brand-darkRed"
+            : open
+            ? "bg-white text-brand-darkRed shadow-lg"
+            : scrolled
+            ? "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100"
+            : "text-white/80 hover:text-white hover:bg-white/10"
         )}
       >
         {toursLabel}
