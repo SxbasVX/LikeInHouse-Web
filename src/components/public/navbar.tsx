@@ -43,7 +43,10 @@ export function Navbar() {
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 80);
+    const handleScroll = () => {
+      const y = window.scrollY;
+      setScrolled(prev => prev ? y > 40 : y > 80);
+    };
     window.addEventListener("scroll", handleScroll);
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
@@ -114,7 +117,7 @@ export function Navbar() {
             />
           </Link>
 
-          <div className="pointer-events-none absolute left-0 right-0 flex justify-center" style={{ top: '50%', transform: 'translateY(-50%)' }}>
+          <div className="pointer-events-none absolute left-0 right-0 hidden lg:flex justify-center" style={{ top: '50%', transform: 'translateY(-50%)' }}>
             <nav ref={navRef} className="pointer-events-auto flex items-center gap-0.5 rounded-full p-1.5 shadow-2xl border backdrop-blur-xl relative bg-black/45 border-white/10">
               <div className="absolute h-[calc(100%-12px)] top-[6px] rounded-full bg-white shadow-lg transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] pointer-events-none z-0"
                 style={{ left: `${indicatorStyle.left}px`, width: `${indicatorStyle.width}px`, opacity: indicatorStyle.opacity }}
