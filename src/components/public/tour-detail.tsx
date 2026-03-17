@@ -198,44 +198,30 @@ export function TourDetail({ tour }: { tour: TourData }) {
               <span className="text-white/90">{name}</span>
             </nav>
 
-            <div className="flex flex-wrap items-end justify-between gap-6">
-              {/* Izquierda: badges + título */}
-              <div>
-                {/* Badges */}
-                <div className="mb-3 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                    {tour.category}
+            <div>
+              {/* Badges */}
+              <div className="mb-3 flex flex-wrap gap-2">
+                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                  {tour.category}
+                </span>
+                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm flex items-center gap-1">
+                  <Mountain className="h-3 w-3" />
+                  {t(`difficulty_${tour.difficulty.toLowerCase()}`)}
+                </span>
+                {tour.isFeatured && (
+                  <span className="rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white flex items-center gap-1">
+                    <Star className="h-3 w-3" /> Destacado
                   </span>
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm flex items-center gap-1">
-                    <Mountain className="h-3 w-3" />
-                    {t(`difficulty_${tour.difficulty.toLowerCase()}`)}
-                  </span>
-                  {tour.isFeatured && (
-                    <span className="rounded-full bg-brand-orange px-3 py-1 text-xs font-bold text-white flex items-center gap-1">
-                      <Star className="h-3 w-3" /> Destacado
-                    </span>
-                  )}
-                </div>
-
-                {/* Título principal — jerarquía máxima */}
-                <h1 className="font-heading text-3xl font-bold leading-tight text-white drop-shadow-md sm:text-4xl lg:text-5xl">
-                  {name}
-                </h1>
-                <p className="mt-2 max-w-xl text-sm text-white/75 leading-relaxed">
-                  {shortDesc}
-                </p>
+                )}
               </div>
 
-              {/* Derecha: precio hero (solo desktop) */}
-              {tour.tourType !== "INFORMATIONAL" && price && (
-                <div className="hidden lg:block shrink-0 rounded-2xl bg-black/50 px-6 py-4 backdrop-blur-md text-right">
-                  <p className="text-xs uppercase tracking-widest text-white/50 mb-0.5">{t("from_price")}</p>
-                  <p className="font-heading text-4xl font-bold text-white leading-none">
-                    {currency} {price.toFixed(0)}
-                  </p>
-                  <p className="text-xs text-white/45 mt-0.5">/ {t("per_person")}</p>
-                </div>
-              )}
+              {/* Título principal */}
+              <h1 className="font-heading text-3xl font-bold leading-tight text-white drop-shadow-md sm:text-4xl lg:text-5xl">
+                {name}
+              </h1>
+              <p className="mt-2 max-w-xl text-sm text-white/75 leading-relaxed">
+                {shortDesc}
+              </p>
             </div>
 
             {/* Dots galería */}
@@ -312,36 +298,50 @@ export function TourDetail({ tour }: { tour: TourData }) {
                 </div>
               )}
 
-              {/* Tab: Itinerario */}
+              {/* Tab: Itinerario — línea de tiempo */}
               {activeTab === "itinerary" && tour.itinerary.length > 0 && (
-                <div className="animate-fade-in space-y-2">
-                  {tour.itinerary.map((day) => {
+                <div className="animate-fade-in">
+                  {tour.itinerary.map((day, idx) => {
                     const isOpen = expandedDays.has(day.dayNumber);
+                    const isLast = idx === tour.itinerary.length - 1;
                     return (
-                      <div key={day.id} className="overflow-hidden rounded-2xl bg-white shadow-sm">
-                        <div
-                          onClick={() => toggleDay(day.dayNumber)}
-                          className="flex w-full cursor-pointer items-center justify-between p-5 text-left"
-                          role="button" tabIndex={0}
-                          onKeyDown={(e) => { if (e.key === "Enter") toggleDay(day.dayNumber); }}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-orange text-xs font-bold text-white">
-                              {day.dayNumber}
-                            </span>
-                            <span className="font-semibold text-gray-800">
-                              {t("day")} {day.dayNumber}: {isEs ? day.titleEs : (day.titleEn || day.titleEs)}
-                            </span>
-                          </div>
-                          <ChevronDown className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                      <div key={day.id} className="flex gap-4">
+                        {/* Columna izquierda: círculo + línea */}
+                        <div className="flex flex-col items-center">
+                          <button
+                            onClick={() => toggleDay(day.dayNumber)}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-orange text-sm font-bold text-white shadow-md hover:bg-brand-darkRed transition-colors z-10"
+                          >
+                            {day.dayNumber}
+                          </button>
+                          {!isLast && (
+                            <div className="mt-1 w-px flex-1 bg-gray-200 min-h-[24px]" />
+                          )}
                         </div>
-                        {isOpen && (
-                          <div className="border-t border-gray-100 px-5 pb-5 pt-3">
-                            <p className="pl-11 text-sm text-gray-500 leading-relaxed">
+
+                        {/* Columna derecha: contenido */}
+                        <div className={`flex-1 pb-6 ${isLast ? "" : ""}`}>
+                          <button
+                            onClick={() => toggleDay(day.dayNumber)}
+                            className="flex w-full items-center justify-between text-left pt-1.5"
+                          >
+                            <div>
+                              <span className="text-xs font-semibold uppercase tracking-wider text-brand-orange">
+                                {t("day")} {day.dayNumber}
+                              </span>
+                              <p className="font-semibold text-gray-900 text-base leading-snug mt-0.5">
+                                {isEs ? day.titleEs : (day.titleEn || day.titleEs)}
+                              </p>
+                            </div>
+                            <ChevronDown className={`ml-3 h-4 w-4 shrink-0 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                          </button>
+
+                          {isOpen && (
+                            <p className="mt-3 text-sm text-gray-500 leading-relaxed border-l-2 border-brand-orange/30 pl-3">
                               {isEs ? day.descriptionEs : (day.descriptionEn || day.descriptionEs)}
                             </p>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -417,18 +417,18 @@ export function TourDetail({ tour }: { tour: TourData }) {
                 {/* Card de reserva */}
                 <div className="overflow-hidden rounded-3xl bg-white shadow-md border border-gray-100">
 
-                  {/* Precio — acento naranja vibrante */}
+                  {/* Precio */}
                   <div className="px-6 py-5 border-b border-gray-100">
                     {tour.tourType !== "INFORMATIONAL" && price ? (
                       <>
-                        <p className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-1">{t("from_price")}</p>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-bold text-gray-400 leading-none">{currency}</span>
+                        <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">{t("from_price")}</p>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-xl font-semibold text-gray-500 leading-none">{currency}</span>
                           <span className="font-heading text-5xl font-bold text-brand-orange leading-none">{price.toFixed(0)}</span>
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">/ {t("per_person")}</p>
+                        <p className="text-sm text-gray-500 mt-1.5">/ {t("per_person")}</p>
                         {childPrice && childPrice > 0 && (
-                          <p className="text-xs text-gray-400 mt-0.5">{t("child_price")}: {currency} {childPrice.toFixed(0)}</p>
+                          <p className="text-sm text-gray-400 mt-0.5">{t("child_price")}: {currency} {childPrice.toFixed(0)}</p>
                         )}
                       </>
                     ) : (
