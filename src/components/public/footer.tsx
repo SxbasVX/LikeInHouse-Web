@@ -66,7 +66,7 @@ export function Footer() {
 
       {/* ── SILUETA ANDINA ─────────────────────────────────── */}
       {/* Transición visual desde el contenido de la página al footer oscuro */}
-      <div className="relative bg-gray-50 leading-[0]">
+      <div className="relative bg-gray-50 leading-[0] mb-[-2px]">
         <svg
           viewBox="0 0 1440 220"
           xmlns="http://www.w3.org/2000/svg"
