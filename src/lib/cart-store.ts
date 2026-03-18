@@ -15,6 +15,7 @@ export interface CartItem {
   priceUsd: number | null;
   tourType: string;
   addedAt: number;
+  travelDate?: string; // ISO date string "YYYY-MM-DD"
 }
 
 interface CartState {
@@ -23,6 +24,7 @@ interface CartState {
   removeItem: (id: string) => void;
   clearCart: () => void;
   isInCart: (id: string) => boolean;
+  updateItemDate: (id: string, date: string | undefined) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -47,6 +49,12 @@ export const useCartStore = create<CartState>()(
       clearCart: () => set({ items: [] }),
 
       isInCart: (id) => get().items.some((i) => i.id === id),
+
+      updateItemDate: (id, date) => {
+        set((state) => ({
+          items: state.items.map((i) => i.id === id ? { ...i, travelDate: date } : i),
+        }));
+      },
     }),
     {
       name: "lih-cart",

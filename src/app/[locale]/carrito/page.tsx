@@ -4,16 +4,21 @@ import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { useCartStore } from "@/lib/cart-store";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Trash2, ArrowRight, MapPin, Clock, X } from "lucide-react";
+import { ShoppingCart, Trash2, ArrowRight, MapPin, Clock, X, CalendarDays } from "lucide-react";
 import Image from "next/image";
 import { useScrollAnimation, useStaggerAnimation } from "@/hooks/use-scroll-animation";
+import { useState } from "react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { es, enUS } from "date-fns/locale";
 
 export default function CartPage() {
   const t = useTranslations("cart");
   const tc = useTranslations("common");
   const locale = useLocale();
   const isEs = locale === "es";
-  const { items, removeItem, clearCart } = useCartStore();
+  const { items, removeItem, clearCart, updateItemDate } = useCartStore();
 
   const header = useScrollAnimation({ threshold: 0.2 });
   const content = useStaggerAnimation({ threshold: 0.1 });
@@ -95,6 +100,44 @@ export default function CartPage() {
                         {item.durationDays}d/{item.durationNights}n
                       </span>
                     </div>
+                  </div>
+
+                  {/* Date picker */}
+                  <div className="mt-3">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition-colors ${
+                          item.travelDate
+                            ? "border-brand-orange/40 bg-brand-orange/5 text-brand-darkRed font-medium"
+                            : "border-dashed border-gray-300 text-gray-400 hover:border-brand-orange hover:text-brand-darkRed"
+                        }`}>
+                          <CalendarDays className="h-4 w-4" />
+                          {item.travelDate
+                            ? format(new Date(item.travelDate + "T00:00:00"), "d 'de' MMMM, yyyy", { locale: isEs ? es : enUS })
+                            : isEs ? "Seleccionar fecha de viaje" : "Select travel date"}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={item.travelDate ? new Date(item.travelDate + "T00:00:00") : undefined}
+                          onSelect={(date) => updateItemDate(item.id, date ? format(date, "yyyy-MM-dd") : undefined)}
+                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          locale={isEs ? es : enUS}
+                          initialFocus
+                        />
+                        {item.travelDate && (
+                          <div className="border-t px-3 py-2">
+                            <button
+                              onClick={() => updateItemDate(item.id, undefined)}
+                              className="text-xs text-gray-400 hover:text-red-400 transition-colors"
+                            >
+                              {isEs ? "Quitar fecha" : "Clear date"}
+                            </button>
+                          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="mt-3 flex items-center justify-between">
