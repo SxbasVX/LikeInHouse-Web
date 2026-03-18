@@ -96,7 +96,7 @@ export function Footer() {
         <div className="mx-auto max-w-[1400px] px-4 pt-10 pb-6 sm:px-6 lg:px-12">
 
           {/* Grid principal */}
-          <div className="grid grid-cols-1 gap-12 md:grid-cols-12 lg:gap-16 pb-12 border-b border-white/8">
+          <div className="grid grid-cols-1 gap-12 md:grid-cols-12 lg:gap-16 pb-12">
 
             {/* Columna marca */}
             <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-5">
@@ -216,7 +216,8 @@ export function Footer() {
               © {CURRENT_YEAR} LikeInHouse. {tc("all_rights", { fallback: "Todos los derechos reservados." })}
             </p>
             <p className="text-xs text-white/20">
-              Hecho con ♥ en Cusco, Perú
+              Diseñado por{" "}
+              <span className="text-white/35 font-semibold tracking-wide">Vyper Design</span>
             </p>
           </div>
 

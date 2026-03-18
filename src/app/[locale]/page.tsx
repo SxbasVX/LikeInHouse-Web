@@ -2,9 +2,9 @@ import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { getServerCaller } from "@/lib/trpc-server";
 import { HeroSection } from "@/components/public/sections/hero";
-
 import { FeaturedToursSection } from "@/components/public/sections/featured-tours";
 import { TestimonialsSection } from "@/components/public/sections/testimonials";
+import { FAQSection } from "@/components/public/sections/faq";
 import { CTASection } from "@/components/public/sections/cta";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -32,9 +32,10 @@ export default async function HomePage() {
     getTranslations("home"),
   ]);
 
-  const [tours, testimonials] = await Promise.all([
+  const [tours, testimonials, faqs] = await Promise.all([
     caller.public.featuredTours(),
     caller.public.testimonials(),
+    caller.public.faqs(),
   ]);
 
   return (
@@ -45,6 +46,7 @@ export default async function HomePage() {
       {testimonials.length > 0 && (
         <TestimonialsSection testimonials={testimonials} />
       )}
+      <FAQSection faqs={faqs} />
       <CTASection />
     </div>
   );

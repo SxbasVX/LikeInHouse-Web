@@ -21,7 +21,6 @@ import Image from "next/image";
 const rightLinks = [
   { key: "about", href: "/nosotros" },
   { key: "blog", href: "/blog" },
-  { key: "faq", href: "/faq" },
   { key: "contact", href: "/contacto" },
 ];
 
@@ -68,7 +67,7 @@ export function Navbar() {
     window.addEventListener("resize", updateIndicator);
     const timeout = setTimeout(updateIndicator, 150);
     return () => { window.removeEventListener("resize", updateIndicator); clearTimeout(timeout); };
-  }, [nextPathname, isEs]);
+  }, [nextPathname, isEs, scrolled]);
 
   const { data: toursByDest } = trpc.public.toursByDestination.useQuery(undefined, {
     staleTime: 10 * 60 * 1000,
