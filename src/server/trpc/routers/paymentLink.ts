@@ -5,6 +5,7 @@ import { RATE_LIMITS } from "@/server/lib/rate-limit";
 import { createAuditLog } from "@/server/lib/audit";
 import { serializeDecimals } from "@/server/lib/serialize";
 import { generateSecureToken, generateUniqueReservationRef } from "@/server/lib/references";
+import { sendBookingNotification } from "@/server/lib/whatsapp";
 
 const paymentLinkLimited = rateLimitedProcedure(RATE_LIMITS.paymentLink);
 const adminOrSales = roleProtectedProcedure(["ADMIN", "SALES"]);
@@ -48,8 +49,8 @@ export const paymentLinkRouter = router({
       const { page, limit, status, search } = input;
       const skip = (page - 1) * limit;
 
-      const userId = (ctx.session.user as { id: string; role: string }).id;
-      const userRole = (ctx.session.user as { role: string }).role;
+      const userId = ctx.user.id;
+      const userRole = ctx.user.role;
       const isAdmin = userRole === "ADMIN";
 
       const where = {
@@ -85,8 +86,8 @@ export const paymentLinkRouter = router({
   create: adminOrSales
     .input(paymentLinkCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const userId = (ctx.session.user as { id: string }).id;
-      const userRole = (ctx.session.user as { role: string }).role;
+      const userId = ctx.user.id;
+      const userRole = ctx.user.role;
       const { expiresInDays, quotationId, ...data } = input;
 
       // A12: Validate ownership if creating from a quotation
@@ -169,7 +170,7 @@ export const paymentLinkRouter = router({
   createFromQuotation: adminOrSales
     .input(z.object({ quotationId: z.string(), expiresInDays: z.number().min(1).default(7) }))
     .mutation(async ({ ctx, input }) => {
-      const userId = (ctx.session.user as { id: string }).id;
+      const userId = ctx.user.id;
 
       const quotation = await ctx.db.quotation.findUnique({
         where: { id: input.quotationId },
@@ -183,7 +184,7 @@ export const paymentLinkRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Cotizacion no encontrada" });
       }
 
-      const userRole = (ctx.session.user as { role: string }).role;
+      const userRole = ctx.user.role;
       if (userRole !== "ADMIN" && quotation.createdByUserId !== userId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "No puedes crear un link para una cotización ajena" });
       }
@@ -256,8 +257,8 @@ export const paymentLinkRouter = router({
       const link = await ctx.db.paymentLink.findUnique({ where: { id: input.id } });
       if (!link) throw new TRPCError({ code: "NOT_FOUND" });
 
-      const userId = (ctx.session.user as { id: string }).id;
-      const userRole = (ctx.session.user as { role: string }).role;
+      const userId = ctx.user.id;
+      const userRole = ctx.user.role;
       if (userRole !== "ADMIN" && link.createdByUserId !== userId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "No puedes cancelar este link de pago" });
       }
@@ -336,7 +337,7 @@ export const paymentLinkRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       // Wrap everything in a Serializable transaction to prevent double-payment race conditions
-      return ctx.db.$transaction(async (tx) => {
+      const result = await ctx.db.$transaction(async (tx) => {
         const link = await tx.paymentLink.findUnique({
           where: { token: input.token },
         });
@@ -428,51 +429,40 @@ export const paymentLinkRouter = router({
           },
         });
 
-        return { reservationId: reservation.id, referenceCode, amount: amountToPay, currency: link.currency };
+        return {
+          reservationId: reservation.id,
+          referenceCode,
+          amount: amountToPay,
+          currency: link.currency,
+          // Extra fields for WhatsApp notification (not exposed to client)
+          _tourName: link.titleEs || "Tour via Link de Pago",
+          _clientName: link.clientName || "Cliente",
+          _people: link.adults + link.children,
+        };
       }, { isolationLevel: "Serializable" });
+
+      // WhatsApp notification for payment link reservations (fire and forget)
+      sendBookingNotification({
+        type: "NEW_BOOKING",
+        referenceCode: result.referenceCode,
+        tourName: result._tourName,
+        clientName: result._clientName,
+        people: result._people,
+        totalAmount: result.amount,
+        currency: result.currency,
+        origin: "PAYMENT_LINK",
+        paymentStatus: "pending",
+      });
+
+      return {
+        reservationId: result.reservationId,
+        referenceCode: result.referenceCode,
+        amount: result.amount,
+        currency: result.currency,
+      };
     }),
 
-  // PUBLIC: mark payment link as paid after verified PayPal capture
-  // Uses token-based auth (only holder of the payment link token can call this)
-  markPaid: paymentLinkLimited
-    .input(z.object({ token: z.string(), amountPaid: z.number().positive() }))
-    .mutation(async ({ ctx, input }) => {
-      // Use transaction with serializable isolation to prevent race conditions
-      return ctx.db.$transaction(async (tx) => {
-        const link = await tx.paymentLink.findUnique({ where: { token: input.token } });
-        if (!link) throw new TRPCError({ code: "NOT_FOUND" });
-
-        if (link.status === "PAID") {
-          return { status: "PAID" as const, amountPaid: Number(link.amountPaid) };
-        }
-
-        if (link.status === "CANCELLED" || link.status === "EXPIRED") {
-          throw new TRPCError({ code: "BAD_REQUEST", message: `Link is ${link.status}` });
-        }
-
-        const newAmountPaid = Number(link.amountPaid) + input.amountPaid;
-        const totalAmount = Number(link.totalAmount);
-
-        // Prevent overpaying
-        if (newAmountPaid > totalAmount * 1.01) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Amount exceeds total" });
-        }
-
-        const newStatus = newAmountPaid >= totalAmount ? "PAID" : "PARTIALLY_PAID";
-
-        await tx.paymentLink.update({
-          where: { id: link.id },
-          data: { amountPaid: newAmountPaid, status: newStatus },
-        });
-
-        if (link.quotationId && newStatus === "PAID") {
-          await tx.quotation.update({
-            where: { id: link.quotationId },
-            data: { status: "CONVERTED" },
-          });
-        }
-
-        return { status: newStatus, amountPaid: newAmountPaid };
-      }, { isolationLevel: "Serializable" });
-    }),
+  // markPaid REMOVED: PaymentLink.amountPaid is now updated server-side
+  // inside paypal.captureOrder and culqi webhook after verified payment capture.
+  // This eliminates the fraud vector where a client could call markPaid directly.
 });

@@ -2,7 +2,7 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { useCartStore } from "@/lib/cart-store";
+import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Trash2, ArrowRight, MapPin, Clock, X, CalendarDays } from "lucide-react";
 import Image from "next/image";
@@ -18,10 +18,19 @@ export default function CartPage() {
   const tc = useTranslations("common");
   const locale = useLocale();
   const isEs = locale === "es";
+  const cartHydrated = useCartHydration();
   const { items, removeItem, clearCart, updateItemDate } = useCartStore();
 
   const header = useScrollAnimation({ threshold: 0.2 });
   const content = useStaggerAnimation({ threshold: 0.1 });
+
+  if (!cartHydrated) {
+    return (
+      <section className="min-h-[60vh] flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">{isEs ? "Cargando carrito..." : "Loading cart..."}</div>
+      </section>
+    );
+  }
 
   if (items.length === 0) {
     return (

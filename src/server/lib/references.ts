@@ -37,9 +37,8 @@ export async function generateUniqueQuotationRef(db: any, maxRetries = 5): Promi
 
 /**
  * Generates a secure token for payment links.
- * Format: PAY-{timestamp_base36}-{12_hex_chars}
+ * Uses 128 bits of pure randomness (no predictable components).
  */
 export function generateSecureToken(): string {
-  const randomPart = randomBytes(6).toString("hex").toUpperCase();
-  return `PAY-${Date.now().toString(36).toUpperCase()}-${randomPart}`;
+  return randomBytes(16).toString("hex");
 }

@@ -6,6 +6,7 @@ import { sanitizeHtml } from "@/server/lib/sanitize";
 import { CACHE_TAGS } from "@/server/lib/cache";
 
 const adminOrMarketing = roleProtectedProcedure(["ADMIN", "MARKETING"]);
+const adminOrSales = roleProtectedProcedure(["ADMIN", "SALES"]);
 
 export const contentRouter = router({
   // ===== FAQs =====
@@ -318,7 +319,7 @@ export const contentRouter = router({
     }),
 
   // ===== Mensajes de Contacto =====
-  contactList: protectedProcedure
+  contactList: adminOrSales
     .input(z.object({
       page: z.number().min(1).default(1),
       limit: z.number().min(1).max(50).default(10),
@@ -343,7 +344,7 @@ export const contentRouter = router({
       return { messages, total, pages: Math.ceil(total / limit), page };
     }),
 
-  contactMarkRead: protectedProcedure
+  contactMarkRead: adminOrSales
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.contactMessage.update({

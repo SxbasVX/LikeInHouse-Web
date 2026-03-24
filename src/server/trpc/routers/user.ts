@@ -157,7 +157,7 @@ export const userRouter = router({
       });
 
       // Audit user activation/deactivation
-      const adminId = (ctx.session.user as { id: string }).id;
+      const adminId = ctx.user.id;
       createAuditLog({
         userId: adminId,
         action: updated.isActive ? "USER_ACTIVATED" : "USER_DEACTIVATED",
@@ -172,7 +172,7 @@ export const userRouter = router({
   delete: adminOnly
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = (ctx.session.user as { id: string }).id;
+      const userId = ctx.user.id;
 
       if (input.id === userId) {
         throw new TRPCError({

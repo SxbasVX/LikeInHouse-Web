@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/types";
 import { DownloadPDFButton } from "@/components/pdf/download-button";
@@ -118,6 +119,12 @@ export default function ReservasPage() {
           <h1 className="text-3xl font-bold tracking-tight">Reservas</h1>
           <p className="text-muted-foreground">Gestiona las reservas de tours</p>
         </div>
+        <Button asChild>
+          <Link href="/admin/reservas/nueva">
+            <Plus className="mr-2 h-4 w-4" />
+            Nueva Reserva
+          </Link>
+        </Button>
       </div>
 
       <Card>

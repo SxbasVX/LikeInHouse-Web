@@ -198,14 +198,20 @@ model TourInclude {
   @@index([tourId, type])
 }
 
+enum DepartureStatus {
+  AVAILABLE
+  FULL
+  CANCELLED
+}
+
 model TourDeparture {
-  id            String   @id @default(cuid())
+  id            String          @id @default(cuid())
   tourId        String
-  tour          Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  tour          Tour            @relation(fields: [tourId], references: [id], onDelete: Cascade)
   departureDate DateTime
   maxCapacity   Int
-  bookedCount   Int      @default(0)
-  status        String   @default("AVAILABLE")
+  bookedCount   Int             @default(0)
+  status        DepartureStatus @default(AVAILABLE)
 
   reservations  Reservation[]
 
@@ -232,6 +238,7 @@ model Client {
   reservations Reservation[]
   quotations   Quotation[]
 
+  @@index([createdAt])
 }
 
 // ============================================================
@@ -298,6 +305,7 @@ model Reservation {
   @@index([status])
   @@index([clientId])
   @@index([tourId])
+  @@index([departureId])
   @@index([createdAt])
   @@index([firstSource])
   @@index([lastSource])

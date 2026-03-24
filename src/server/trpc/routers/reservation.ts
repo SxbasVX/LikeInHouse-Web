@@ -3,9 +3,10 @@ import { z } from "zod";
 import { router, protectedProcedure, roleProtectedProcedure, rateLimitedProcedure } from "../trpc";
 import { RATE_LIMITS } from "@/server/lib/rate-limit";
 import { createAuditLog } from "@/server/lib/audit";
-import { sendWhatsAppAlert, sendWhatsAppToClient } from "@/server/lib/whatsapp";
+import { sendWhatsAppAlert, sendWhatsAppToClient, sendBookingNotification } from "@/server/lib/whatsapp";
 import { serializeDecimals } from "@/server/lib/serialize";
 import { generateUniqueReservationRef } from "@/server/lib/references";
+import { calculateTotalWithDiscount } from "@/lib/pricing";
 
 // Valid status transitions
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -84,8 +85,8 @@ export const reservationRouter = router({
     .query(async ({ ctx, input }) => {
       const { page, limit, status, search } = input;
       const skip = (page - 1) * limit;
-      const userId = (ctx.session.user as { id: string; role: string }).id;
-      const userRole = (ctx.session.user as { role: string }).role;
+      const userId = ctx.user.id;
+      const userRole = ctx.user.role;
       const isAdmin = userRole === "ADMIN";
 
       const where = {
@@ -161,8 +162,8 @@ export const reservationRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Reserva no encontrada" });
       }
 
-      const userId = (ctx.session.user as { id: string }).id;
-      const userRole = (ctx.session.user as { role: string }).role;
+      const userId = ctx.user.id;
+      const userRole = ctx.user.role;
 
       // Non-admin can only view their assigned reservations
       if (userRole !== "ADMIN" && reservation.assignedUserId !== userId) {
@@ -176,10 +177,58 @@ export const reservationRouter = router({
       return serializeDecimals(reservation);
     }),
 
+  // Calendar view: lightweight list of reservations in a date range
+  listForCalendar: adminOrSales
+    .input(z.object({
+      startDate: z.string(),
+      endDate: z.string(),
+      tourId: z.string().optional(),
+      status: z.enum(["PENDING", "CONFIRMED", "PAID", "COMPLETED", "CANCELLED"]).optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.user.id;
+      const userRole = ctx.user.role;
+      const isAdmin = userRole === "ADMIN";
+
+      const where: any = {
+        createdAt: {
+          gte: new Date(input.startDate),
+          lte: new Date(input.endDate),
+        },
+        ...(!isAdmin && { assignedUserId: userId }),
+        ...(input.tourId && { tourId: input.tourId }),
+        ...(input.status && { status: input.status }),
+      };
+
+      const reservations = await ctx.db.reservation.findMany({
+        where,
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          referenceCode: true,
+          status: true,
+          createdAt: true,
+          adults: true,
+          children: true,
+          totalAmount: true,
+          currency: true,
+          origin: true,
+          departure: { select: { departureDate: true } },
+          tour: { select: { nameEs: true, destination: true } },
+          client: { select: { firstName: true, lastName: true } },
+        },
+      });
+
+      return reservations.map((r) => ({
+        ...r,
+        totalAmount: Number(r.totalAmount),
+      }));
+    }),
+
   create: adminOrSales
     .input(reservationCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const userId = (ctx.session.user as { id: string }).id;
+      const userId = ctx.user.id;
 
       // Validate tour exists and is bookable
       const tour = await ctx.db.tour.findUnique({
@@ -193,11 +242,18 @@ export const reservationRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Este tour es solo informativo y no permite reservas" });
       }
 
-      // Server-side price validation: recalculate from tour pricing
+      // Server-side price validation: recalculate from tour pricing (with discounts)
       if (tour.pricing) {
-        const adultPrice = Number(tour.pricing.basePriceUsdAdult);
-        const childPrice = Number(tour.pricing.basePriceUsdChild);
-        const serverTotal = (adultPrice * input.adults) + (childPrice * input.children);
+        const pricingData = {
+          basePriceUsdAdult: Number(tour.pricing.basePriceUsdAdult),
+          basePriceUsdChild: Number(tour.pricing.basePriceUsdChild),
+          promoDiscountPercent: tour.pricing.promoDiscountPercent ? Number(tour.pricing.promoDiscountPercent) : null,
+          promoStartDate: tour.pricing.promoStartDate,
+          promoEndDate: tour.pricing.promoEndDate,
+          groupDiscountPercent: tour.pricing.groupDiscountPercent ? Number(tour.pricing.groupDiscountPercent) : null,
+          groupMinPersons: tour.pricing.groupMinPersons,
+        };
+        const { total: serverTotal } = calculateTotalWithDiscount(pricingData, input.adults, input.children);
 
         if (Math.abs(serverTotal - input.totalAmount) > 0.01) {
           throw new TRPCError({
@@ -250,9 +306,17 @@ export const reservationRouter = router({
       }, { isolationLevel: "Serializable" });
 
       // Enviar alerta al admin por la creación manual / por ventas
-      sendWhatsAppAlert(
-        `🔔 *Reserva Manual Creada*\nRef: ${reservation.referenceCode}\nTour: ${tour!.nameEs}\nMonto: ${reservation.currency} ${reservation.totalAmount.toString()}`
-      ).catch(console.error);
+      sendBookingNotification({
+        type: "NEW_BOOKING",
+        referenceCode: reservation.referenceCode,
+        tourName: tour.nameEs,
+        clientName: `Client ${input.clientId.slice(0, 8)}`,
+        people: input.adults + input.children,
+        totalAmount: Number(reservation.totalAmount),
+        currency: reservation.currency,
+        origin: (input.origin as "WEB" | "MANUAL" | "QUOTATION" | "PAYMENT_LINK") || "MANUAL",
+        paymentStatus: "pending",
+      });
 
       return serializeDecimals(reservation);
     }),
@@ -274,10 +338,17 @@ export const reservationRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Tour sin precios configurados" });
       }
 
-      // Calculate price server-side (never trust client amount)
-      const adultPrice = Number(tour.pricing.basePriceUsdAdult);
-      const childPrice = Number(tour.pricing.basePriceUsdChild);
-      const serverTotal = (adultPrice * input.adults) + (childPrice * input.children);
+      // Calculate price server-side with discounts (never trust client amount)
+      const pricingData = {
+        basePriceUsdAdult: Number(tour.pricing.basePriceUsdAdult),
+        basePriceUsdChild: Number(tour.pricing.basePriceUsdChild),
+        promoDiscountPercent: tour.pricing.promoDiscountPercent ? Number(tour.pricing.promoDiscountPercent) : null,
+        promoStartDate: tour.pricing.promoStartDate,
+        promoEndDate: tour.pricing.promoEndDate,
+        groupDiscountPercent: tour.pricing.groupDiscountPercent ? Number(tour.pricing.groupDiscountPercent) : null,
+        groupMinPersons: tour.pricing.groupMinPersons,
+      };
+      const { total: serverTotal } = calculateTotalWithDiscount(pricingData, input.adults, input.children);
 
       // Allow small rounding tolerance (1 cent)
       if (Math.abs(serverTotal - input.totalAmount) > 0.01) {
@@ -360,9 +431,17 @@ export const reservationRouter = router({
       }, { isolationLevel: "Serializable" });
 
       // Enviar alerta por WhatsApp en segundo plano (Fire and forget)
-      sendWhatsAppAlert(
-        `🚨 *Nueva Reserva Web*\nRef: ${reservation.referenceCode}\nTour: ${tour!.nameEs}\nPasajeros: ${input.adults + input.children}\nMonto: ${reservation.currency} ${reservation.totalAmount.toString()}`
-      ).catch(console.error);
+      sendBookingNotification({
+        type: "NEW_BOOKING",
+        referenceCode: reservation.referenceCode,
+        tourName: tour.nameEs,
+        clientName: `${input.firstName} ${input.lastName}`,
+        people: input.adults + input.children,
+        totalAmount: Number(reservation.totalAmount),
+        currency: reservation.currency,
+        origin: "WEB",
+        paymentStatus: "pending",
+      });
 
       if (input.phone) {
         sendWhatsAppToClient(
@@ -386,8 +465,8 @@ export const reservationRouter = router({
       }
 
       // Non-admin can only update their assigned reservations
-      const userId = (ctx.session.user as { id: string; role: string }).id;
-      const userRole = (ctx.session.user as { role: string }).role;
+      const userId = ctx.user.id;
+      const userRole = ctx.user.role;
       if (userRole !== "ADMIN" && reservation.assignedUserId !== userId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "No tienes acceso a esta reserva" });
       }
@@ -472,7 +551,7 @@ export const reservationRouter = router({
       });
 
       // Audit deletion
-      const userId = (ctx.session.user as { id: string }).id;
+      const userId = ctx.user.id;
       createAuditLog({
         userId,
         action: "DELETE",

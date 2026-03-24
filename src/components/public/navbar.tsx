@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
-import { useCartStore } from "@/lib/cart-store";
+import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import Image from "next/image";
 
 const rightLinks = [
@@ -33,7 +33,9 @@ export function Navbar() {
   const searchParams = useSearchParams();
   const intlRouter = useIntlRouter();
   const intlPathname = useIntlPathname();
+  const cartHydrated = useCartHydration();
   const cartCount = useCartStore((s) => s.items.length);
+  const safeCartCount = cartHydrated ? cartCount : 0;
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -139,7 +141,7 @@ export function Navbar() {
             <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white/90 hover:text-white hover:bg-white/15 focus-visible:ring-0 relative">
               <Link href="/carrito">
                 <ShoppingCart className="h-5 w-5" />
-                {cartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{cartCount}</span>}
+                {safeCartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{safeCartCount}</span>}
               </Link>
             </Button>
             <DropdownMenu>
@@ -170,7 +172,7 @@ export function Navbar() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <MobileMenuContent t={t} isEs={isEs} cartCount={cartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} />
+              <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} />
             </Sheet>
           </div>
         </div>
@@ -211,7 +213,7 @@ export function Navbar() {
           <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-600 hover:text-brand-darkRed hover:bg-gray-100 focus-visible:ring-0 relative">
             <Link href="/carrito">
               <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{cartCount}</span>}
+              {safeCartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{safeCartCount}</span>}
             </Link>
           </Button>
           <DropdownMenu>
@@ -239,7 +241,7 @@ export function Navbar() {
           <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-600 hover:bg-gray-100 relative">
             <Link href="/carrito">
               <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{cartCount}</span>}
+              {safeCartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{safeCartCount}</span>}
             </Link>
           </Button>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -248,7 +250,7 @@ export function Navbar() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <MobileMenuContent t={t} isEs={isEs} cartCount={cartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} />
+            <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} />
           </Sheet>
         </div>
       </div>

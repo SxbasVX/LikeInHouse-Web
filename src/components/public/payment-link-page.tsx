@@ -45,7 +45,6 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
     const { data: link, isLoading, error } = trpc.paymentLink.getByToken.useQuery({ token });
 
     const createPayment = trpc.paymentLink.createPayment.useMutation();
-    const markPaid = trpc.paymentLink.markPaid.useMutation();
     const createPaypalOrder = trpc.paypal.createOrder.useMutation();
     const capturePaypalOrder = trpc.paypal.captureOrder.useMutation();
 
@@ -249,8 +248,8 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
     }
 
     async function handleCreateOrder(): Promise<string> {
-        if (!reservationId) throw new Error("No reservation");
-        const order = await createPaypalOrder.mutateAsync({ reservationId });
+        if (!reservationId || !referenceCode) throw new Error("No reservation");
+        const order = await createPaypalOrder.mutateAsync({ reservationId, referenceCode });
         return order.id;
     }
 
@@ -259,11 +258,11 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
             const res = await capturePaypalOrder.mutateAsync({
                 orderId: data.orderID,
                 reservationId: reservationId!,
+                referenceCode,
             });
             if (res.success) {
                 if (res.referenceCode) setReferenceCode(res.referenceCode);
-                // Mark payment link as paid
-                await markPaid.mutateAsync({ token, amountPaid: amountToPay });
+                // PaymentLink.amountPaid is now updated server-side inside captureOrder
                 setStep("success");
             } else {
                 toast({

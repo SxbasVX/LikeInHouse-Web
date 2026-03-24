@@ -54,8 +54,8 @@ export const paymentRouter = router({
     }),
 
   getStats: adminOrSales.query(async ({ ctx }) => {
-    const userId = (ctx.session.user as { id: string; role: string }).id;
-    const userRole = (ctx.session.user as { role: string }).role;
+    const userId = ctx.user.id;
+    const userRole = ctx.user.role;
     const isAdmin = userRole === "ADMIN";
 
     // Non-admin users only see stats for payments on their assigned reservations
@@ -101,7 +101,7 @@ export const paymentRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      const userId = (ctx.session.user as { id: string }).id;
+      const userId = ctx.user.id;
 
       // M14: Use transaction to prevent double verification
       const payment = await ctx.db.$transaction(async (tx) => {

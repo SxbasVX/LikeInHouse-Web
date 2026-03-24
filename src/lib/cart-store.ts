@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -13,6 +14,9 @@ export interface CartItem {
   durationNights: number;
   imageUrl: string | null;
   priceUsd: number | null;
+  originalPriceUsd: number | null;
+  discountPercent: number;
+  promoLabel: string | null;
   tourType: string;
   addedAt: number;
   travelDate?: string; // ISO date string "YYYY-MM-DD"
@@ -58,6 +62,23 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "lih-cart",
+      skipHydration: true,
     }
   )
 );
+
+/**
+ * Hook that handles safe hydration of the cart store.
+ * Returns true once the store is hydrated from localStorage (client-side only).
+ * Use this in components that read from the cart to avoid SSR/CSR mismatch.
+ */
+export function useCartHydration() {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    useCartStore.persist.rehydrate();
+    setHydrated(true);
+  }, []);
+
+  return hydrated;
+}

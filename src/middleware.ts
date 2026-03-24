@@ -51,6 +51,12 @@ export default async function middleware(request: NextRequest) {
         const loginUrl = new URL("/admin/login", request.url);
         return NextResponse.redirect(loginUrl);
       }
+      // Verify user has an admin role (ADMIN, SALES, or MARKETING)
+      const validAdminRoles = ["ADMIN", "SALES", "MARKETING"];
+      if (!token.role || !validAdminRoles.includes(token.role as string)) {
+        const loginUrl = new URL("/admin/login", request.url);
+        return NextResponse.redirect(loginUrl);
+      }
     }
     return NextResponse.next();
   }

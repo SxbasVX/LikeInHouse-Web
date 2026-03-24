@@ -8,7 +8,7 @@ import {
   Share2, ShoppingCart, ArrowUpRight,
 } from "lucide-react";
 import { useState } from "react";
-import { useCartStore } from "@/lib/cart-store";
+import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import { useToast } from "@/hooks/use-toast";
 
 interface TourImage {
@@ -80,9 +80,10 @@ export function TourDetail({ tour }: { tour: TourData }) {
   const [currentImage, setCurrentImage] = useState(0);
   const [activeTab, setActiveTab] = useState<"overview" | "itinerary" | "includes" | "gallery">("overview");
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1]));
+  const cartHydrated = useCartHydration();
   const { addItem, removeItem, isInCart } = useCartStore();
   const { toast } = useToast();
-  const inCart = isInCart(tour.id);
+  const inCart = cartHydrated ? isInCart(tour.id) : false;
 
   const name = isEs ? tour.nameEs : tour.nameEn;
   const shortDesc = isEs ? tour.shortDescEs : (tour.shortDescEn || tour.shortDescEs);
@@ -139,6 +140,9 @@ export function TourDetail({ tour }: { tour: TourData }) {
         destination: tour.destination, durationDays: tour.durationDays,
         durationNights: tour.durationNights, imageUrl: tour.images[0]?.url || null,
         priceUsd: priceVal && isFinite(priceVal) ? priceVal : null,
+        originalPriceUsd: priceVal && isFinite(priceVal) ? priceVal : null,
+        discountPercent: 0,
+        promoLabel: null,
         tourType: tour.tourType || "BOOKABLE",
       });
       toast({ title: tCart("added_to_cart") });

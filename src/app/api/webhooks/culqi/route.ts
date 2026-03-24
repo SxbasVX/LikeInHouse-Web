@@ -30,23 +30,22 @@ export async function POST(req: NextRequest) {
     try {
         const rawBody = await req.text();
 
-        // HMAC signature verification (when Culqi account is configured)
+        // HMAC signature verification - ALWAYS required
         const signature = req.headers.get("x-culqi-signature");
-        if (process.env.CULQI_SECRET_KEY) {
-            if (!verifyCulqiSignature(rawBody, signature)) {
-                console.error("[Culqi Webhook] Invalid signature - rejecting");
-                createAuditLog({
-                    userId: "SYSTEM",
-                    action: "WEBHOOK_REJECTED",
-                    entity: "CulqiWebhook",
-                    entityId: "unknown",
-                    changes: { reason: "Invalid HMAC signature" },
-                });
-                return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
-            }
-        } else if (process.env.NODE_ENV === "production") {
-            console.error("[Culqi Webhook] CULQI_SECRET_KEY not configured - rejecting in production");
+        if (!process.env.CULQI_SECRET_KEY) {
+            console.error("[Culqi Webhook] CULQI_SECRET_KEY not configured - rejecting");
             return NextResponse.json({ error: "Webhook verification not configured" }, { status: 500 });
+        }
+        if (!verifyCulqiSignature(rawBody, signature)) {
+            console.error("[Culqi Webhook] Invalid signature - rejecting");
+            createAuditLog({
+                userId: "SYSTEM",
+                action: "WEBHOOK_REJECTED",
+                entity: "CulqiWebhook",
+                entityId: "unknown",
+                changes: { reason: "Invalid HMAC signature" },
+            });
+            return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
         }
 
         let body: any;

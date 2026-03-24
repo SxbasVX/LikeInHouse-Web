@@ -1,5 +1,50 @@
 import { createAuditLog } from "@/server/lib/audit";
 
+// Structured booking event for consistent notifications
+export interface BookingEvent {
+  type: "NEW_BOOKING";
+  referenceCode: string;
+  tourName: string;
+  clientName: string;
+  date?: string;
+  people: number;
+  totalAmount: number;
+  currency: string;
+  origin: "WEB" | "MANUAL" | "QUOTATION" | "PAYMENT_LINK";
+  paymentStatus: "paid" | "pending";
+}
+
+/**
+ * Sends a structured booking notification to the admin.
+ * Formats the BookingEvent into a readable WhatsApp message.
+ * Failures are silent — never breaks the booking flow.
+ */
+export function sendBookingNotification(event: BookingEvent): Promise<boolean> {
+  const originLabels: Record<string, string> = {
+    WEB: "Web Pública",
+    MANUAL: "Manual (Admin)",
+    QUOTATION: "Cotización",
+    PAYMENT_LINK: "Link de Pago",
+  };
+
+  const statusIcon = event.paymentStatus === "paid" ? "✅" : "⏳";
+  const lines = [
+    `🔔 *Nueva Reserva — ${originLabels[event.origin] || event.origin}*`,
+    `Ref: ${event.referenceCode}`,
+    `Tour: ${event.tourName}`,
+    `Cliente: ${event.clientName}`,
+    `Pasajeros: ${event.people}`,
+    `Monto: ${event.currency} ${event.totalAmount.toFixed(2)}`,
+    `Pago: ${statusIcon} ${event.paymentStatus === "paid" ? "Pagado" : "Pendiente"}`,
+  ];
+  if (event.date) lines.push(`Fecha: ${event.date}`);
+
+  return sendWhatsAppAlert(lines.join("\n")).catch((err) => {
+    console.error("[WhatsApp] Error en sendBookingNotification:", err);
+    return false;
+  });
+}
+
 async function sendWithRetry(url: string, options: RequestInit, maxRetries = 2): Promise<Response> {
     let lastError: Error | undefined;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {

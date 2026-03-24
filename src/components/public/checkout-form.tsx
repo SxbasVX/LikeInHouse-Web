@@ -146,8 +146,8 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
 
     // Shared createOrder function for both PayPal buttons and card fields
     async function handleCreateOrder(): Promise<string> {
-        if (!reservationId) throw new Error("No reservation ID");
-        const order = await createPaypalOrder.mutateAsync({ reservationId });
+        if (!reservationId || !referenceCode) throw new Error("No reservation ID");
+        const order = await createPaypalOrder.mutateAsync({ reservationId, referenceCode });
         return order.id;
     }
 
@@ -157,6 +157,7 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
             const res = await capturePaypalOrder.mutateAsync({
                 orderId: data.orderID,
                 reservationId: reservationId!,
+                referenceCode,
             });
             if (res.success) {
                 if (res.referenceCode) {

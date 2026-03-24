@@ -69,7 +69,16 @@ export const publicRouter = router({
           orderBy,
           include: {
             images: { where: { isPrimary: true }, take: 1 },
-            pricing: { select: { basePriceUsdAdult: true } },
+            pricing: {
+              select: {
+                basePriceUsdAdult: true,
+                promoDiscountPercent: true,
+                promoStartDate: true,
+                promoEndDate: true,
+                promoLabelEs: true,
+                promoLabelEn: true,
+              },
+            },
             _count: { select: { departures: true } },
           },
         }),

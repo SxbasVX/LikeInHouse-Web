@@ -46,8 +46,8 @@ export const quotationRouter = router({
       const { page, limit, status, search } = input;
       const skip = (page - 1) * limit;
 
-      const userId = (ctx.session.user as { id: string; role: string }).id;
-      const userRole = (ctx.session.user as { role: string }).role;
+      const userId = ctx.user.id;
+      const userRole = ctx.user.role;
       const isAdmin = userRole === "ADMIN";
 
       const where = {
@@ -109,8 +109,8 @@ export const quotationRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Cotización no encontrada" });
       }
 
-      const userId = (ctx.session.user as { id: string }).id;
-      const userRole = (ctx.session.user as { role: string }).role;
+      const userId = ctx.user.id;
+      const userRole = ctx.user.role;
 
       // Non-admin can only view their own quotations
       if (userRole !== "ADMIN" && quotation.createdByUserId !== userId) {
@@ -127,7 +127,7 @@ export const quotationRouter = router({
   create: adminOrSales
     .input(quotationCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const userId = (ctx.session.user as { id: string }).id;
+      const userId = ctx.user.id;
       const { items, ...data } = input;
 
       // Validate subtotals and total server-side
@@ -185,8 +185,8 @@ export const quotationRouter = router({
       }
 
       // Non-admin can only update their own quotations
-      const userId = (ctx.session.user as { id: string; role: string }).id;
-      const userRole = (ctx.session.user as { role: string }).role;
+      const userId = ctx.user.id;
+      const userRole = ctx.user.role;
       if (userRole !== "ADMIN" && quotation.createdByUserId !== userId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "No tienes acceso a esta cotización" });
       }
@@ -262,8 +262,8 @@ export const quotationRouter = router({
       }
 
       // Ownership check: non-admin can only send their own quotations
-      const userId = (ctx.session.user as { id: string }).id;
-      const userRole = (ctx.session.user as { role: string }).role;
+      const userId = ctx.user.id;
+      const userRole = ctx.user.role;
       if (userRole !== "ADMIN" && quotation.createdByUserId !== userId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "No tienes acceso a esta cotización" });
       }

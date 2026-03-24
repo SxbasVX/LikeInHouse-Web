@@ -1,12 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { MapPin, Clock, Star, ShoppingCart, Check, ArrowRight } from "lucide-react";
-import { useCartStore } from "@/lib/cart-store";
+import { MapPin, Clock, Star, ShoppingCart, Check, ArrowRight, Tag } from "lucide-react";
+import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { getFinalPrice } from "@/lib/pricing";
 
 interface TourCardProps {
   tour: {
@@ -24,7 +26,14 @@ interface TourCardProps {
     isFeatured: boolean;
     tourType?: string;
     images: { url: string; altEs?: string | null; altEn?: string | null }[];
-    pricing: { basePriceUsdAdult: any } | null;
+    pricing: {
+      basePriceUsdAdult: any;
+      promoDiscountPercent?: any;
+      promoStartDate?: any;
+      promoEndDate?: any;
+      promoLabelEs?: string | null;
+      promoLabelEn?: string | null;
+    } | null;
   };
 }
 
@@ -39,16 +48,39 @@ export function TourCard({ tour }: TourCardProps) {
   const tc = useTranslations("cart");
   const locale = useLocale();
   const isEs = locale === "es";
+  const cartHydrated = useCartHydration();
   const { addItem, isInCart } = useCartStore();
   const { toast } = useToast();
-  const inCart = isInCart(tour.id);
+  const inCart = cartHydrated ? isInCart(tour.id) : false;
 
   const name = isEs ? tour.nameEs : tour.nameEn;
   const desc = isEs ? tour.shortDescEs : tour.shortDescEn;
   const image = tour.images[0];
-  const price = tour.pricing
-    ? (() => { const raw = Number(tour.pricing.basePriceUsdAdult); return isFinite(raw) ? raw : null; })()
-    : null;
+
+  // Calculate pricing with discounts
+  const priceInfo = useMemo(() => {
+    if (!tour.pricing) return null;
+    const basePrice = Number(tour.pricing.basePriceUsdAdult);
+    if (!isFinite(basePrice)) return null;
+
+    const result = getFinalPrice({
+      basePriceUsdAdult: basePrice,
+      basePriceUsdChild: 0,
+      promoDiscountPercent: tour.pricing.promoDiscountPercent ? Number(tour.pricing.promoDiscountPercent) : null,
+      promoStartDate: tour.pricing.promoStartDate,
+      promoEndDate: tour.pricing.promoEndDate,
+      promoLabelEs: tour.pricing.promoLabelEs,
+      promoLabelEn: tour.pricing.promoLabelEn,
+    });
+
+    return {
+      originalPrice: result.originalPriceAdult,
+      finalPrice: result.finalPriceAdult,
+      hasDiscount: result.discountPercent > 0,
+      discountPercent: result.discountPercent,
+      promoLabel: isEs ? result.promoLabel.es : result.promoLabel.en,
+    };
+  }, [tour.pricing, isEs]);
 
   const diff = difficultyLabel[tour.difficulty];
 
@@ -65,7 +97,10 @@ export function TourCard({ tour }: TourCardProps) {
       durationDays: tour.durationDays,
       durationNights: tour.durationNights,
       imageUrl: image?.url || null,
-      priceUsd: price,
+      priceUsd: priceInfo?.finalPrice ?? null,
+      originalPriceUsd: priceInfo?.originalPrice ?? null,
+      discountPercent: priceInfo?.discountPercent ?? 0,
+      promoLabel: priceInfo?.promoLabel ?? null,
       tourType: tour.tourType || "BOOKABLE",
     });
     toast({ title: tc("added_to_cart") });
@@ -96,6 +131,17 @@ export function TourCard({ tour }: TourCardProps) {
             Destacado
           </span>
         )}
+
+        {/* Discount badge */}
+        {priceInfo?.hasDiscount && (
+          <span className="absolute left-4 top-4 flex items-center gap-1 rounded-full bg-emerald-500 px-3 py-1 text-[11px] font-semibold text-white shadow animate-[pulse_3s_ease-in-out_infinite]"
+            style={tour.isFeatured ? { top: "3rem" } : undefined}
+          >
+            <Tag className="h-3 w-3" />
+            {priceInfo.promoLabel || `-${Math.round(priceInfo.discountPercent)}%`}
+          </span>
+        )}
+
         {diff && (
           <span className={`absolute right-4 top-4 rounded-full px-3 py-1 text-[11px] font-semibold ${diff.color}`}>
             {isEs ? diff.es : diff.en}
@@ -143,11 +189,18 @@ export function TourCard({ tour }: TourCardProps) {
       <div className="flex items-center justify-between mt-auto">
         {tour.tourType === "INFORMATIONAL" ? (
           <span className="text-sm font-medium text-gray-400">{isEs ? "Solo informativo" : "Info only"}</span>
-        ) : price ? (
-          <p className="text-lg font-bold text-brand-darkRed">
-            ${price.toFixed(0)}{" "}
-            <span className="text-[13px] font-light text-gray-500">/ {t("per_person")}</span>
-          </p>
+        ) : priceInfo ? (
+          <div className="flex items-baseline gap-2">
+            {priceInfo.hasDiscount && (
+              <span className="text-sm text-gray-400 line-through font-light">
+                ${priceInfo.originalPrice.toFixed(0)}
+              </span>
+            )}
+            <p className={`text-lg font-bold ${priceInfo.hasDiscount ? "text-emerald-600" : "text-brand-darkRed"}`}>
+              ${priceInfo.finalPrice.toFixed(0)}{" "}
+              <span className="text-[13px] font-light text-gray-500">/ {t("per_person")}</span>
+            </p>
+          </div>
         ) : <span />}
 
         <Button

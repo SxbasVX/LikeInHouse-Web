@@ -44,7 +44,10 @@ async function generateAccessToken() {
 
 export const paypalRouter = router({
     createOrder: paypalLimited
-        .input(z.object({ reservationId: z.string() }))
+        .input(z.object({
+            reservationId: z.string(),
+            referenceCode: z.string().min(1),
+        }))
         .mutation(async ({ ctx, input }) => {
             const reservation = await ctx.db.reservation.findUnique({
                 where: { id: input.reservationId },
@@ -54,12 +57,23 @@ export const paypalRouter = router({
                 throw new TRPCError({ code: "NOT_FOUND", message: "Reservation not found" });
             }
 
+            // Verify ownership: caller must know the referenceCode
+            if (reservation.referenceCode !== input.referenceCode) {
+                throw new TRPCError({ code: "FORBIDDEN", message: "Invalid reference code" });
+            }
+
             if (reservation.status === "PAID" || reservation.status === "CONFIRMED") {
                 throw new TRPCError({ code: "BAD_REQUEST", message: "Reservation is already paid" });
             }
 
-            // All reservations are now strictly in USD. 
-            // The value is taken directly from the DB.
+            // Validate currency is USD (PayPal only supports USD in this integration)
+            if (reservation.currency !== "USD") {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Only USD reservations can be paid via PayPal",
+                });
+            }
+
             const paypalCurrency = "USD";
             const amount = Number(reservation.totalAmount);
             const valueStr = amount.toFixed(2);
@@ -104,6 +118,7 @@ export const paypalRouter = router({
         .input(z.object({
             orderId: z.string().min(1).max(50).regex(/^[A-Za-z0-9]+$/, "Invalid PayPal order ID"),
             reservationId: z.string(),
+            referenceCode: z.string().min(1),
         }))
         .mutation(async ({ ctx, input }) => {
             // Verify reservation exists and is still pending
@@ -113,6 +128,11 @@ export const paypalRouter = router({
 
             if (!reservation) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Reservation not found" });
+            }
+
+            // Verify ownership: caller must know the referenceCode
+            if (reservation.referenceCode !== input.referenceCode) {
+                throw new TRPCError({ code: "FORBIDDEN", message: "Invalid reference code" });
             }
 
             if (reservation.status === "PAID" || reservation.status === "CONFIRMED") {
@@ -192,12 +212,12 @@ export const paypalRouter = router({
                 }
 
                 try {
-                    await ctx.db.$transaction([
-                        ctx.db.reservation.update({
+                    await ctx.db.$transaction(async (tx) => {
+                        await tx.reservation.update({
                             where: { id: input.reservationId },
                             data: { status: "PAID" },
-                        }),
-                        ctx.db.payment.create({
+                        });
+                        await tx.payment.create({
                             data: {
                                 reservationId: input.reservationId,
                                 amount: capturedAmount,
@@ -208,8 +228,33 @@ export const paypalRouter = router({
                                 gatewayResponse: captureData,
                                 processedAt: new Date(),
                             },
-                        }),
-                    ]);
+                        });
+
+                        // H2: Sync PaymentLink.amountPaid if reservation originated from a payment link
+                        if (reservation.paymentLinkId) {
+                            const link = await tx.paymentLink.findUnique({
+                                where: { id: reservation.paymentLinkId },
+                            });
+                            if (link) {
+                                const newAmountPaid = Number(link.amountPaid) + capturedAmount;
+                                const totalAmount = Number(link.totalAmount);
+                                const newStatus = newAmountPaid >= totalAmount ? "PAID" : "PARTIALLY_PAID";
+
+                                await tx.paymentLink.update({
+                                    where: { id: link.id },
+                                    data: { amountPaid: newAmountPaid, status: newStatus },
+                                });
+
+                                // If fully paid and linked to quotation, mark as converted
+                                if (newStatus === "PAID" && link.quotationId) {
+                                    await tx.quotation.update({
+                                        where: { id: link.quotationId },
+                                        data: { status: "CONVERTED" },
+                                    });
+                                }
+                            }
+                        }
+                    });
                 } catch (dbErr: any) {
                     // Unique constraint violation: another request already recorded this payment
                     if (dbErr?.code === "P2002") {
