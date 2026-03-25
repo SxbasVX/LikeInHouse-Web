@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { trpc } from "@/lib/trpc";
 import { exportToCSV } from "@/lib/export-csv";
+
+const ReportPDFDownload = dynamic(() => import("@/components/pdf/report-pdf-download"), {
+  ssr: false,
+  loading: () => null,
+});
 
 import {
   Card,
@@ -198,6 +204,37 @@ export default function ReportesPage() {
               <Download className="h-4 w-4" />
               Exportar CSV
             </Button>
+
+            {monthlyReport && monthlyReport.reservations.length > 0 && (
+              <ReportPDFDownload
+                type="monthly"
+                filename={`reporte-mensual-${monthStr}`}
+                data={{
+                  period: monthlyReport.period,
+                  periodLabel: monthOptions.find((o) => o.value === monthStr)?.label || monthStr,
+                  totalRevenue: monthlyReport.totalRevenue,
+                  totalBookings: monthlyReport.totalBookings,
+                  totalPeople: monthlyReport.totalPeople,
+                  avgBookingValue: monthlyReport.avgBookingValue,
+                  paidCount: monthlyReport.paidCount,
+                  pendingCount: monthlyReport.pendingCount,
+                  topTours: monthlyReport.topTours,
+                  reservations: monthlyReport.reservations.map((r) => ({
+                    referenceCode: r.referenceCode,
+                    client: `${r.client.firstName} ${r.client.lastName}`,
+                    tour: r.tour.nameEs,
+                    destination: r.tour.destination,
+                    adults: r.adults,
+                    children: r.children,
+                    totalAmount: r.totalAmount,
+                    currency: r.currency,
+                    status: r.status,
+                    origin: r.origin,
+                    date: new Date(r.createdAt).toLocaleDateString("es-PE", { timeZone: "UTC" }),
+                  })),
+                }}
+              />
+            )}
           </div>
 
           {loadingMonthly ? (
@@ -339,6 +376,35 @@ export default function ReportesPage() {
               <Download className="h-4 w-4" />
               Exportar CSV
             </Button>
+
+            {tourReport && tourReport.reservations.length > 0 && (
+              <ReportPDFDownload
+                type="tour"
+                filename={`reporte-tour-${tourReport.tour.nameEs.replace(/\s+/g, "-").toLowerCase()}`}
+                data={{
+                  tourName: tourReport.tour.nameEs,
+                  destination: tourReport.tour.destination,
+                  totalRevenue: tourReport.totalRevenue,
+                  totalBookings: tourReport.totalBookings,
+                  totalPeople: tourReport.totalPeople,
+                  paidCount: tourReport.paidCount,
+                  conversionRate: tourReport.conversionRate,
+                  reservations: tourReport.reservations.map((r) => ({
+                    referenceCode: r.referenceCode,
+                    client: `${r.client.firstName} ${r.client.lastName}`,
+                    tour: tourReport.tour.nameEs,
+                    destination: tourReport.tour.destination,
+                    adults: r.adults,
+                    children: r.children,
+                    totalAmount: r.totalAmount,
+                    currency: r.currency,
+                    status: r.status,
+                    origin: r.origin,
+                    date: new Date(r.createdAt).toLocaleDateString("es-PE", { timeZone: "UTC" }),
+                  })),
+                }}
+              />
+            )}
           </div>
 
           {!tourId ? (

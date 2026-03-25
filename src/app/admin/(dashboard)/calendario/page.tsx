@@ -24,8 +24,8 @@ export default function CalendarioPage() {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-  const [tourFilter, setTourFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [tourFilter, setTourFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Calculate date range for the current month view
   const { startDate, endDate } = useMemo(() => {
@@ -40,8 +40,8 @@ export default function CalendarioPage() {
   const { data: reservations, isLoading } = trpc.reservation.listForCalendar.useQuery({
     startDate,
     endDate,
-    tourId: tourFilter || undefined,
-    status: (statusFilter as "PENDING" | "CONFIRMED" | "PAID" | "COMPLETED" | "CANCELLED") || undefined,
+    tourId: tourFilter !== "all" ? tourFilter : undefined,
+    status: statusFilter !== "all" ? (statusFilter as "PENDING" | "CONFIRMED" | "PAID" | "COMPLETED" | "CANCELLED") : undefined,
   });
 
   const { data: toursData } = trpc.tour.list.useQuery({
@@ -106,7 +106,7 @@ export default function CalendarioPage() {
             <SelectValue placeholder="Todos los tours" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos los tours</SelectItem>
+            <SelectItem value="all">Todos los tours</SelectItem>
             {toursData?.tours.map((t) => (
               <SelectItem key={t.id} value={t.id}>{t.nameEs}</SelectItem>
             ))}
@@ -118,7 +118,7 @@ export default function CalendarioPage() {
             <SelectValue placeholder="Todos los estados" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos los estados</SelectItem>
+            <SelectItem value="all">Todos los estados</SelectItem>
             <SelectItem value="PENDING">Pendiente</SelectItem>
             <SelectItem value="CONFIRMED">Confirmada</SelectItem>
             <SelectItem value="PAID">Pagada</SelectItem>
