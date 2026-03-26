@@ -270,7 +270,7 @@ export const paymentLinkRouter = router({
     }),
 
   // PUBLIC: get payment link by token (for the payment page)
-  getByToken: publicProcedure
+  getByToken: rateLimitedProcedure(RATE_LIMITS.publicLookup)
     .input(z.object({ token: z.string() }))
     .query(async ({ ctx, input }) => {
       const link = await ctx.db.paymentLink.findUnique({

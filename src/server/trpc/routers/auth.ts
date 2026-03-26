@@ -7,7 +7,7 @@ export const authRouter = router({
 
   getProfile: protectedProcedure.query(async ({ ctx }) => {
     const user = await ctx.db.user.findUnique({
-      where: { id: ctx.session.user.id },
+      where: { id: ctx.user.id },
       select: {
         id: true,
         name: true,

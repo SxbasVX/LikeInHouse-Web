@@ -92,4 +92,6 @@ export const RATE_LIMITS = {
   login: { maxRequests: 5, windowSeconds: 900 },
   /** Payment link operations: 10 per 5 minutes */
   paymentLink: { maxRequests: 10, windowSeconds: 300 },
+  /** Public payment link lookup: 15 per minute */
+  publicLookup: { maxRequests: 15, windowSeconds: 60 },
 } as const;

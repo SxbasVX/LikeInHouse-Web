@@ -309,6 +309,9 @@ model Reservation {
   @@index([createdAt])
   @@index([firstSource])
   @@index([lastSource])
+  @@index([assignedUserId])
+  @@index([quotationId])
+  @@index([paymentLinkId])
 }
 
 // ============================================================
@@ -407,6 +410,7 @@ model Quotation {
 
   @@index([status])
   @@index([clientId])
+  @@index([createdByUserId])
 }
 
 model QuotationItem {
@@ -489,6 +493,7 @@ model PaymentLink {
 
   @@index([status])
   @@index([expiresAt])
+  @@index([createdByUserId])
 }
 
 // ============================================================
