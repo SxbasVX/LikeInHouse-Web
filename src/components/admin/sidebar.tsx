@@ -81,7 +81,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
       {/* Logo */}
       <div className="flex h-16 items-center justify-center px-5 border-b border-white/10">
         <Image
-          src="/Logo.svg"
+          src="/Logo-Azul.svg"
           alt="LikeInHouse"
           width={148}
           height={38}
