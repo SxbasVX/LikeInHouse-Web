@@ -53,7 +53,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0A0D0C] p-6">
+    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#0A0D0C] p-6">
 
       {/* Fondo foto */}
       <div className="absolute inset-0 z-0 pointer-events-none">
