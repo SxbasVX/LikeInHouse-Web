@@ -86,7 +86,7 @@ export default function ReportesPage() {
   );
 
   // Tours list for selector
-  const { data: toursData } = trpc.tour.list.useQuery({ page: 1, limit: 100 });
+  const { data: toursData } = trpc.tour.list.useQuery({ page: 1, limit: 50 });
 
   // Month options (last 12 months)
   const monthOptions = useMemo(() => {

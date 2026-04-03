@@ -46,7 +46,7 @@ export default function CalendarioPage() {
 
   const { data: toursData } = trpc.tour.list.useQuery({
     page: 1,
-    limit: 100,
+    limit: 50,
     status: "PUBLISHED",
   });
 

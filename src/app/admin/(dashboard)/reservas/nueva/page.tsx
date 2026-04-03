@@ -61,7 +61,7 @@ export default function NuevaReservaPage() {
 
   const { data: toursData } = trpc.tour.list.useQuery({
     page: 1,
-    limit: 100,
+    limit: 50,
     status: "PUBLISHED",
     tourType: "BOOKABLE",
   });
