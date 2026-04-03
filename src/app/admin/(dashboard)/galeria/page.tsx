@@ -15,8 +15,8 @@ export default function GaleriaPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Galería</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Galería</h1>
+          <p className="font-serif italic text-brand-teal">
             Gestiona las imágenes del sitio (Cloudinary)
           </p>
         </div>
@@ -33,7 +33,7 @@ export default function GaleriaPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">—</div>
-            <p className="text-xs text-muted-foreground">En Cloudinary</p>
+            <p className="text-xs font-serif italic text-brand-teal">En Cloudinary</p>
           </CardContent>
         </Card>
         <Card>
@@ -43,7 +43,7 @@ export default function GaleriaPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">—</div>
-            <p className="text-xs text-muted-foreground">Almacenamiento</p>
+            <p className="text-xs font-serif italic text-brand-teal">Almacenamiento</p>
           </CardContent>
         </Card>
         <Card>
@@ -53,7 +53,7 @@ export default function GaleriaPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">—</div>
-            <p className="text-xs text-muted-foreground">Este mes</p>
+            <p className="text-xs font-serif italic text-brand-teal">Este mes</p>
           </CardContent>
         </Card>
       </div>

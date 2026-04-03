@@ -237,8 +237,8 @@ export default function ClientesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
-          <p className="text-muted-foreground">Gestiona la base de clientes</p>
+          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Clientes</h1>
+          <p className="font-serif italic text-brand-teal">Gestiona la base de clientes</p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
@@ -392,7 +392,7 @@ export default function ClientesPage() {
 
               {data && data.pages > 1 && (
                 <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm font-serif italic text-brand-teal">
                     Página {data.page} de {data.pages}
                   </p>
                   <div className="flex gap-2">

@@ -73,7 +73,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
               <div key={i} className="flex items-center gap-1.5">
                 {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-gray-300" />}
                 {i === crumbs.length - 1 ? (
-                  <h1 className="font-heading text-base font-semibold text-brand-darkRed">
+                  <h1 className="font-heading text-xl font-bold tracking-tight text-brand-darkRed">
                     {crumb.label}
                   </h1>
                 ) : (
@@ -85,7 +85,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
             ))}
           </nav>
         ) : (
-          <h1 className="font-heading text-base font-semibold text-brand-darkRed">
+          <h1 className="font-heading text-xl font-bold tracking-tight text-brand-darkRed">
             {crumbs[0].label}
           </h1>
         )}

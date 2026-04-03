@@ -35,7 +35,7 @@ export default function ToursPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Tours</h2>
-          <p className="text-muted-foreground">
+          <p className="font-serif italic text-brand-teal">
             Gestiona los tours de LikeInHouse
           </p>
         </div>
@@ -98,7 +98,7 @@ export default function ToursPage() {
       {/* Pagination */}
       {data && data.pages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm font-serif italic text-brand-teal">
             Mostrando pagina {data.page} de {data.pages} ({data.total} tours)
           </p>
           <div className="flex gap-2">

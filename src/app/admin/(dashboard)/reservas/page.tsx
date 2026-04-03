@@ -116,8 +116,8 @@ export default function ReservasPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reservas</h1>
-          <p className="text-muted-foreground">Gestiona las reservas de tours</p>
+          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Reservas</h1>
+          <p className="font-serif italic text-brand-teal">Gestiona las reservas de tours</p>
         </div>
         <Button asChild>
           <Link href="/admin/reservas/nueva">
@@ -208,7 +208,7 @@ export default function ReservasPage() {
                           <p className="font-medium">
                             {reservation.client.firstName} {reservation.client.lastName}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm font-serif italic text-brand-teal">
                             {reservation.client.email}
                           </p>
                         </div>
@@ -321,7 +321,7 @@ export default function ReservasPage() {
 
               {data && data.pages > 1 && (
                 <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm font-serif italic text-brand-teal">
                     Página {data.page} de {data.pages}
                   </p>
                   <div className="flex gap-2">

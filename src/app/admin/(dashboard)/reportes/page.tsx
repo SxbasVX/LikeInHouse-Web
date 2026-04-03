@@ -174,8 +174,8 @@ export default function ReportesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Reportes</h1>
-        <p className="text-muted-foreground">Insights financieros y métricas de rendimiento</p>
+        <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Reportes</h1>
+        <p className="font-serif italic text-brand-teal">Insights financieros y métricas de rendimiento</p>
       </div>
 
       <Tabs defaultValue="monthly" className="space-y-6">
@@ -257,7 +257,7 @@ export default function ReportesPage() {
                       <ChangeIndicator value={monthlyReport.revenueChangePercent} />
                     </div>
                     <p className="text-2xl font-bold mt-2">USD ${monthlyReport.totalRevenue.toFixed(0)}</p>
-                    <p className="text-xs text-muted-foreground">Revenue total</p>
+                    <p className="text-xs font-serif italic text-brand-teal">Revenue total</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -267,21 +267,21 @@ export default function ReportesPage() {
                       <ChangeIndicator value={monthlyReport.bookingsChangePercent} />
                     </div>
                     <p className="text-2xl font-bold mt-2">{monthlyReport.totalBookings}</p>
-                    <p className="text-xs text-muted-foreground">Reservas</p>
+                    <p className="text-xs font-serif italic text-brand-teal">Reservas</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 pb-3">
                     <Users className="h-5 w-5 text-purple-600" />
                     <p className="text-2xl font-bold mt-2">{monthlyReport.totalPeople}</p>
-                    <p className="text-xs text-muted-foreground">Pasajeros</p>
+                    <p className="text-xs font-serif italic text-brand-teal">Pasajeros</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 pb-3">
                     <DollarSign className="h-5 w-5 text-orange-600" />
                     <p className="text-2xl font-bold mt-2">USD ${monthlyReport.avgBookingValue.toFixed(0)}</p>
-                    <p className="text-xs text-muted-foreground">Valor promedio</p>
+                    <p className="text-xs font-serif italic text-brand-teal">Valor promedio</p>
                   </CardContent>
                 </Card>
               </div>
@@ -310,7 +310,7 @@ export default function ReportesPage() {
                             <TableRow key={i}>
                               <TableCell>
                                 <p className="font-medium text-sm">{t.name}</p>
-                                <p className="text-xs text-muted-foreground">{t.destination}</p>
+                                <p className="text-xs font-serif italic text-brand-teal">{t.destination}</p>
                               </TableCell>
                               <TableCell className="text-right">{t.bookings}</TableCell>
                               <TableCell className="text-right font-medium">${t.revenue.toFixed(0)}</TableCell>
@@ -427,31 +427,31 @@ export default function ReportesPage() {
                 <Card>
                   <CardContent className="pt-4 pb-3">
                     <p className="text-2xl font-bold">USD ${tourReport.totalRevenue.toFixed(0)}</p>
-                    <p className="text-xs text-muted-foreground">Revenue total</p>
+                    <p className="text-xs font-serif italic text-brand-teal">Revenue total</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 pb-3">
                     <p className="text-2xl font-bold">{tourReport.totalBookings}</p>
-                    <p className="text-xs text-muted-foreground">Reservas</p>
+                    <p className="text-xs font-serif italic text-brand-teal">Reservas</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 pb-3">
                     <p className="text-2xl font-bold">{tourReport.totalPeople}</p>
-                    <p className="text-xs text-muted-foreground">Pasajeros</p>
+                    <p className="text-xs font-serif italic text-brand-teal">Pasajeros</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 pb-3">
                     <p className="text-2xl font-bold text-emerald-600">{tourReport.paidCount}</p>
-                    <p className="text-xs text-muted-foreground">Pagados</p>
+                    <p className="text-xs font-serif italic text-brand-teal">Pagados</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-4 pb-3">
                     <p className="text-2xl font-bold">{tourReport.conversionRate}%</p>
-                    <p className="text-xs text-muted-foreground">Tasa conversión</p>
+                    <p className="text-xs font-serif italic text-brand-teal">Tasa conversión</p>
                   </CardContent>
                 </Card>
               </div>

@@ -59,8 +59,8 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Analytics de Marketing</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Analytics de Marketing</h1>
+          <p className="font-serif italic text-brand-teal">
             Atribucion de fuentes de trafico y rendimiento de campanas
           </p>
         </div>
@@ -147,7 +147,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 {data.firstSourceStats.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">
+                  <p className="text-center py-8 font-serif italic text-brand-teal">
                     Sin datos de fuentes aun
                   </p>
                 ) : (
@@ -186,7 +186,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 {data.lastSourceStats.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">
+                  <p className="text-center py-8 font-serif italic text-brand-teal">
                     Sin datos de fuentes aun
                   </p>
                 ) : (
@@ -226,7 +226,7 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               {data.campaignStats.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground">
+                <p className="text-center py-8 font-serif italic text-brand-teal">
                   Sin datos de campanas aun
                 </p>
               ) : (

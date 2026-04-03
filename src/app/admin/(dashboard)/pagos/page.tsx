@@ -101,8 +101,8 @@ export default function PagosPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Pagos</h1>
-        <p className="text-muted-foreground">Control de pagos y transacciones</p>
+        <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Pagos</h1>
+        <p className="font-serif italic text-brand-teal">Control de pagos y transacciones</p>
       </div>
 
       {/* Stats cards */}
@@ -117,7 +117,7 @@ export default function PagosPage() {
               <div className="text-2xl font-bold text-brand-teal">
                 S/ {Number(stats.completed.total).toFixed(2)}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs font-serif italic text-brand-teal">
                 {stats.completed.count} transacciones
               </p>
             </CardContent>
@@ -131,7 +131,7 @@ export default function PagosPage() {
               <div className="text-2xl font-bold text-brand-orange">
                 S/ {Number(stats.pending.total).toFixed(2)}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs font-serif italic text-brand-teal">
                 {stats.pending.count} transacciones
               </p>
             </CardContent>
@@ -145,7 +145,7 @@ export default function PagosPage() {
               <div className="text-2xl font-bold text-brand-darkTeal">
                 S/ {Number(stats.refunded.total).toFixed(2)}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs font-serif italic text-brand-teal">
                 {stats.refunded.count} transacciones
               </p>
             </CardContent>
@@ -285,7 +285,7 @@ export default function PagosPage() {
 
               {data && data.pages > 1 && (
                 <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm font-serif italic text-brand-teal">
                     Página {data.page} de {data.pages}
                   </p>
                   <div className="flex gap-2">

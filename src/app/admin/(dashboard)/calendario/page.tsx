@@ -65,8 +65,8 @@ export default function CalendarioPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Calendario</h1>
-        <p className="text-muted-foreground">Vista mensual de reservas</p>
+        <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Calendario</h1>
+        <p className="font-serif italic text-brand-teal">Vista mensual de reservas</p>
       </div>
 
       {/* Stats */}
@@ -75,25 +75,25 @@ export default function CalendarioPage() {
           <Card>
             <CardContent className="pt-4 pb-3">
               <p className="text-2xl font-bold">{stats.total}</p>
-              <p className="text-xs text-muted-foreground">Reservas del mes</p>
+              <p className="text-xs font-serif italic text-brand-teal">Reservas del mes</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4 pb-3">
               <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
-              <p className="text-xs text-muted-foreground">Pendientes</p>
+              <p className="text-xs font-serif italic text-brand-teal">Pendientes</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4 pb-3">
               <p className="text-2xl font-bold text-emerald-600">{stats.paid}</p>
-              <p className="text-xs text-muted-foreground">Pagadas</p>
+              <p className="text-xs font-serif italic text-brand-teal">Pagadas</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4 pb-3">
               <p className="text-2xl font-bold">USD ${stats.revenue.toFixed(0)}</p>
-              <p className="text-xs text-muted-foreground">Revenue estimado</p>
+              <p className="text-xs font-serif italic text-brand-teal">Revenue estimado</p>
             </CardContent>
           </Card>
         </div>

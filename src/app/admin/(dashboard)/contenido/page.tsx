@@ -66,8 +66,8 @@ export default function ContenidoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Contenido</h1>
-        <p className="text-muted-foreground">
+        <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Contenido</h1>
+        <p className="font-serif italic text-brand-teal">
           Gestiona el contenido del sitio web público
         </p>
       </div>
@@ -624,7 +624,7 @@ function BlogSection() {
         </CardHeader>
         <CardContent>
           {data?.posts.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">No hay articulos aun</p>
+            <p className="text-center py-8 font-serif italic text-brand-teal">No hay articulos aun</p>
           ) : (
             <>
               <Table>
@@ -694,7 +694,7 @@ function BlogSection() {
               </Table>
               {data && data.pages > 1 && (
                 <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">Pagina {data.page} de {data.pages}</p>
+                  <p className="text-sm font-serif italic text-brand-teal">Pagina {data.page} de {data.pages}</p>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
                       <ChevronLeft className="h-4 w-4" /> Anterior
@@ -1097,7 +1097,7 @@ function ContactMessagesSection() {
         </CardHeader>
         <CardContent>
           {data?.messages.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">No hay mensajes aún</p>
+            <p className="text-center py-8 font-serif italic text-brand-teal">No hay mensajes aún</p>
           ) : (
             <>
               <Table>
@@ -1147,7 +1147,7 @@ function ContactMessagesSection() {
 
               {data && data.pages > 1 && (
                 <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm font-serif italic text-brand-teal">
                     Página {data.page} de {data.pages}
                   </p>
                   <div className="flex gap-2">

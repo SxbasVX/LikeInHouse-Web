@@ -154,8 +154,8 @@ export default function NuevaReservaPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Nueva Reserva Manual</h1>
-          <p className="text-muted-foreground">Crea una reserva para un cliente</p>
+          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Nueva Reserva Manual</h1>
+          <p className="font-serif italic text-brand-teal">Crea una reserva para un cliente</p>
         </div>
       </div>
 

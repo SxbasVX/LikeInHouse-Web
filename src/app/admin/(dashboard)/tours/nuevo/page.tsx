@@ -55,7 +55,7 @@ export default function NuevoTourPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Nuevo Tour</h2>
-        <p className="text-muted-foreground">
+        <p className="font-serif italic text-brand-teal">
           Completa la informacion para crear un nuevo tour
         </p>
       </div>

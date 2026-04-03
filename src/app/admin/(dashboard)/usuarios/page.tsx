@@ -147,8 +147,8 @@ export default function UsuariosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Usuarios</h1>
-          <p className="text-muted-foreground">Gestiona los usuarios del sistema</p>
+          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Usuarios</h1>
+          <p className="font-serif italic text-brand-teal">Gestiona los usuarios del sistema</p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>

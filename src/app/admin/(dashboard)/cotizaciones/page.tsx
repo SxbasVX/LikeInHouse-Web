@@ -185,8 +185,8 @@ export default function CotizacionesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Cotizaciones</h1>
-          <p className="text-muted-foreground">Gestiona cotizaciones y genera links de pago</p>
+          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Cotizaciones</h1>
+          <p className="font-serif italic text-brand-teal">Gestiona cotizaciones y genera links de pago</p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="h-4 w-4 mr-2" /> Nueva Cotizacion
@@ -273,7 +273,7 @@ export default function CotizacionesPage() {
                           <p className="font-medium">
                             {quotation.client.firstName} {quotation.client.lastName}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm font-serif italic text-brand-teal">
                             {quotation.client.email}
                           </p>
                         </div>
@@ -376,7 +376,7 @@ export default function CotizacionesPage() {
 
               {data && data.pages > 1 && (
                 <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm font-serif italic text-brand-teal">
                     Pagina {data.page} de {data.pages}
                   </p>
                   <div className="flex gap-2">
