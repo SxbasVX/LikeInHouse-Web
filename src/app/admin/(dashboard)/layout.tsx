@@ -15,11 +15,11 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen gap-3 bg-[hsl(26,44%,94%)] p-3">
       <AdminSidebar user={session.user} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-2xl bg-[hsl(26,44%,97%)]">
         <AdminHeader user={session.user} />
-        <main className="flex-1 overflow-y-auto bg-[hsl(26,44%,97%)] p-6">
+        <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
       </div>

@@ -77,9 +77,9 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
     : "AD";
 
   return (
-    <aside className="flex h-screen w-64 flex-col" style={{ backgroundColor: "#3a1211" }}>
+    <aside className="flex h-full w-64 flex-col rounded-2xl overflow-hidden" style={{ backgroundColor: "#441514" }}>
       {/* Logo */}
-      <div className="flex h-16 items-center justify-center px-5 border-b border-white/8">
+      <div className="flex h-16 items-center justify-center px-5 border-b border-white/10">
         <Image
           src="/Logo-Azul.svg"
           alt="LikeInHouse"
