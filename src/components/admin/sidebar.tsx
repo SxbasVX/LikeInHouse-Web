@@ -17,26 +17,50 @@ import {
   UserCog,
   LogOut,
   BarChart3,
+  ChevronRight,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { label: "Tours", href: "/admin/tours", icon: Map },
-  { label: "Reservas", href: "/admin/reservas", icon: CalendarCheck },
-  { label: "Calendario", href: "/admin/calendario", icon: Calendar },
-  { label: "Pagos", href: "/admin/pagos", icon: CreditCard },
-  { label: "Cotizaciones", href: "/admin/cotizaciones", icon: FileText },
-  { label: "Clientes", href: "/admin/clientes", icon: Users },
-  { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  { label: "Reportes", href: "/admin/reportes", icon: FileBarChart },
-  { label: "Contenido", href: "/admin/contenido", icon: Newspaper },
-  { label: "Galeria", href: "/admin/galeria", icon: Image },
-  { label: "Usuarios", href: "/admin/usuarios", icon: UserCog },
+const navSections = [
+  {
+    label: "Principal",
+    items: [
+      { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Operaciones",
+    items: [
+      { label: "Tours", href: "/admin/tours", icon: Map },
+      { label: "Reservas", href: "/admin/reservas", icon: CalendarCheck },
+      { label: "Calendario", href: "/admin/calendario", icon: Calendar },
+      { label: "Pagos", href: "/admin/pagos", icon: CreditCard },
+      { label: "Cotizaciones", href: "/admin/cotizaciones", icon: FileText },
+    ],
+  },
+  {
+    label: "Clientes & Datos",
+    items: [
+      { label: "Clientes", href: "/admin/clientes", icon: Users },
+      { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+      { label: "Reportes", href: "/admin/reportes", icon: FileBarChart },
+    ],
+  },
+  {
+    label: "Configuración",
+    items: [
+      { label: "Contenido", href: "/admin/contenido", icon: Newspaper },
+      { label: "Galeria", href: "/admin/galeria", icon: Image },
+      { label: "Usuarios", href: "/admin/usuarios", icon: UserCog },
+    ],
+  },
 ];
+
+const roleBadgeColor: Record<string, string> = {
+  ADMIN: "bg-brand-orange/20 text-brand-orange border-brand-orange/30",
+  SALES: "bg-brand-teal/20 text-brand-teal border-brand-teal/30",
+  MARKETING: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+};
 
 interface AdminSidebarProps {
   user: {
@@ -54,54 +78,96 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
     return pathname.startsWith(href);
   };
 
+  const initials = user.name
+    ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "AD";
+
   return (
-    <aside className="flex h-screen w-64 flex-col border-r bg-white">
+    <aside className="flex h-screen w-64 flex-col bg-brand-darkRed">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b px-6">
-        <Map className="h-6 w-6 text-primary" />
-        <span className="text-lg font-bold">LikeInHouse</span>
+      <div className="flex h-16 items-center gap-2.5 px-5 border-b border-white/10">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-orange shadow-lg shadow-brand-orange/30">
+          <Map className="h-4 w-4 text-white" />
+        </div>
+        <div className="leading-none">
+          <span className="font-heading text-lg font-bold tracking-tight">
+            <span className="text-white">Like</span>
+            <span className="text-brand-orange">In</span>
+            <span className="text-white">House</span>
+          </span>
+          <p className="text-[9px] text-white/30 tracking-widest uppercase mt-0.5">Panel Admin</p>
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-4">
-        <ul className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      <nav className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin">
+        <div className="space-y-5">
+          {navSections.map((section) => (
+            <div key={section.label}>
+              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/25">
+                {section.label}
+              </p>
+              <ul className="space-y-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+                          active
+                            ? "bg-brand-orange text-white shadow-md shadow-brand-orange/25"
+                            : "text-white/60 hover:bg-white/8 hover:text-white"
+                        )}
+                      >
+                        <Icon
+                          className={cn(
+                            "h-4 w-4 shrink-0 transition-transform duration-150",
+                            active ? "text-white" : "text-white/50 group-hover:text-white",
+                            !active && "group-hover:scale-110"
+                          )}
+                        />
+                        <span className="flex-1">{item.label}</span>
+                        {active && (
+                          <ChevronRight className="h-3 w-3 text-white/60 shrink-0" />
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       </nav>
 
       {/* User info + logout */}
-      <div className="border-t p-4">
-        <div className="mb-3">
-          <p className="text-sm font-medium truncate">{user.name}</p>
-          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-          <Badge variant="secondary" className="mt-1 text-xs">
-            {user.role}
-          </Badge>
+      <div className="border-t border-white/10 p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-orange/20 border border-brand-orange/30 text-brand-orange text-xs font-bold">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-white truncate">{user.name}</p>
+            <p className="text-[11px] text-white/40 truncate">{user.email}</p>
+          </div>
         </div>
-        <Separator className="mb-3" />
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start gap-2 text-muted-foreground"
+
+        {user.role && (
+          <div className="mb-3">
+            <span className={cn(
+              "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+              roleBadgeColor[user.role] || "bg-white/10 text-white/50 border-white/10"
+            )}>
+              {user.role}
+            </span>
+          </div>
+        )}
+
+        <button
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/50 transition-colors hover:bg-red-500/15 hover:text-red-400"
           onClick={() => {
             if (window.confirm("¿Seguro que deseas cerrar sesión?")) {
               signOut({ callbackUrl: "/admin/login" });
@@ -109,8 +175,8 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
           }}
         >
           <LogOut className="h-4 w-4" />
-          Cerrar sesion
-        </Button>
+          Cerrar sesión
+        </button>
       </div>
     </aside>
   );

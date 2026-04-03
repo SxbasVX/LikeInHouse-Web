@@ -19,7 +19,7 @@ export default async function DashboardLayout({
       <AdminSidebar user={session.user} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <AdminHeader user={session.user} />
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+        <main className="flex-1 overflow-y-auto bg-[hsl(26,44%,97%)] p-6">
           {children}
         </main>
       </div>
