@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Mail, Lock, ArrowUpRight, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowUpRight, ArrowLeft, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import Link from "next/link";
@@ -26,11 +26,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
 
@@ -57,9 +53,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#0A0D0C]">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0A0D0C] p-6">
 
-      {/* Background — misma foto que el landing */}
+      {/* Fondo foto */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <Image
           src={HERO_BG}
@@ -69,11 +65,11 @@ export default function LoginPage() {
           className="object-cover scale-105"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0A0D0C]/80 via-black/50 to-[#0A0D0C]/95" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0A0D0C]/70 via-black/50 to-[#0A0D0C]/90" />
       </div>
 
       {/* Volver al sitio */}
-      <div className="absolute top-6 left-8 z-20">
+      <div className="absolute top-6 left-6 z-20">
         <Link
           href="/"
           className="flex items-center gap-2 rounded-full border border-white/20 bg-black/30 px-4 py-2 text-sm font-medium text-white/80 hover:text-white hover:bg-black/50 backdrop-blur-md transition-all"
@@ -83,109 +79,128 @@ export default function LoginPage() {
         </Link>
       </div>
 
-      {/* Contenido */}
-      <div className="relative z-10 flex flex-col items-center w-full px-4">
+      {/* Layout dividido flotando sobre la foto */}
+      <div className="relative z-10 flex w-full max-w-3xl rounded-3xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.6)]">
 
-        {/* Logo */}
-        <div className="mb-8">
-          <Image
-            src="/Logo-Azul.svg"
-            alt="LikeInHouse"
-            width={200}
-            height={52}
-            className="object-contain"
-            priority
-          />
+        {/* Panel izquierdo — sidebar naranja */}
+        <div
+          className="hidden md:flex w-[42%] flex-col justify-between p-8 relative overflow-hidden"
+          style={{ backgroundColor: "#e8411d" }}
+        >
+          {/* Círculos decorativos */}
+          <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-15 bg-white" />
+          <div className="absolute -bottom-20 -left-12 w-64 h-64 rounded-full opacity-10 bg-white" />
+          <div className="absolute top-1/2 -right-10 w-36 h-36 rounded-full opacity-10 bg-white" />
+
+          {/* Logo */}
+          <div className="relative z-10">
+            <Image
+              src="/Logo-Azul.svg"
+              alt="LikeInHouse"
+              width={150}
+              height={39}
+              className="object-contain"
+              priority
+            />
+          </div>
+
+          {/* Texto */}
+          <div className="relative z-10 space-y-4">
+            <div className="flex items-center gap-1.5 text-white/60 text-xs font-semibold uppercase tracking-widest">
+              <MapPin className="h-3.5 w-3.5" />
+              Agencia de turismo · Perú
+            </div>
+            <h2 className="font-heading text-2xl font-bold text-white leading-snug">
+              Gestiona tu agencia desde un solo lugar
+            </h2>
+            <p className="text-white/65 text-sm leading-relaxed">
+              Tours, reservas, clientes y pagos. Todo centralizado.
+            </p>
+          </div>
+
+          <p className="relative z-10 text-white/35 text-[11px]">
+            © {new Date().getFullYear()} LikeInHouse
+          </p>
         </div>
 
-        {/* Título estilo landing */}
-        <div className="text-center mb-10">
-          <h1
-            className="font-heading text-5xl sm:text-6xl font-light text-white leading-tight tracking-tight mb-2"
-            style={{ textShadow: "0 2px 20px rgba(0,0,0,0.6)" }}
-          >
-            Panel
-          </h1>
-          <span
-            className="block font-serif italic font-normal text-4xl sm:text-5xl"
-            style={{
-              color: "#f5dfc0",
-              textShadow: "0 2px 20px rgba(0,0,0,0.5)",
-              transform: "rotate(-1deg)",
-              display: "inline-block",
-            }}
-          >
-            Administrativo
-          </span>
-        </div>
+        {/* Panel derecho — formulario */}
+        <div className="flex-1 bg-black/50 backdrop-blur-2xl border-l border-white/10 p-8 flex flex-col justify-center">
 
-        {/* Card glassmorphism */}
-        <div className="w-full max-w-[420px] rounded-2xl border border-white/15 bg-black/40 backdrop-blur-2xl p-8 shadow-2xl">
+          {/* Logo mobile */}
+          <div className="md:hidden mb-6 flex justify-center">
+            <Image src="/Logo-Azul.svg" alt="LikeInHouse" width={140} height={36} className="object-contain" priority />
+          </div>
+
+          {/* Encabezado */}
+          <div className="mb-7">
+            <h1 className="font-heading text-2xl font-bold text-white mb-1">
+              Bienvenido de vuelta
+            </h1>
+            <p className="text-sm font-serif italic" style={{ color: "#f5dfc0" }}>
+              Ingresa tus credenciales para acceder
+            </p>
+          </div>
 
           {error && (
-            <div className="flex items-start gap-3 rounded-xl bg-red-500/15 border border-red-500/25 p-4 text-sm text-white mb-6">
+            <div className="flex items-start gap-3 rounded-xl bg-red-500/15 border border-red-500/25 p-4 text-sm text-white mb-5">
               <div className="h-1.5 w-1.5 rounded-full bg-red-400 mt-1.5 shrink-0 animate-pulse" />
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
             {/* Email */}
             <div className="space-y-1.5">
-              <label htmlFor="email" className="text-sm font-medium text-white/80">
+              <label htmlFor="email" className="text-sm font-medium text-white/75">
                 Correo electrónico
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/35" />
                 <Input
                   id="email"
                   type="email"
                   autoComplete="email"
                   placeholder="admin@likeinhouse.com"
-                  className="h-12 pl-10 rounded-xl bg-white/10 border-white/15 text-white placeholder:text-white/35 focus:bg-white/15 focus:border-white/40 focus:ring-0"
+                  className="h-11 pl-10 rounded-xl bg-white/10 border-white/15 text-white placeholder:text-white/30 focus:bg-white/15 focus:border-white/35 focus:ring-0"
                   {...register("email")}
                 />
               </div>
-              {errors.email && (
-                <p className="text-xs text-brand-orange mt-1">{errors.email.message}</p>
-              )}
+              {errors.email && <p className="text-xs text-brand-orange mt-1">{errors.email.message}</p>}
             </div>
 
             {/* Contraseña */}
             <div className="space-y-1.5">
-              <label htmlFor="password" className="text-sm font-medium text-white/80">
+              <label htmlFor="password" className="text-sm font-medium text-white/75">
                 Contraseña
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/35" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="h-12 pl-10 pr-11 rounded-xl bg-white/10 border-white/15 text-white placeholder:text-white/35 focus:bg-white/15 focus:border-white/40 focus:ring-0"
+                  className="h-11 pl-10 pr-11 rounded-xl bg-white/10 border-white/15 text-white placeholder:text-white/30 focus:bg-white/15 focus:border-white/35 focus:ring-0"
                   {...register("password")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/35 hover:text-white/75 transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-xs text-brand-orange mt-1">{errors.password.message}</p>
-              )}
+              {errors.password && <p className="text-xs text-brand-orange mt-1">{errors.password.message}</p>}
             </div>
 
             <div className="pt-2">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-12 rounded-xl bg-brand-orange hover:bg-[#e33e1a] flex items-center justify-center gap-2 text-white font-bold text-sm transition-all hover:scale-[1.02] shadow-[0_0_24px_rgba(252,69,31,0.35)] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="w-full h-11 rounded-xl bg-brand-orange hover:bg-[#e33e1a] flex items-center justify-center gap-2 text-white font-bold text-sm transition-all hover:scale-[1.02] shadow-[0_0_24px_rgba(252,69,31,0.4)] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {isLoading ? (
                   <>
@@ -203,10 +218,6 @@ export default function LoginPage() {
 
           </form>
         </div>
-
-        <p className="mt-8 text-white/30 text-xs">
-          © {new Date().getFullYear()} LikeInHouse · Acceso restringido
-        </p>
       </div>
     </div>
   );
