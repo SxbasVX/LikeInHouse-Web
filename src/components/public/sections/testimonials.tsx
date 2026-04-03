@@ -14,7 +14,13 @@ interface Testimonial {
   textEn: string | null;
 }
 
-export function TestimonialsSection({ testimonials }: { testimonials: Testimonial[] }) {
+interface TestimonialsSectionProps {
+  testimonials: Testimonial[];
+  title?: string;
+  subtitle?: string;
+}
+
+export function TestimonialsSection({ testimonials, title, subtitle }: TestimonialsSectionProps) {
   const t = useTranslations("home");
   const locale = useLocale();
   const isEs = locale === "es";
@@ -26,8 +32,11 @@ export function TestimonialsSection({ testimonials }: { testimonials: Testimonia
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div ref={header.ref} className={`${header.isVisible ? "scroll-visible" : "scroll-hidden"} text-center mb-14`}>
           <h2 className="font-heading text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl">
-            {t("testimonials")}
+            {title || t("testimonials")}
           </h2>
+          {subtitle && (
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500 font-light">{subtitle}</p>
+          )}
         </div>
 
         <div ref={cards.ref} className={`grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 ${cards.className}`}>

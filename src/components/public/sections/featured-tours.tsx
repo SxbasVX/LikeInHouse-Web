@@ -27,7 +27,13 @@ interface Tour {
 
 const SHOWCASE_BG = "https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800&q=80";
 
-export function FeaturedToursSection({ tours }: { tours: Tour[] }) {
+interface FeaturedToursSectionProps {
+  tours: Tour[];
+  title?: string;
+  subtitle?: string;
+}
+
+export function FeaturedToursSection({ tours, title, subtitle }: FeaturedToursSectionProps) {
   const t = useTranslations("home");
   const tt = useTranslations("tours");
   const tc = useTranslations("common");
@@ -47,15 +53,15 @@ export function FeaturedToursSection({ tours }: { tours: Tour[] }) {
         {/* Header - Editorial Style */}
         <div ref={header.ref} className={`${header.isVisible ? "scroll-visible" : "scroll-hidden"} text-center mb-20`}>
           <h2 className="font-heading text-4xl font-light text-brand-darkRed sm:text-5xl lg:text-[3.5rem] tracking-tight leading-[1.1]">
-            {t("featured_tours_1")}{" "}
+            {title || (<>{t("featured_tours_1")}{" "}
             <span className="font-serif italic text-brand-teal font-normal">
                {t("featured_tours_2")}
             </span>
             <br className="hidden sm:block" />
-            {" "}{t("featured_tours_3")}
+            {" "}{t("featured_tours_3")}</>)}
           </h2>
           <p className="mx-auto mt-6 max-w-3xl text-lg text-gray-500 font-light leading-relaxed">
-            {t("featured_subtitle")}
+            {subtitle || t("featured_subtitle")}
           </p>
         </div>
 

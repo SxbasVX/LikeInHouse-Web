@@ -6,9 +6,15 @@ import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
-const CTA_BG = "https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=1600&q=80";
+const DEFAULT_CTA_BG = "https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=1600&q=80";
 
-export function CTASection() {
+interface CTAProps {
+  title?: string;
+  subtitle?: string;
+  imageUrl?: string;
+}
+
+export function CTASection({ title, subtitle, imageUrl }: CTAProps = {}) {
   const t = useTranslations("home");
   const section = useScrollAnimation({ threshold: 0.15 });
 
@@ -19,7 +25,7 @@ export function CTASection() {
         {/* Background */}
         <div className="absolute inset-0 pointer-events-none">
           <Image
-            src={CTA_BG}
+            src={imageUrl || DEFAULT_CTA_BG}
             alt="Peru magic landscape"
             fill
             className="object-cover transition-transform duration-[20s] ease-linear group-hover:scale-105"

@@ -6,11 +6,17 @@ import { useRouter } from "@/i18n/routing";
 import { ArrowUpRight, Search } from "lucide-react";
 import Image from "next/image";
 
-const HERO_BG = "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=1920&q=80";
+const DEFAULT_HERO_BG = "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=1920&q=80";
 
 const QUICK_SEARCHES = ["Cusco", "Machu Picchu", "Valle Sagrado", "Montaña 7 Colores", "Lago Titicaca"];
 
-export function HeroSection() {
+interface HeroProps {
+  title?: string;
+  subtitle?: string;
+  imageUrl?: string;
+}
+
+export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
   const t = useTranslations("home");
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -30,7 +36,7 @@ export function HeroSection() {
       {/* Background Image with stronger overlay for readability */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <Image
-          src={HERO_BG}
+          src={imageUrl || DEFAULT_HERO_BG}
           alt="Peru inmersive landscape"
           fill
           priority
@@ -48,7 +54,7 @@ export function HeroSection() {
         <div className="animate-slide-down inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/40 px-5 py-2 backdrop-blur-md mb-8">
           <span className="h-2 w-2 rounded-full bg-brand-orange animate-pulse" />
           <span className="text-sm font-medium tracking-widest uppercase text-white">
-            {t("hero_badge", { fallback: "Explora Perú como en casa" })}
+            {subtitle || t("hero_badge", { fallback: "Explora Perú como en casa" })}
           </span>
         </div>
 

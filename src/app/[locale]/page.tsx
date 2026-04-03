@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { getLocale } from "next-intl/server";
 import type { Metadata } from "next";
 import { getServerCaller } from "@/lib/trpc-server";
 import { HeroSection } from "@/components/public/sections/hero";
@@ -27,27 +28,109 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 export default async function HomePage() {
-  const [caller, t] = await Promise.all([
+  const [caller, locale] = await Promise.all([
     getServerCaller(),
-    getTranslations("home"),
+    getLocale(),
   ]);
 
-  const [tours, testimonials, faqs] = await Promise.all([
+  const [tours, testimonials, faqs, homeSections] = await Promise.all([
     caller.public.featuredTours(),
     caller.public.testimonials(),
     caller.public.faqs(),
+    caller.public.homeSections(),
   ]);
+
+  const isEs = locale === "es";
+
+  // Crear mapa de secciones por tipo para acceso rápido
+  const sectionMap = new Map(
+    homeSections.map((s: { type: string; titleEs: string | null; titleEn: string | null; subtitleEs: string | null; subtitleEn: string | null; imageUrl: string | null; sortOrder: number }) => [s.type, s])
+  );
+
+  // Helper para obtener título/subtítulo localizado
+  const getTitle = (type: string) => {
+    const s = sectionMap.get(type);
+    if (!s) return undefined;
+    return (isEs ? s.titleEs : s.titleEn) || undefined;
+  };
+  const getSubtitle = (type: string) => {
+    const s = sectionMap.get(type);
+    if (!s) return undefined;
+    return (isEs ? s.subtitleEs : s.subtitleEn) || undefined;
+  };
+  const getImage = (type: string) => {
+    const s = sectionMap.get(type);
+    return s?.imageUrl || undefined;
+  };
+
+  // Verificar visibilidad (las secciones vienen filtradas por isVisible=true)
+  const isVisible = (type: string) => sectionMap.has(type);
+
+  // Definir orden de las secciones basado en sortOrder del admin
+  type SectionEntry = { type: string; render: () => React.ReactNode };
+  const allSections: SectionEntry[] = [
+    {
+      type: "HERO",
+      render: () => (
+        <HeroSection
+          key="hero"
+          title={getTitle("HERO")}
+          subtitle={getSubtitle("HERO")}
+          imageUrl={getImage("HERO")}
+        />
+      ),
+    },
+    {
+      type: "FEATURED_TOURS",
+      render: () =>
+        tours.length > 0 ? (
+          <FeaturedToursSection
+            key="featured"
+            tours={tours}
+            title={getTitle("FEATURED_TOURS")}
+            subtitle={getSubtitle("FEATURED_TOURS")}
+          />
+        ) : null,
+    },
+    {
+      type: "TESTIMONIALS",
+      render: () =>
+        testimonials.length > 0 ? (
+          <TestimonialsSection
+            key="testimonials"
+            testimonials={testimonials}
+            title={getTitle("TESTIMONIALS")}
+            subtitle={getSubtitle("TESTIMONIALS")}
+          />
+        ) : null,
+    },
+    {
+      type: "CTA",
+      render: () => (
+        <CTASection
+          key="cta"
+          title={getTitle("CTA")}
+          subtitle={getSubtitle("CTA")}
+          imageUrl={getImage("CTA")}
+        />
+      ),
+    },
+  ];
+
+  // Filtrar por visibilidad y ordenar por sortOrder del admin
+  const sortedSections = allSections
+    .filter((s) => isVisible(s.type))
+    .sort((a, b) => {
+      const orderA = sectionMap.get(a.type)?.sortOrder ?? 99;
+      const orderB = sectionMap.get(b.type)?.sortOrder ?? 99;
+      return orderA - orderB;
+    });
 
   return (
     <div>
-      <HeroSection />
-
-      <FeaturedToursSection tours={tours} />
-      {testimonials.length > 0 && (
-        <TestimonialsSection testimonials={testimonials} />
-      )}
+      {sortedSections.map((s) => s.render())}
+      {/* FAQs siempre visibles — no están en el sistema de HomeSections */}
       <FAQSection faqs={faqs} />
-      <CTASection />
     </div>
   );
 }

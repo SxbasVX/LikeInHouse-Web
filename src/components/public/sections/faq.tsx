@@ -14,7 +14,13 @@ interface FAQ {
   answerEn: string | null;
 }
 
-export function FAQSection({ faqs }: { faqs: FAQ[] }) {
+interface FAQSectionProps {
+  faqs: FAQ[];
+  title?: string;
+  subtitle?: string;
+}
+
+export function FAQSection({ faqs, title, subtitle }: FAQSectionProps) {
   const locale = useLocale();
   const isEs = locale === "es";
   const [openId, setOpenId] = useState<string | null>(null);
