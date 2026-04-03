@@ -79,6 +79,18 @@ export default function LoginPage() {
         </Link>
       </div>
 
+      {/* Logo flotando sobre la foto, encima del card */}
+      <div className="relative z-10 mb-6 flex justify-center">
+        <Image
+          src="/Logo-Azul.svg"
+          alt="LikeInHouse"
+          width={180}
+          height={46}
+          className="object-contain drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
+          priority
+        />
+      </div>
+
       {/* Layout dividido flotando sobre la foto */}
       <div className="relative z-10 flex w-full max-w-3xl rounded-3xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.6)]">
 
@@ -92,20 +104,8 @@ export default function LoginPage() {
           <div className="absolute -bottom-20 -left-12 w-64 h-64 rounded-full opacity-10 bg-white" />
           <div className="absolute top-1/2 -right-10 w-36 h-36 rounded-full opacity-10 bg-white" />
 
-          {/* Logo */}
-          <div className="relative z-10">
-            <Image
-              src="/Logo-Azul.svg"
-              alt="LikeInHouse"
-              width={150}
-              height={39}
-              className="object-contain"
-              priority
-            />
-          </div>
-
           {/* Texto */}
-          <div className="relative z-10 space-y-4">
+          <div className="relative z-10 space-y-4 mt-2">
             <div className="flex items-center gap-1.5 text-white/60 text-xs font-semibold uppercase tracking-widest">
               <MapPin className="h-3.5 w-3.5" />
               Agencia de turismo · Perú
@@ -119,7 +119,7 @@ export default function LoginPage() {
           </div>
 
           <p className="relative z-10 text-white/35 text-[11px]">
-            © {new Date().getFullYear()} LikeInHouse
+            Hecho por Vyper Design
           </p>
         </div>
 
@@ -128,7 +128,7 @@ export default function LoginPage() {
 
           {/* Logo mobile */}
           <div className="md:hidden mb-6 flex justify-center">
-            <Image src="/Logo-Azul.svg" alt="LikeInHouse" width={140} height={36} className="object-contain" priority />
+            <Image src="/Logo-Azul.svg" alt="LikeInHouse" width={140} height={36} className="object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]" priority />
           </div>
 
           {/* Encabezado */}
