@@ -77,7 +77,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
     : "AD";
 
   return (
-    <aside className="flex h-full w-64 flex-col rounded-2xl overflow-hidden" style={{ backgroundColor: "#441514" }}>
+    <aside className="flex h-full w-64 flex-col rounded-2xl overflow-hidden" style={{ backgroundColor: "#0f2d26" }}>
       {/* Logo */}
       <div className="flex h-16 items-center justify-center px-5 border-b border-white/10">
         <Image
@@ -112,12 +112,12 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
                             ? "text-white"
                             : "text-white/45 hover:bg-white/[0.05] hover:text-white/80"
                         )}
-                        style={active ? { backgroundColor: "rgba(229,207,190,0.10)" } : undefined}
+                        style={active ? { backgroundColor: "rgba(22,165,158,0.15)" } : undefined}
                       >
                         {active && (
                           <span
                             className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full"
-                            style={{ backgroundColor: "#e5cfbe" }}
+                            style={{ backgroundColor: "#16a59e" }}
                           />
                         )}
                         <Icon
@@ -142,7 +142,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
         <div className="flex items-center gap-3 mb-3">
           <div
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-            style={{ backgroundColor: "rgba(229,207,190,0.15)", color: "#e5cfbe", border: "1px solid rgba(229,207,190,0.25)" }}
+            style={{ backgroundColor: "rgba(22,165,158,0.20)", color: "#16a59e", border: "1px solid rgba(22,165,158,0.30)" }}
           >
             {initials}
           </div>
@@ -156,7 +156,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
           <div className="mb-3">
             <span
               className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-              style={{ backgroundColor: "rgba(229,207,190,0.10)", color: "#e5cfbe", borderColor: "rgba(229,207,190,0.20)" }}
+              style={{ backgroundColor: "rgba(22,165,158,0.15)", color: "#16a59e", borderColor: "rgba(22,165,158,0.25)" }}
             >
               {user.role}
             </span>
