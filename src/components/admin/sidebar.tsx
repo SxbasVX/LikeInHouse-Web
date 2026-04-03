@@ -97,7 +97,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
         <div className="space-y-5">
           {navSections.map((section) => (
             <div key={section.label}>
-              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/20">
+              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-white/50">
                 {section.label}
               </p>
               <ul className="space-y-0.5">
@@ -112,7 +112,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
                           "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                           active
                             ? "text-white"
-                            : "text-white/45 hover:bg-white/[0.05] hover:text-white/80"
+                            : "text-white/75 hover:bg-white/10 hover:text-white"
                         )}
                         style={active ? { backgroundColor: "rgba(255,255,255,0.18)" } : undefined}
                       >
@@ -125,7 +125,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
                         <Icon
                           className={cn(
                             "h-4 w-4 shrink-0 transition-colors duration-150",
-                            active ? "text-white/90" : "text-white/35 group-hover:text-white/60"
+                            active ? "text-white" : "text-white/70 group-hover:text-white"
                           )}
                         />
                         <span className="flex-1">{item.label}</span>
