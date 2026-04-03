@@ -84,8 +84,8 @@ export default function LoginPage() {
         <Image
           src="/Logo-Azul.svg"
           alt="LikeInHouse"
-          width={180}
-          height={46}
+          width={260}
+          height={67}
           className="object-contain drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
           priority
         />
