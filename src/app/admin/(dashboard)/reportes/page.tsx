@@ -57,6 +57,11 @@ function currentMonthStr(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
+const statusLabels: Record<string, string> = {
+  PENDING: "Pendiente", CONFIRMED: "Confirmada", PAID: "Pagada",
+  COMPLETED: "Completada", CANCELLED: "Cancelada",
+};
+
 function ChangeIndicator({ value }: { value: number | null }) {
   if (value === null) return <Minus className="h-4 w-4 text-muted-foreground" />;
   if (value > 0) return <span className="flex items-center text-emerald-600 text-sm font-medium"><TrendingUp className="h-4 w-4 mr-1" />+{value}%</span>;
@@ -480,7 +485,7 @@ export default function ReportesPage() {
                             <TableCell>{r.adults + r.children}</TableCell>
                             <TableCell className="font-medium">${r.totalAmount.toFixed(2)}</TableCell>
                             <TableCell>
-                              <Badge variant="outline">{r.status}</Badge>
+                              <Badge variant="outline">{statusLabels[r.status] || r.status}</Badge>
                             </TableCell>
                             <TableCell className="text-xs">
                               {new Date(r.createdAt).toLocaleDateString("es-PE", { timeZone: "UTC" })}

@@ -29,12 +29,12 @@ import {
   Plus,
 } from "lucide-react";
 
-const statusColors: Record<string, string> = {
-  PENDING: "bg-brand-orange/15 text-brand-orange",
-  CONFIRMED: "bg-brand-teal/15 text-brand-darkTeal",
-  PAID: "bg-brand-teal/15 text-brand-darkTeal",
-  COMPLETED: "bg-brand-beige text-brand-darkRed",
-  CANCELLED: "bg-brand-darkRed/15 text-brand-darkRed",
+const statusConfig: Record<string, { label: string; className: string }> = {
+  PENDING:   { label: "Pendiente",  className: "bg-amber-50 text-amber-700 border-amber-200" },
+  CONFIRMED: { label: "Confirmada", className: "bg-teal-50 text-teal-700 border-teal-200" },
+  PAID:      { label: "Pagada",     className: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  COMPLETED: { label: "Completada", className: "bg-gray-50 text-gray-600 border-gray-200" },
+  CANCELLED: { label: "Cancelada",  className: "bg-red-50 text-red-600 border-red-200" },
 };
 
 export default function DashboardPage() {
@@ -163,10 +163,10 @@ export default function DashboardPage() {
                     <TableCell>{res.tour.nameEs}</TableCell>
                     <TableCell>
                       <Badge
-                        variant="secondary"
-                        className={statusColors[res.status] || ""}
+                        variant="outline"
+                        className={statusConfig[res.status]?.className || "bg-gray-50 text-gray-600"}
                       >
-                        {res.status}
+                        {statusConfig[res.status]?.label || res.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">

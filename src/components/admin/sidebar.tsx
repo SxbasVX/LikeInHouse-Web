@@ -17,7 +17,6 @@ import {
   UserCog,
   LogOut,
   BarChart3,
-  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -116,23 +115,22 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
                       <Link
                         href={item.href}
                         className={cn(
-                          "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+                          "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                           active
-                            ? "bg-brand-orange text-white shadow-md shadow-brand-orange/25"
-                            : "text-white/60 hover:bg-white/8 hover:text-white"
+                            ? "bg-white/10 text-white"
+                            : "text-white/55 hover:bg-white/[0.06] hover:text-white/90"
                         )}
                       >
+                        {active && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-brand-orange" />
+                        )}
                         <Icon
                           className={cn(
-                            "h-4 w-4 shrink-0 transition-transform duration-150",
-                            active ? "text-white" : "text-white/50 group-hover:text-white",
-                            !active && "group-hover:scale-110"
+                            "h-4 w-4 shrink-0 transition-colors duration-150",
+                            active ? "text-brand-orange" : "text-white/40 group-hover:text-white/70"
                           )}
                         />
                         <span className="flex-1">{item.label}</span>
-                        {active && (
-                          <ChevronRight className="h-3 w-3 text-white/60 shrink-0" />
-                        )}
                       </Link>
                     </li>
                   );
