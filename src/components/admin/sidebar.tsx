@@ -77,11 +77,11 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
     : "AD";
 
   return (
-    <aside className="flex h-full w-64 flex-col rounded-2xl overflow-hidden" style={{ backgroundColor: "#0f2d26" }}>
+    <aside className="flex h-full w-64 flex-col rounded-2xl overflow-hidden" style={{ backgroundColor: "#e8411d" }}>
       {/* Logo */}
       <div className="flex h-16 items-center justify-center px-5 border-b border-white/10">
         <Image
-          src="/Logo-Azul.svg"
+          src="/Logo.svg"
           alt="LikeInHouse"
           width={148}
           height={38}
@@ -112,12 +112,12 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
                             ? "text-white"
                             : "text-white/45 hover:bg-white/[0.05] hover:text-white/80"
                         )}
-                        style={active ? { backgroundColor: "rgba(22,165,158,0.15)" } : undefined}
+                        style={active ? { backgroundColor: "rgba(255,255,255,0.18)" } : undefined}
                       >
                         {active && (
                           <span
                             className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full"
-                            style={{ backgroundColor: "#16a59e" }}
+                            style={{ backgroundColor: "#e5cfbe" }}
                           />
                         )}
                         <Icon
@@ -142,7 +142,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
         <div className="flex items-center gap-3 mb-3">
           <div
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-            style={{ backgroundColor: "rgba(22,165,158,0.20)", color: "#16a59e", border: "1px solid rgba(22,165,158,0.30)" }}
+            style={{ backgroundColor: "rgba(255,255,255,0.20)", color: "#fff", border: "1px solid rgba(255,255,255,0.30)" }}
           >
             {initials}
           </div>
@@ -156,7 +156,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
           <div className="mb-3">
             <span
               className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-              style={{ backgroundColor: "rgba(22,165,158,0.15)", color: "#16a59e", borderColor: "rgba(22,165,158,0.25)" }}
+              style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "#fff", borderColor: "rgba(255,255,255,0.25)" }}
             >
               {user.role}
             </span>
