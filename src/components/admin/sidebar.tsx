@@ -77,19 +77,21 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
     : "AD";
 
   return (
-    <aside className="flex h-full w-64 flex-col rounded-2xl overflow-hidden" style={{ backgroundColor: "#e8411d" }}>
-      {/* Logo */}
-      <div className="flex h-16 items-center justify-center px-5 border-b border-white/10">
+    <div className="flex h-full w-64 flex-col gap-2">
+      {/* Logo fuera del box */}
+      <div className="flex items-center justify-center px-5 py-3">
         <Image
           src="/Logo-Azul.svg"
           alt="LikeInHouse"
-          width={148}
-          height={38}
+          width={160}
+          height={41}
           className="object-contain"
           priority
         />
       </div>
 
+      {/* Sidebar box */}
+      <aside className="flex flex-1 flex-col rounded-2xl overflow-hidden min-h-0" style={{ backgroundColor: "#e8411d" }}>
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin">
         <div className="space-y-5">
@@ -175,6 +177,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
           Cerrar sesión
         </button>
       </div>
-    </aside>
+      </aside>
+    </div>
   );
 }
