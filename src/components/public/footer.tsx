@@ -64,28 +64,16 @@ export function Footer() {
   return (
     <footer className="relative overflow-hidden">
 
-      {/* ── SILUETA ANDINA ─────────────────────────────────── */}
-      {/* Transición visual desde el contenido de la página al footer oscuro */}
-      <div className="relative bg-gray-50 leading-[0] mb-[-2px]">
+      {/* ── TRANSICIÓN AL FOOTER ─────────────────────────────── */}
+      <div className="relative leading-[0]">
         <svg
-          viewBox="0 0 1440 220"
+          viewBox="0 0 1440 80"
           xmlns="http://www.w3.org/2000/svg"
           className="w-full block"
           preserveAspectRatio="none"
         >
-          {/* Capa de fondo — montañas lejanas con cimas redondeadas */}
           <path
-            d="M0,175 Q90,140 180,158 Q270,176 360,130 Q450,84 540,105 Q630,126 720,70 Q810,14 900,42 Q990,70 1080,28 Q1170,-14 1260,18 Q1350,50 1440,12 L1440,220 L0,220 Z"
-            fill="#2A1210"
-          />
-          {/* Capa media — Andes intermedios con curvas suaves */}
-          <path
-            d="M0,198 Q80,178 170,188 Q260,198 360,165 Q460,132 555,150 Q650,168 740,128 Q830,88 930,108 Q1030,128 1120,90 Q1210,52 1310,72 Q1375,82 1440,58 L1440,220 L0,220 Z"
-            fill="#3D1715"
-          />
-          {/* Capa frontal — montañas más cercanas, cimas muy suaves */}
-          <path
-            d="M0,215 Q80,205 170,210 Q260,215 360,195 Q460,175 555,188 Q650,201 745,178 Q840,155 935,168 Q1030,181 1125,155 Q1220,129 1320,145 Q1385,153 1440,132 L1440,220 Z"
+            d="M0,40 Q360,0 720,30 Q1080,60 1440,10 L1440,80 L0,80 Z"
             fill="#1C0D0C"
           />
         </svg>
