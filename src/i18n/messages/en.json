@@ -23,7 +23,10 @@
     "previous": "Previous",
     "next": "Next",
     "sending": "Sending...",
-    "phone_invalid": "Invalid phone format"
+    "phone_invalid": "Invalid phone format",
+    "custom_trip_title": "Looking for something more personalized?",
+    "custom_trip_desc": "Tell us what you have in mind and we'll design the perfect trip for you. We reply in minutes.",
+    "whatsapp_cta": "Write us on WhatsApp"
   },
   "home": {
     "hero_badge": "Explore Peru like at home",
