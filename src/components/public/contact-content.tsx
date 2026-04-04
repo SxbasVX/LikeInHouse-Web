@@ -7,6 +7,7 @@ import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
 export function ContactContent() {
   const t = useTranslations("contact");
+  const tc = useTranslations("common");
   const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "51984123456";
 
   const heroAnim = useScrollAnimation({ threshold: 0.1 });
@@ -22,7 +23,7 @@ export function ContactContent() {
             className={`${heroAnim.isVisible ? "scroll-visible" : "scroll-hidden"} text-center`}
           >
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-teal mb-4">
-              Contacto
+              {t("title")}
             </p>
             <h1 className="font-heading text-4xl font-light text-brand-darkRed sm:text-5xl lg:text-[3.5rem] tracking-tight leading-[1.1]">
               {t("title").split(" ").slice(0, 2).join(" ")}{" "}
@@ -61,14 +62,14 @@ export function ContactContent() {
               {/* Datos de contacto */}
               <div className="rounded-2xl bg-[#faf8f5] p-7">
                 <h3 className="font-heading text-sm font-bold uppercase tracking-wider text-brand-darkRed/60 mb-5">
-                  Información
+                  {t("info_title")}
                 </h3>
                 <div className="space-y-5">
                   {[
-                    { icon: MapPin, label: "Oficina", value: "Av. El Sol 456, Cusco, Perú" },
-                    { icon: Phone, label: "Teléfono", value: "+51 84 123 456" },
-                    { icon: Mail, label: "Email", value: "info@perutours.com" },
-                    { icon: Clock, label: "Horario", value: "Lun - Sab: 8:00 AM - 6:00 PM" },
+                    { icon: MapPin, label: t("office"), value: "Av. El Sol 456, Cusco, Perú" },
+                    { icon: Phone, label: tc("phone"), value: "+51 84 123 456" },
+                    { icon: Mail, label: tc("email"), value: "info@likeinhouse.com" },
+                    { icon: Clock, label: t("schedule_label"), value: t("schedule") },
                   ].map(({ icon: Icon, label, value }) => (
                     <div key={label} className="flex items-start gap-3">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-teal/10">
@@ -95,7 +96,7 @@ export function ContactContent() {
                 <p className="font-heading font-bold text-brand-darkRed mb-1">
                   {t("whatsapp_cta", { fallback: "¿Prefieres WhatsApp?" })}
                 </p>
-                <p className="text-xs text-gray-500 mb-5">Respondemos en minutos</p>
+                <p className="text-xs text-gray-500 mb-5">{t("reply_fast")}</p>
                 <a
                   href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}?text=${encodeURIComponent("Hola, quiero información sobre tours")}`}
                   target="_blank"

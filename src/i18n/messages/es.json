@@ -145,6 +145,12 @@
     "subject": "Asunto",
     "message": "Mensaje",
     "send": "Enviar Mensaje",
+    "send_message": "Envíanos un mensaje",
+    "info_title": "Información",
+    "office": "Oficina",
+    "schedule_label": "Horario",
+    "schedule": "Lun - Sab: 8:00 AM - 6:00 PM",
+    "reply_fast": "Respondemos en minutos",
     "success": "¡Mensaje enviado! Te responderemos pronto.",
     "whatsapp_cta": "¿Prefieres WhatsApp?",
     "whatsapp_button": "Escríbenos por WhatsApp"

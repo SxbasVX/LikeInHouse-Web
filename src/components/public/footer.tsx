@@ -62,25 +62,10 @@ export function Footer() {
   const email = getSetting("contactEmail", "info@likeinhouse.com");
 
   return (
-    <footer className="relative overflow-hidden">
-
-      {/* ── TRANSICIÓN AL FOOTER ─────────────────────────────── */}
-      <div className="relative leading-[0]">
-        <svg
-          viewBox="0 0 1440 80"
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-full block"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M0,40 Q360,0 720,30 Q1080,60 1440,10 L1440,80 L0,80 Z"
-            fill="#1C0D0C"
-          />
-        </svg>
-      </div>
+    <footer className="relative overflow-hidden bg-[#1C0D0C]">
 
       {/* ── CUERPO DEL FOOTER ───────────────────────────────── */}
-      <div className="bg-[#1C0D0C]">
+      <div>
         <div className="mx-auto max-w-[1400px] px-4 pt-10 pb-6 sm:px-6 lg:px-12">
 
           {/* Grid principal */}
