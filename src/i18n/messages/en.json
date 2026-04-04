@@ -150,6 +150,7 @@
     "whatsapp_button": "Write us on WhatsApp"
   },
   "about": {
+    "badge": "About us",
     "title": "About Us",
     "subtitle": "We are LikeInHouse, committed to providing authentic experiences in Peru",
     "mission_title": "Our Mission",
@@ -163,8 +164,9 @@
     "value_4": "Responsible and sustainable tourism"
   },
   "blog": {
-    "title": "Travel Blog",
-    "subtitle": "Tips, guides and news about tourism in Peru",
+    "title": "Traveler Tips",
+    "subtitle": "Tips, guides and experiences for your next adventure in Peru",
+    "badge": "Tips & experiences",
     "read_more": "Read more",
     "no_posts": "No posts available yet"
   },

@@ -32,24 +32,29 @@ export default async function BlogPage() {
 
   return (
     <div className="page-transition">
-      {/* Header */}
-      <section className="bg-white border-b border-gray-100 pt-16 pb-10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-          <span className="inline-block text-xs font-bold uppercase tracking-widest text-brand-orange mb-3">
-            Blog
-          </span>
-          <h1 className="font-heading text-4xl font-bold text-gray-900 sm:text-5xl">
-            {t("title")}
-          </h1>
-          <p className="mt-3 text-base text-gray-500 max-w-xl mx-auto">
-            {t("subtitle")}
-          </p>
+      {/* Header — mismo estilo que tours catalog */}
+      <section className="bg-[#faf8f5] border-b border-gray-100">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12 py-20 lg:py-28">
+          <div className="text-center">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-teal mb-4">
+              {t("badge", { fallback: "Tips & experiencias" })}
+            </p>
+            <h1 className="font-heading text-4xl font-light text-brand-darkRed sm:text-5xl lg:text-[3.5rem] tracking-tight leading-[1.1]">
+              {t("title").split(" ")[0]}{" "}
+              <span className="font-serif italic font-normal text-brand-teal">
+                {t("title").split(" ").slice(1).join(" ") || "de viajeros"}
+              </span>
+            </h1>
+            <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-500 font-light leading-relaxed">
+              {t("subtitle")}
+            </p>
+          </div>
         </div>
       </section>
 
       {/* Posts */}
-      <section className="bg-gray-50 py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="bg-white py-16 lg:py-20">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
           <BlogList initialData={initialData} />
         </div>
       </section>

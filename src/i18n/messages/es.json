@@ -150,6 +150,7 @@
     "whatsapp_button": "Escríbenos por WhatsApp"
   },
   "about": {
+    "badge": "Conócenos",
     "title": "Sobre Nosotros",
     "subtitle": "Somos LikeInHouse, comprometidos con brindarte experiencias auténticas en Perú",
     "mission_title": "Nuestra Misión",
@@ -163,8 +164,9 @@
     "value_4": "Turismo responsable y sostenible"
   },
   "blog": {
-    "title": "Blog de Viajes",
-    "subtitle": "Consejos, guías y novedades del turismo en Perú",
+    "title": "Tips de Viajeros",
+    "subtitle": "Consejos, guías y experiencias para tu próxima aventura en Perú",
+    "badge": "Tips & experiencias",
     "read_more": "Leer más",
     "no_posts": "No hay publicaciones disponibles aún"
   },
