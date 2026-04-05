@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
-import { ArrowUpRight, Search, Star } from "lucide-react";
+import { ArrowUpRight, Search } from "lucide-react";
 import Image from "next/image";
 
 const DEFAULT_HERO_BG = "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=1920&q=80";
@@ -14,10 +14,9 @@ interface HeroProps {
   title?: string;
   subtitle?: string;
   imageUrl?: string;
-  testimonials?: { clientName: string; rating: number; textEs: string; textEn?: string | null; country?: string | null }[];
 }
 
-export function HeroSection({ title, subtitle, imageUrl, testimonials = [] }: HeroProps = {}) {
+export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
   const t = useTranslations("home");
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -119,34 +118,6 @@ export function HeroSection({ title, subtitle, imageUrl, testimonials = [] }: He
         </div>
       </div>
 
-      {/* Bottom: mini testimonials */}
-      {testimonials.length > 0 && (
-        <div
-          className="animate-slide-up relative z-30 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pb-8 lg:pb-12 pointer-events-auto"
-          style={{ animationDelay: "400ms", animationFillMode: "both" }}
-        >
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
-            {testimonials.slice(0, 4).map((test, i) => (
-              <div
-                key={i}
-                className="shrink-0 flex flex-col gap-2 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/15 px-5 py-4 max-w-[280px]"
-              >
-                <div className="flex gap-0.5">
-                  {[...Array(5)].map((_, s) => (
-                    <Star key={s} className={`h-3 w-3 ${s < test.rating ? "fill-brand-orange text-brand-orange" : "text-white/20"}`} />
-                  ))}
-                </div>
-                <p className="text-sm text-white/80 leading-snug line-clamp-2">
-                  &ldquo;{test.textEs}&rdquo;
-                </p>
-                <p className="text-xs text-white/40 font-medium">
-                  {test.clientName}{test.country ? ` · ${test.country}` : ""}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </section>
   );
 }

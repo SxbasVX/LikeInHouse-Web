@@ -77,7 +77,6 @@ export default async function HomePage() {
           title={getTitle("HERO")}
           subtitle={getSubtitle("HERO")}
           imageUrl={getImage("HERO")}
-          testimonials={testimonials.slice(0, 4)}
         />
       ),
     },
