@@ -1210,6 +1210,18 @@ function ContactMessagesSection() {
   );
 }
 
+// Predefined settings with friendly labels
+const PREDEFINED_SETTINGS = [
+  { key: "phone", label: "Teléfono", placeholder: "+51 84 123 456" },
+  { key: "contactEmail", label: "Email de contacto", placeholder: "info@likeinhouse.com" },
+  { key: "address", label: "Dirección", placeholder: "Av. El Sol 456, Cusco, Perú" },
+  { key: "airbnbUrl", label: "Link de Airbnb", placeholder: "https://www.airbnb.com/rooms/..." },
+  { key: "facebookUrl", label: "Facebook", placeholder: "https://facebook.com/..." },
+  { key: "instagramUrl", label: "Instagram", placeholder: "https://instagram.com/..." },
+  { key: "tiktokUrl", label: "TikTok", placeholder: "https://tiktok.com/@..." },
+  { key: "youtubeUrl", label: "YouTube", placeholder: "https://youtube.com/@..." },
+] as const;
+
 // ===== Settings =====
 function SettingsSection() {
   const { toast } = useToast();
@@ -1229,6 +1241,17 @@ function SettingsSection() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  const getSettingValue = (key: string): string => {
+    if (!settings) return "";
+    const s = settings.find((s: Setting) => s.key === key);
+    if (!s) return "";
+    return typeof s.value === "string" ? s.value : JSON.stringify(s.value);
+  };
+
+  const handleQuickSave = (key: string, value: string) => {
+    upsertSetting.mutate({ key, value });
+  };
 
   const handleEdit = (setting: Setting) => {
     setEditingKey(setting.key);
@@ -1269,13 +1292,42 @@ function SettingsSection() {
     );
   }
 
+  // Settings not in the predefined list
+  const predefinedKeys = new Set<string>(PREDEFINED_SETTINGS.map(s => s.key));
+  const customSettings = settings?.filter((s: Setting) => !predefinedKeys.has(s.key)) || [];
+
   return (
-    <>
+    <div className="space-y-6">
+      {/* Predefined Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Datos de Contacto y Links</CardTitle>
+          <CardDescription>Información que aparece en el sitio web</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {PREDEFINED_SETTINGS.map(({ key, label, placeholder }) => {
+            const currentValue = getSettingValue(key);
+            return (
+              <PredefinedSettingRow
+                key={key}
+                settingKey={key}
+                label={label}
+                placeholder={placeholder}
+                currentValue={currentValue}
+                onSave={handleQuickSave}
+                isPending={upsertSetting.isPending}
+              />
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      {/* Custom Settings */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Configuración General</CardTitle>
-            <CardDescription>Configuraciones del sistema</CardDescription>
+            <CardTitle>Configuración Avanzada</CardTitle>
+            <CardDescription>Otras configuraciones del sistema</CardDescription>
           </div>
           <Button onClick={() => setShowCreate(true)}>
             <Plus className="mr-2 h-4 w-4" /> Nueva Config
@@ -1291,7 +1343,7 @@ function SettingsSection() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {settings?.map((setting: Setting) => (
+              {customSettings.map((setting: Setting) => (
                 <TableRow key={setting.id}>
                   <TableCell className="font-mono text-sm">{setting.key}</TableCell>
                   <TableCell>
@@ -1340,6 +1392,13 @@ function SettingsSection() {
                   </TableCell>
                 </TableRow>
               ))}
+              {customSettings.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">
+                    No hay configuraciones personalizadas
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -1354,7 +1413,7 @@ function SettingsSection() {
           <form onSubmit={handleCreateSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Clave</Label>
-              <Input name="key" required placeholder="site_name, whatsapp_number, etc." />
+              <Input name="key" required placeholder="mi_configuracion" />
             </div>
             <div className="space-y-2">
               <Label>Valor</Label>
@@ -1371,6 +1430,46 @@ function SettingsSection() {
           </form>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
+  );
+}
+
+// Inline editable row for predefined settings
+function PredefinedSettingRow({
+  settingKey, label, placeholder, currentValue, onSave, isPending,
+}: {
+  settingKey: string; label: string; placeholder: string;
+  currentValue: string; onSave: (key: string, value: string) => void; isPending: boolean;
+}) {
+  const [value, setValue] = useState(currentValue);
+  const [dirty, setDirty] = useState(false);
+
+  const handleChange = (v: string) => {
+    setValue(v);
+    setDirty(v !== currentValue);
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+      <Label className="w-40 shrink-0 text-sm font-medium">{label}</Label>
+      <div className="flex flex-1 gap-2">
+        <Input
+          value={value}
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1"
+        />
+        {dirty && (
+          <Button
+            size="sm"
+            onClick={() => { onSave(settingKey, value); setDirty(false); }}
+            disabled={isPending}
+            className="shrink-0"
+          >
+            <Save className="h-4 w-4 mr-1" /> Guardar
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }

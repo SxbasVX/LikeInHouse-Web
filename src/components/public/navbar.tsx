@@ -87,6 +87,12 @@ export function Navbar() {
     refetchOnReconnect: false,
   });
 
+  const { data: settings } = trpc.public.settings.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+  const airbnbUrl = settings ? (settings as Record<string, string>)["airbnbUrl"] : undefined;
+
   const destinations = toursByDest ? Object.keys(toursByDest) : [];
 
   const isActive = (href: string) => {
@@ -155,6 +161,12 @@ export function Navbar() {
                 <DropdownMenuItem onClick={() => switchLocale("en")} className="rounded-lg cursor-pointer focus:bg-white/20">English</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            {airbnbUrl && (
+              <a href={airbnbUrl} target="_blank" rel="noopener noreferrer" className="h-10 lg:h-11 rounded-full bg-white/10 hover:bg-[#FF5A5F] text-white border border-white/20 hover:border-[#FF5A5F] px-4 text-[14px] font-semibold transition-all ml-1 inline-flex items-center gap-2">
+                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.7 17.4c-.3.6-.8 1-1.4 1.2-.2.1-.4.1-.6.1-.4 0-.7-.1-1-.3-.4-.2-.8-.6-1.3-1-.5-.5-1.1-1.2-1.7-2-.9-1.2-1.5-2.3-1.7-3.2-.3-1.1-.1-2 .4-2.6.4-.5 1-.7 1.6-.7.2 0 .3 0 .5.1.4.1.7.4 1 .9l.8 1.2c.2.3.3.5.4.8.1.3.1.5 0 .7-.1.3-.3.5-.5.8l-.2.2c-.1.1-.1.2-.1.3 0 .1.1.2.1.3.3.5.7 1 1.2 1.5.5.5 1 .8 1.5 1 .1.1.2.1.3.1s.2 0 .3-.1l.2-.2c.3-.3.5-.5.8-.6.2-.1.4-.1.7 0 .3.1.5.2.8.4l1.3.9c.4.3.7.6.8 1 .2.4.1.9-.1 1.3z"/></svg>
+                Airbnb
+              </a>
+            )}
             <Button asChild className="h-10 lg:h-11 rounded-full bg-white/20 hover:bg-white text-white hover:text-brand-darkRed border border-white/30 pl-5 pr-1.5 text-[14px] font-semibold transition-all ml-1 group">
               <Link href="/tours" className="flex items-center gap-2.5">
                 {t("book", { fallback: "Reservar" })}
@@ -172,7 +184,7 @@ export function Navbar() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} />
+              <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbUrl={airbnbUrl} />
             </Sheet>
           </div>
         </div>
@@ -227,8 +239,14 @@ export function Navbar() {
               <DropdownMenuItem onClick={() => switchLocale("en")} className="rounded-lg cursor-pointer">English</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          {airbnbUrl && (
+            <a href={airbnbUrl} target="_blank" rel="noopener noreferrer" className="h-10 lg:h-11 rounded-full bg-gray-100 hover:bg-[#FF5A5F] text-gray-700 hover:text-white border border-gray-200 hover:border-[#FF5A5F] px-4 text-[14px] font-semibold transition-all ml-1 inline-flex items-center gap-2">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.7 17.4c-.3.6-.8 1-1.4 1.2-.2.1-.4.1-.6.1-.4 0-.7-.1-1-.3-.4-.2-.8-.6-1.3-1-.5-.5-1.1-1.2-1.7-2-.9-1.2-1.5-2.3-1.7-3.2-.3-1.1-.1-2 .4-2.6.4-.5 1-.7 1.6-.7.2 0 .3 0 .5.1.4.1.7.4 1 .9l.8 1.2c.2.3.3.5.4.8.1.3.1.5 0 .7-.1.3-.3.5-.5.8l-.2.2c-.1.1-.1.2-.1.3 0 .1.1.2.1.3.3.5.7 1 1.2 1.5.5.5 1 .8 1.5 1 .1.1.2.1.3.1s.2 0 .3-.1l.2-.2c.3-.3.5-.5.8-.6.2-.1.4-.1.7 0 .3.1.5.2.8.4l1.3.9c.4.3.7.6.8 1 .2.4.1.9-.1 1.3z"/></svg>
+              Airbnb
+            </a>
+          )}
           <Button asChild className="h-10 lg:h-11 rounded-full bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-1.5 text-[14px] font-semibold transition-all ml-1 group shadow-sm">
-            <Link href="/contacto" className="flex items-center gap-2.5">
+            <Link href="/tours" className="flex items-center gap-2.5">
               {t("book", { fallback: "Reservar" })}
               <div className="flex items-center justify-center bg-white/20 rounded-full h-8 w-8 group-hover:bg-white group-hover:text-brand-darkRed transition-colors duration-300">
                 <ArrowUpRight className="h-4 w-4 group-hover:rotate-12 transition-transform" />
@@ -250,7 +268,7 @@ export function Navbar() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} />
+            <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbUrl={airbnbUrl} />
           </Sheet>
         </div>
       </div>
@@ -259,11 +277,12 @@ export function Navbar() {
 }
 
 // ─── Shared Mobile Menu Content ───────────────────────────────────────────────
-function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMobileOpen }: {
+function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMobileOpen, airbnbUrl }: {
   t: any; isEs: boolean; cartCount: number;
   switchLocale: (loc: "es" | "en") => void;
   intlRouter: any;
   setMobileOpen: (v: boolean) => void;
+  airbnbUrl?: string;
 }) {
   return (
     <SheetContent side="left" className="w-[95vw] sm:w-[500px] p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] m-2 sm:m-4 h-[calc(100vh-16px)] sm:h-[calc(100vh-32px)] border-0 shadow-2xl overflow-y-auto flex flex-col bg-white">
@@ -301,6 +320,15 @@ function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMo
       </div>
 
       <div className="flex-1" />
+
+      {airbnbUrl && (
+        <a href={airbnbUrl} target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)} className="flex justify-between items-center group mt-6">
+          <span className="text-2xl font-medium text-[#FF5A5F] group-hover:text-[#e04e52] transition-colors">Airbnb</span>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FF5A5F]/10 text-[#FF5A5F] group-hover:bg-[#FF5A5F] group-hover:text-white transition-colors">
+            <ArrowUpRight className="h-5 w-5" />
+          </div>
+        </a>
+      )}
 
       <div className="flex gap-3 mt-12 mb-4">
         <Button variant="outline" className="flex-1 rounded-2xl h-14 font-semibold text-lg border-neutral-200" onClick={() => { switchLocale(isEs ? "en" : "es"); setMobileOpen(false); }}>
