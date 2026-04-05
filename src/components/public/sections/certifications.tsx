@@ -9,8 +9,7 @@ import { Award } from "lucide-react";
 export function CertificationsSection() {
   const locale = useLocale();
   const isEs = locale === "es";
-  const header = useScrollAnimation({ threshold: 0.2 });
-  const logos = useScrollAnimation({ threshold: 0.1 });
+  const section = useScrollAnimation({ threshold: 0.2 });
 
   const { data: settings } = trpc.public.settings.useQuery(undefined, { staleTime: 10 * 60 * 1000 });
   const getSetting = (key: string) => {
@@ -28,48 +27,51 @@ export function CertificationsSection() {
   if (items.length === 0) return null;
 
   return (
-    <section className="bg-white py-16 lg:py-20 border-t border-gray-100">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        <div
-          ref={header.ref}
-          className={`${header.isVisible ? "scroll-visible" : "scroll-hidden"} text-center mb-10`}
-        >
-          <span className="inline-block text-xs font-bold uppercase tracking-widest text-brand-orange mb-3">
-            {isEs ? "Respaldo" : "Certifications"}
-          </span>
-          <h2 className="font-heading text-2xl font-bold text-gray-900 sm:text-3xl leading-tight">
-            {isEs ? "Certificaciones y" : "Certifications &"}
-            <br />
-            <span className="font-serif italic font-normal text-brand-darkRed">
-              {isEs ? "reconocimientos." : "awards."}
-            </span>
-          </h2>
-        </div>
+    <section className="bg-brand-teal/[0.04] border-y border-brand-teal/10 py-12 lg:py-14">
+      <div
+        ref={section.ref}
+        className={`${section.isVisible ? "scroll-visible" : "scroll-hidden"} mx-auto max-w-6xl px-4 sm:px-6 lg:px-8`}
+      >
+        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+          {/* Lado izquierdo — texto */}
+          <div className="flex items-center gap-4 shrink-0">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-teal/10">
+              <Award className="h-6 w-6 text-brand-teal" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-800">
+                {isEs ? "Certificaciones y premios" : "Certifications & awards"}
+              </p>
+              <p className="text-xs text-gray-500">
+                {isEs ? "Avalados por instituciones del sector turismo" : "Endorsed by tourism industry institutions"}
+              </p>
+            </div>
+          </div>
 
-        <div
-          ref={logos.ref}
-          className={`${logos.isVisible ? "scroll-visible" : "scroll-hidden"} flex flex-wrap items-center justify-center gap-5 sm:gap-6`}
-        >
-          {items.map((item, i) => {
-            const card = (
-              <div className="group flex items-center justify-center rounded-2xl border border-gray-100 bg-[#faf8f5] p-5 sm:p-6 transition-all hover:shadow-lg hover:-translate-y-1 hover:border-brand-orange/20">
+          {/* Separador */}
+          <div className="hidden md:block w-px h-12 bg-brand-teal/15" />
+
+          {/* Lado derecho — logos */}
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 sm:gap-8 flex-1">
+            {items.map((item, i) => {
+              const img = (
                 <Image
                   src={item.url}
                   alt={`${isEs ? "Certificación" : "Certification"} ${i + 1}`}
-                  width={120}
-                  height={80}
-                  className="h-14 sm:h-16 w-auto object-contain"
+                  width={100}
+                  height={50}
+                  className="h-10 sm:h-12 w-auto object-contain grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all duration-300"
                 />
-              </div>
-            );
-            return item.link ? (
-              <a key={i} href={item.link} target="_blank" rel="noopener noreferrer">
-                {card}
-              </a>
-            ) : (
-              <div key={i}>{card}</div>
-            );
-          })}
+              );
+              return item.link ? (
+                <a key={i} href={item.link} target="_blank" rel="noopener noreferrer">
+                  {img}
+                </a>
+              ) : (
+                <div key={i}>{img}</div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

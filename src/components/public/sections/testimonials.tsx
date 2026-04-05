@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations, useLocale } from "next-intl";
-import { Star, Quote } from "lucide-react";
+import { Star } from "lucide-react";
 import { useScrollAnimation, useStaggerAnimation } from "@/hooks/use-scroll-animation";
 
 interface Testimonial {
@@ -20,26 +20,6 @@ interface TestimonialsSectionProps {
   subtitle?: string;
 }
 
-// Colores de avatar estilo Google
-const GOOGLE_AVATAR_COLORS = [
-  "#1A73E8", // azul
-  "#EA4335", // rojo
-  "#34A853", // verde
-  "#FBBC05", // amarillo
-  "#A142F4", // morado
-  "#E8710A", // naranja
-  "#0D652D", // verde oscuro
-  "#185ABC", // azul oscuro
-];
-
-function getAvatarColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return GOOGLE_AVATAR_COLORS[Math.abs(hash) % GOOGLE_AVATAR_COLORS.length];
-}
-
 function GoogleIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className}>
@@ -51,102 +31,108 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
+// Colores de avatar estilo Google
+const GOOGLE_AVATAR_COLORS = [
+  "#1A73E8", "#EA4335", "#34A853", "#FBBC05",
+  "#A142F4", "#E8710A", "#0D652D", "#185ABC",
+];
+
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return GOOGLE_AVATAR_COLORS[Math.abs(hash) % GOOGLE_AVATAR_COLORS.length];
+}
+
 export function TestimonialsSection({ testimonials, title, subtitle }: TestimonialsSectionProps) {
   const t = useTranslations("home");
   const locale = useLocale();
   const isEs = locale === "es";
   const header = useScrollAnimation({ threshold: 0.2 });
   const cards = useStaggerAnimation({ threshold: 0.1 });
-  const badge = useScrollAnimation({ threshold: 0.3 });
 
-  // Calcular rating promedio
   const avgRating = testimonials.length > 0
     ? testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length
     : 4.5;
 
   return (
-    <section className="bg-[#faf8f5] py-20 lg:py-28">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div ref={header.ref} className={`${header.isVisible ? "scroll-visible" : "scroll-hidden"} text-center mb-14`}>
-          <span className="inline-block text-xs font-bold uppercase tracking-widest text-brand-orange mb-3">
-            Google Reviews
-          </span>
-          <h2 className="font-heading text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl leading-tight">
-            {isEs ? "Lo que dicen" : "What our"}
-            <br />
-            <span className="font-serif italic font-normal text-brand-darkRed">
-              {isEs ? "nuestros viajeros." : "travelers say."}
-            </span>
-          </h2>
+    <section className="bg-[#1C0D0C] py-20 lg:py-28 relative overflow-hidden">
+      {/* Decoración sutil */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
 
-          {/* Google Reviews badge */}
-          <div className="mt-6 inline-flex items-center gap-3 rounded-full bg-white px-5 py-2.5 shadow-sm border border-gray-100">
-            <GoogleIcon className="h-5 w-5" />
-            <div className="flex items-center gap-1.5">
-              <span className="text-lg font-bold text-gray-900">{avgRating.toFixed(1)}</span>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Header */}
+        <div ref={header.ref} className={`${header.isVisible ? "scroll-visible" : "scroll-hidden"} flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 mb-14`}>
+          <div>
+            <div className="inline-flex items-center gap-2.5 rounded-full bg-white/10 px-4 py-2 mb-5">
+              <GoogleIcon className="h-4 w-4" />
               <div className="flex gap-0.5">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    className={`h-3.5 w-3.5 ${
-                      i < Math.round(avgRating)
-                        ? "fill-amber-400 text-amber-400"
-                        : "text-gray-200"
+                    className={`h-3 w-3 ${
+                      i < Math.round(avgRating) ? "fill-amber-400 text-amber-400" : "text-white/20"
                     }`}
                   />
                 ))}
               </div>
+              <span className="text-sm font-semibold text-white">{avgRating.toFixed(1)}</span>
+              <span className="text-xs text-white/40">· 42 {isEs ? "reseñas" : "reviews"}</span>
             </div>
-            <span className="text-sm text-gray-500">
-              42 {isEs ? "opiniones" : "reviews"}
-            </span>
+            <h2 className="font-heading text-3xl font-light text-white sm:text-4xl lg:text-5xl tracking-tight leading-[1.1]">
+              {isEs ? "Viajeros que " : "Travelers who "}
+              <span className="font-serif italic text-brand-orange">
+                {isEs ? "nos recomiendan" : "recommend us"}
+              </span>
+            </h2>
           </div>
+          <a
+            href="https://www.google.com/search?q=Like+In+House+Cusco+Peru"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-sm text-white/60 hover:text-white hover:border-white/30 transition-all"
+          >
+            <GoogleIcon className="h-4 w-4" />
+            {isEs ? "Ver en Google" : "View on Google"}
+          </a>
         </div>
 
         {/* Cards */}
-        <div ref={cards.ref} className={`grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 ${cards.className}`}>
+        <div ref={cards.ref} className={`grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 ${cards.className}`}>
           {testimonials.slice(0, 6).map((test) => (
             <div
               key={test.id}
-              className="group relative rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 sm:p-8"
+              className="group rounded-2xl bg-white/[0.06] backdrop-blur-sm border border-white/10 p-6 sm:p-7 transition-all duration-300 hover:bg-white/[0.1] hover:border-white/20"
             >
-              {/* Google icon */}
-              <div className="absolute right-6 top-6">
-                <GoogleIcon className="h-5 w-5 opacity-40 group-hover:opacity-70 transition-opacity" />
-              </div>
-
               {/* Stars */}
               <div className="mb-4 flex gap-1">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    aria-label={i < test.rating ? "filled star" : "empty star"}
-                    className={`h-4 w-4 ${
-                      i < test.rating
-                        ? "fill-amber-400 text-amber-400"
-                        : "text-gray-200"
+                    className={`h-3.5 w-3.5 ${
+                      i < test.rating ? "fill-amber-400 text-amber-400" : "text-white/10"
                     }`}
                   />
                 ))}
               </div>
 
               {/* Text */}
-              <p className="mb-6 text-sm leading-relaxed text-gray-600">
+              <p className="mb-6 text-sm leading-relaxed text-white/70">
                 &ldquo;{isEs ? test.textEs : (test.textEn || test.textEs)}&rdquo;
               </p>
 
               {/* Author */}
-              <div className="flex items-center gap-3 border-t border-gray-100 pt-4">
+              <div className="flex items-center gap-3 border-t border-white/10 pt-4">
                 <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-medium text-white"
                   style={{ backgroundColor: getAvatarColor(test.clientName) }}
                 >
                   {test.clientName.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">{test.clientName}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-sm font-medium text-white/90">{test.clientName}</p>
+                  <p className="text-xs text-white/35">
                     {test.country || ""}
                     {test.tourName && `${test.country ? " · " : ""}${test.tourName}`}
                   </p>
@@ -154,19 +140,6 @@ export function TestimonialsSection({ testimonials, title, subtitle }: Testimoni
               </div>
             </div>
           ))}
-        </div>
-
-        {/* CTA de Google Reviews */}
-        <div ref={badge.ref} className={`${badge.isVisible ? "scroll-visible" : "scroll-hidden"} mt-12 text-center`}>
-          <a
-            href="https://www.google.com/search?q=Like+In+House+Cusco+Peru"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-6 py-3 text-sm font-medium text-gray-600 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
-          >
-            <GoogleIcon className="h-4 w-4" />
-            {isEs ? "Ver todas las reseñas en Google" : "See all reviews on Google"}
-          </a>
         </div>
       </div>
     </section>
