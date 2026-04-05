@@ -7,6 +7,7 @@ import { FeaturedToursSection } from "@/components/public/sections/featured-tour
 import { TestimonialsSection } from "@/components/public/sections/testimonials";
 import { FAQSection } from "@/components/public/sections/faq";
 import { CTASection } from "@/components/public/sections/cta";
+import { CertificationsSection } from "@/components/public/sections/certifications";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -129,6 +130,8 @@ export default async function HomePage() {
   return (
     <div>
       {sortedSections.map((s) => s.render())}
+      {/* Certificaciones — solo aparece si hay logos configurados */}
+      <CertificationsSection />
       {/* FAQs siempre visibles — no están en el sistema de HomeSections */}
       <FAQSection faqs={faqs} />
     </div>

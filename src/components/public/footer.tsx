@@ -71,14 +71,6 @@ export function Footer() {
     { key: "proteccionDatosUrl", label: isEs ? "Protección de Datos" : "Data Protection", icon: ShieldCheck },
   ];
 
-  // Footer logos (hasta 5)
-  const footerLogos = [1, 2, 3, 4, 5]
-    .map((i) => ({
-      url: getSetting(`footerLogo${i}Url`),
-      link: getSetting(`footerLogo${i}Link`),
-    }))
-    .filter((logo) => logo.url);
-
   return (
     <footer className="relative overflow-hidden bg-[#1C0D0C]">
       <div>
@@ -228,37 +220,6 @@ export function Footer() {
               </div>
             </div>
           </div>
-
-          {/* Logos de certificaciones / partners */}
-          {footerLogos.length > 0 && (
-            <div className="border-t border-white/10 pt-6 pb-4">
-              <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8">
-                {footerLogos.map((logo, i) => {
-                  const img = (
-                    <Image
-                      src={logo.url}
-                      alt={`Certificación ${i + 1}`}
-                      width={80}
-                      height={40}
-                      className="h-8 sm:h-10 w-auto object-contain brightness-0 invert opacity-40 hover:opacity-80 transition-opacity"
-                    />
-                  );
-                  return logo.link ? (
-                    <a
-                      key={i}
-                      href={logo.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {img}
-                    </a>
-                  ) : (
-                    <div key={i}>{img}</div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Copyright */}
           <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
