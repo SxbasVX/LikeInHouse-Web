@@ -52,17 +52,33 @@ export function FeaturedToursSection({ tours, title, subtitle }: FeaturedToursSe
 
         {/* Header - Editorial Style */}
         <div ref={header.ref} className={`${header.isVisible ? "scroll-visible" : "scroll-hidden"} text-center mb-20`}>
-          <h2 className="font-heading text-4xl font-light text-brand-darkRed sm:text-5xl lg:text-[3.5rem] tracking-tight leading-[1.1]">
-            {title || (<>{t("featured_tours_1")}{" "}
-            <span className="font-serif italic text-brand-teal font-normal">
-               {t("featured_tours_2")}
-            </span>
-            <br className="hidden sm:block" />
-            {" "}{t("featured_tours_3")}</>)}
-          </h2>
-          <p className="mx-auto mt-6 max-w-3xl text-lg text-gray-500 font-light leading-relaxed">
-            {subtitle || t("featured_subtitle")}
-          </p>
+          <span className="inline-block text-xs font-bold uppercase tracking-widest text-brand-orange mb-3">
+            {isEs ? "Experiencias" : "Experiences"}
+          </span>
+          {title ? (
+            <h2 className="font-heading text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl leading-tight">
+              {title}
+              {subtitle && (
+                <>
+                  <br />
+                  <span className="font-serif italic font-normal text-brand-darkRed">{subtitle}</span>
+                </>
+              )}
+            </h2>
+          ) : (
+            <>
+              <h2 className="font-heading text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl leading-tight">
+                {t("featured_tours_1")}
+                <br />
+                <span className="font-serif italic font-normal text-brand-darkRed">
+                  {t("featured_tours_2")}
+                </span>
+              </h2>
+              <p className="mx-auto mt-6 max-w-3xl text-lg text-gray-500 font-light leading-relaxed">
+                {t("featured_subtitle")}
+              </p>
+            </>
+          )}
         </div>
 
         {/* Tours Grid */}
