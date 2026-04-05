@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -18,6 +19,8 @@ import {
   UserCog,
   LogOut,
   BarChart3,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +69,12 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ user }: AdminSidebarProps) {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Cerrar al navegar
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const isActive = (href: string) => {
     if (href === "/admin") return pathname === "/admin";
@@ -76,22 +85,8 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "AD";
 
-  return (
-    <div className="flex h-full w-64 flex-col gap-2">
-      {/* Logo fuera del box */}
-      <div className="flex items-center justify-center px-5 py-3">
-        <Image
-          src="/Logo-Azul.svg"
-          alt="LikeInHouse"
-          width={160}
-          height={41}
-          className="object-contain"
-          priority
-        />
-      </div>
-
-      {/* Sidebar box */}
-      <aside className="flex flex-1 flex-col rounded-2xl overflow-hidden min-h-0" style={{ backgroundColor: "#e8411d" }}>
+  const sidebarContent = (
+    <>
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin">
         <div className="space-y-5">
@@ -177,7 +172,67 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
           Cerrar sesión
         </button>
       </div>
-      </aside>
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Botón hamburguesa — solo mobile */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="fixed top-4 left-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl bg-[#e8411d] text-white shadow-lg lg:hidden"
+        aria-label="Abrir menú"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {/* Sidebar desktop */}
+      <div className="hidden lg:flex h-full w-64 flex-col gap-2">
+        <div className="flex items-center justify-center px-5 py-3">
+          <Image
+            src="/Logo-Azul.svg"
+            alt="LikeInHouse"
+            width={160}
+            height={41}
+            className="object-contain"
+            priority
+          />
+        </div>
+        <aside className="flex flex-1 flex-col rounded-2xl overflow-hidden min-h-0" style={{ backgroundColor: "#e8411d" }}>
+          {sidebarContent}
+        </aside>
+      </div>
+
+      {/* Sidebar mobile — overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setMobileOpen(false)}
+          />
+          {/* Drawer */}
+          <div className="absolute left-0 top-0 bottom-0 w-72 flex flex-col bg-[#e8411d] shadow-2xl animate-in slide-in-from-left duration-200">
+            {/* Header del drawer */}
+            <div className="flex items-center justify-between px-4 py-4">
+              <Image
+                src="/Logo.svg"
+                alt="LikeInHouse"
+                width={130}
+                height={33}
+                className="object-contain brightness-0 invert"
+              />
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -64,7 +64,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
   const crumbs = getBreadcrumbs();
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-brand-darkRed/8 bg-white px-6 shadow-sm">
+    <header className="flex h-16 items-center justify-between border-b border-brand-darkRed/8 bg-white pl-16 pr-4 sm:pr-6 lg:pl-6 shadow-sm">
       {/* Breadcrumb + title */}
       <div className="flex items-center gap-2">
         {crumbs.length > 1 ? (
