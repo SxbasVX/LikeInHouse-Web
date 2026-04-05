@@ -83,11 +83,18 @@ enum TourType {
   INFORMATIONAL
 }
 
+enum BookingMode {
+  CALENDAR
+  DEPARTURES
+  BOTH
+}
+
 model Tour {
   id             String     @id @default(cuid())
   slug           String     @unique
   status         TourStatus @default(DRAFT)
   tourType       TourType   @default(BOOKABLE)
+  bookingMode    BookingMode @default(CALENDAR)
   isFeatured     Boolean    @default(false)
   category       String
   difficulty     Difficulty @default(EASY)

@@ -63,6 +63,7 @@ interface TourData {
   durationNights: number;
   isFeatured: boolean;
   tourType?: string;
+  bookingMode?: string;
   images: TourImage[];
   itinerary: ItineraryDay[];
   pricing: Pricing | null;
@@ -514,8 +515,41 @@ export function TourDetail({ tour }: { tour: TourData }) {
                   </div>
                 </div>
 
-                {/* Próximas salidas */}
-                {tour.tourType !== "INFORMATIONAL" && tour.departures.length > 0 && (
+                {/* Calendario abierto */}
+                {tour.tourType !== "INFORMATIONAL" && (tour.bookingMode === "CALENDAR" || tour.bookingMode === "BOTH") && (
+                  <div className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5">
+                    <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-gray-800">
+                      <Calendar className="h-4 w-4 text-brand-teal" />
+                      {isEs ? "Elige tu fecha" : "Choose your date"}
+                    </h3>
+                    <input
+                      type="date"
+                      min={new Date().toISOString().split("T")[0]}
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          const dateStr = new Date(e.target.value).toLocaleDateString(
+                            isEs ? "es-PE" : "en-US",
+                            { day: "numeric", month: "long", year: "numeric" }
+                          );
+                          const msg = isEs
+                            ? `Hola, quiero reservar el tour "${isEs ? tour.nameEs : tour.nameEn}" para el ${dateStr}`
+                            : `Hi, I'd like to book the tour "${tour.nameEn}" for ${dateStr}`;
+                          window.open(
+                            `https://wa.me/${(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "51984123456").replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`,
+                            "_blank"
+                          );
+                        }
+                      }}
+                    />
+                    <p className="mt-2 text-xs text-gray-400">
+                      {isEs ? "Selecciona una fecha y te contactamos por WhatsApp" : "Pick a date and we'll reach out via WhatsApp"}
+                    </p>
+                  </div>
+                )}
+
+                {/* Próximas salidas fijas */}
+                {tour.tourType !== "INFORMATIONAL" && (tour.bookingMode === "DEPARTURES" || tour.bookingMode === "BOTH") && tour.departures.length > 0 && (
                   <div className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5">
                     <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-gray-800">
                       <Calendar className="h-4 w-4 text-brand-orange" />

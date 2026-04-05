@@ -48,6 +48,7 @@ interface TourFormData {
   nameEn: string;
   slug: string;
   tourType: "BOOKABLE" | "INFORMATIONAL";
+  bookingMode: "CALENDAR" | "DEPARTURES" | "BOTH";
   category: string;
   difficulty: "EASY" | "MODERATE" | "CHALLENGING";
   durationDays: number;
@@ -115,6 +116,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
       nameEn: "",
       slug: "",
       tourType: "BOOKABLE",
+      bookingMode: "CALENDAR",
       category: "",
       difficulty: "EASY",
       durationDays: 1,
@@ -287,6 +289,29 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                     <span className="text-sm font-medium">Comprable</span>
                   </div>
                 </div>
+
+                {/* Modo de Reserva */}
+                {isBookable && (
+                  <div className="rounded-lg border p-4 bg-muted/20">
+                    <Label className="text-base font-medium">Modo de Reserva</Label>
+                    <div className="text-sm text-muted-foreground mt-1 mb-3">
+                      <b>Calendario</b>: el viajero elige fecha libre. <b>Salidas fijas</b>: solo fechas predefinidas. <b>Ambos</b>: muestra las dos opciones.
+                    </div>
+                    <Select
+                      value={watch("bookingMode")}
+                      onValueChange={(val) => setValue("bookingMode", val as "CALENDAR" | "DEPARTURES" | "BOTH")}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CALENDAR">Calendario abierto</SelectItem>
+                        <SelectItem value="DEPARTURES">Salidas fijas</SelectItem>
+                        <SelectItem value="BOTH">Ambos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {/* Destacado */}
                 <div className="flex items-center justify-between rounded-lg border p-4 bg-brand-orange/10 border-brand-orange/20">
