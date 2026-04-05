@@ -20,6 +20,26 @@ interface TestimonialsSectionProps {
   subtitle?: string;
 }
 
+// Colores de avatar estilo Google
+const GOOGLE_AVATAR_COLORS = [
+  "#1A73E8", // azul
+  "#EA4335", // rojo
+  "#34A853", // verde
+  "#FBBC05", // amarillo
+  "#A142F4", // morado
+  "#E8710A", // naranja
+  "#0D652D", // verde oscuro
+  "#185ABC", // azul oscuro
+];
+
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return GOOGLE_AVATAR_COLORS[Math.abs(hash) % GOOGLE_AVATAR_COLORS.length];
+}
+
 function GoogleIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className}>
@@ -118,7 +138,10 @@ export function TestimonialsSection({ testimonials, title, subtitle }: Testimoni
 
               {/* Author */}
               <div className="flex items-center gap-3 border-t border-gray-100 pt-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-teal to-brand-orange text-sm font-bold text-white">
+                <div
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-medium text-white"
+                  style={{ backgroundColor: getAvatarColor(test.clientName) }}
+                >
                   {test.clientName.charAt(0)}
                 </div>
                 <div>
