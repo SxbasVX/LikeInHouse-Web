@@ -3,18 +3,17 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import Image from "next/image";
-import { Target, Eye, Heart, Leaf, Users, Shield, ArrowUpRight } from "lucide-react";
-
+import { Target, Eye, Radio, Users, Compass, Heart, ArrowUpRight } from "lucide-react";
 import { useScrollAnimation, useStaggerAnimation } from "@/hooks/use-scroll-animation";
 
 const ABOUT_IMG = "https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?w=800&q=80";
 const TEAM_IMG = "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80";
 
 const values = [
-  { key: "value_1", icon: Heart, color: "text-rose-500", bg: "bg-rose-50" },
-  { key: "value_2", icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
-  { key: "value_3", icon: Shield, color: "text-amber-500", bg: "bg-amber-50" },
-  { key: "value_4", icon: Leaf, color: "text-emerald-500", bg: "bg-emerald-50" },
+  { key: "value_1", descKey: "value_1_desc", icon: Radio, color: "text-brand-teal", bg: "bg-brand-teal/10" },
+  { key: "value_2", descKey: "value_2_desc", icon: Users, color: "text-brand-orange", bg: "bg-brand-orange/10" },
+  { key: "value_3", descKey: "value_3_desc", icon: Compass, color: "text-blue-500", bg: "bg-blue-50" },
+  { key: "value_4", descKey: "value_4_desc", icon: Heart, color: "text-rose-500", bg: "bg-rose-50" },
 ] as const;
 
 export function AboutContent() {
@@ -38,12 +37,12 @@ export function AboutContent() {
             className={`${heroAnim.isVisible ? "scroll-visible" : "scroll-hidden"} text-center`}
           >
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-teal mb-4">
-              {t("badge", { fallback: "Conócenos" })}
+              {t("badge")}
             </p>
             <h1 className="font-heading text-4xl font-light text-brand-darkRed sm:text-5xl lg:text-[3.5rem] tracking-tight leading-[1.1]">
-              {t("title").split(" ").slice(0, 2).join(" ")}{" "}
+              {t("title").split(" ")[0]}{" "}
               <span className="font-serif italic font-normal text-brand-teal">
-                {t("title").split(" ").slice(2).join(" ") || "nuestra historia"}
+                {t("title").split(" ").slice(1).join(" ")}
               </span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-500 font-light leading-relaxed">
@@ -97,7 +96,7 @@ export function AboutContent() {
         </div>
       </section>
 
-      {/* Valores */}
+      {/* Diferenciadores */}
       <section className="bg-[#faf8f5] py-20 lg:py-28">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
           <div
@@ -105,12 +104,12 @@ export function AboutContent() {
             className={`${valuesTitleAnim.isVisible ? "scroll-visible" : "scroll-hidden"} text-center mb-14`}
           >
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-teal mb-3">
-              Lo que nos define
+              {t("values_badge")}
             </p>
             <h2 className="font-heading text-3xl font-light text-brand-darkRed sm:text-4xl tracking-tight">
-              {t("values_title").split(" ")[0]}{" "}
+              {t("values_title").split(" ").slice(0, -1).join(" ")}{" "}
               <span className="font-serif italic font-normal text-brand-teal">
-                {t("values_title").split(" ").slice(1).join(" ")}
+                {t("values_title").split(" ").slice(-1)}
               </span>
             </h2>
           </div>
@@ -123,12 +122,13 @@ export function AboutContent() {
               return (
                 <div
                   key={val.key}
-                  className="rounded-2xl bg-white p-7 text-center shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
+                  className="group rounded-2xl bg-white p-7 text-center shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
                 >
-                  <span className={`flex h-14 w-14 mx-auto items-center justify-center rounded-2xl ${val.bg} mb-4`}>
-                    <Icon className={`h-6 w-6 ${val.color}`} />
+                  <span className={`flex h-14 w-14 mx-auto items-center justify-center rounded-2xl ${val.bg} mb-4 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300`}>
+                    <Icon className={`h-6 w-6 ${val.color} group-hover:scale-110 transition-transform duration-300`} />
                   </span>
-                  <p className="font-heading font-bold text-brand-darkRed">{t(val.key)}</p>
+                  <p className="font-heading font-bold text-brand-darkRed mb-2">{t(val.key)}</p>
+                  <p className="text-sm text-gray-500 leading-relaxed">{t(val.descKey)}</p>
                 </div>
               );
             })}
@@ -146,21 +146,20 @@ export function AboutContent() {
               className={teamTextAnim.isVisible ? "scroll-visible-left" : "scroll-hidden-left"}
             >
               <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-teal mb-3">
-                Nuestro equipo
+                {t("team_badge")}
               </p>
               <h2 className="font-heading text-3xl font-light text-brand-darkRed sm:text-4xl tracking-tight mb-4">
-                Guías locales{" "}
-                <span className="font-serif italic font-normal text-brand-teal">expertos</span>
+                {t("team_title_1")}{" "}
+                <span className="font-serif italic font-normal text-brand-teal">{t("team_title_2")}</span>
               </h2>
               <p className="text-gray-500 leading-relaxed text-[15px] mb-6">
-                Nuestro equipo está formado por guías locales certificados que conocen cada rincón del Perú.
-                Con años de experiencia, hacemos que cada viaje sea una experiencia auténtica e inolvidable.
+                {t("team_desc")}
               </p>
               <Link
                 href="/contacto"
                 className="inline-flex items-center justify-between rounded-full bg-brand-darkRed hover:bg-brand-orange text-white pl-6 pr-1.5 py-1.5 text-sm font-bold transition-all group"
               >
-                Conócenos
+                {t("team_cta")}
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 group-hover:bg-white group-hover:text-brand-orange transition-colors ml-3">
                   <ArrowUpRight className="h-4 w-4 group-hover:rotate-12 transition-transform" />
                 </span>
@@ -183,7 +182,6 @@ export function AboutContent() {
           </div>
         </div>
       </section>
-
     </>
   );
 }

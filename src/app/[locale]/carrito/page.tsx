@@ -6,8 +6,6 @@ import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Trash2, ArrowRight, MapPin, Clock, X, CalendarDays } from "lucide-react";
 import Image from "next/image";
-import { useScrollAnimation, useStaggerAnimation } from "@/hooks/use-scroll-animation";
-import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -15,14 +13,10 @@ import { es, enUS } from "date-fns/locale";
 
 export default function CartPage() {
   const t = useTranslations("cart");
-  const tc = useTranslations("common");
   const locale = useLocale();
   const isEs = locale === "es";
   const cartHydrated = useCartHydration();
   const { items, removeItem, clearCart, updateItemDate } = useCartStore();
-
-  const header = useScrollAnimation({ threshold: 0.2 });
-  const content = useStaggerAnimation({ threshold: 0.1 });
 
   if (!cartHydrated) {
     return (
@@ -58,7 +52,7 @@ export default function CartPage() {
     <section className="py-12 lg:py-20">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div ref={header.ref} className={`${header.isVisible ? "scroll-visible" : "scroll-hidden"} mb-10`}>
+        <div className="mb-10">
           <h1 className="font-heading text-3xl font-semibold text-brand-darkRed sm:text-4xl">
             {t("title")}
           </h1>
@@ -68,7 +62,7 @@ export default function CartPage() {
         </div>
 
         {/* Cart Items */}
-        <div ref={content.ref} className={`space-y-4 ${content.className}`}>
+        <div className="space-y-4">
           {items.map((item) => {
             const name = isEs ? item.nameEs : item.nameEn;
             return (
