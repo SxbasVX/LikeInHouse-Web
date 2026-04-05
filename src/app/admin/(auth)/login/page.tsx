@@ -82,8 +82,8 @@ export default function LoginPage() {
         </Link>
       </div>
 
-      {/* Logo encima del card */}
-      <div className="relative z-10 mb-5 flex justify-center">
+      {/* Logo encima del card — solo desktop (en mobile está dentro del card) */}
+      <div className="relative z-10 mb-5 hidden md:flex justify-center">
         <Image
           src="/Logo-Azul.svg"
           alt="LikeInHouse"
