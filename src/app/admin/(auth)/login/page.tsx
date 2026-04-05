@@ -162,7 +162,8 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="email"
                   placeholder="admin@likeinhouse.com"
-                  className="h-11 pl-10 rounded-xl bg-white/8 border-white/12 text-white placeholder:text-white/30 focus:bg-white/12 focus:border-white/30 focus:ring-0"
+                  className="h-11 pl-10 rounded-xl border-white/12 placeholder:text-white/30 focus:ring-0"
+                  style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "#ffffff" }}
                   {...register("email")}
                 />
               </div>
@@ -180,7 +181,8 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="h-11 pl-10 pr-11 rounded-xl bg-white/8 border-white/12 text-white placeholder:text-white/30 focus:bg-white/12 focus:border-white/30 focus:ring-0"
+                  className="h-11 pl-10 pr-11 rounded-xl border-white/12 placeholder:text-white/30 focus:ring-0"
+                  style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "#ffffff" }}
                   {...register("password")}
                 />
                 <button
