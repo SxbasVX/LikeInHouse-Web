@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { ContactForm } from "@/components/public/contact-form";
-import { MapPin, Phone, Mail, Clock, ArrowUpRight } from "lucide-react";
+import { Phone, Mail, ArrowUpRight } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
 export function ContactContent() {
@@ -66,10 +66,8 @@ export function ContactContent() {
                 </h3>
                 <div className="space-y-5">
                   {[
-                    { icon: MapPin, label: t("office"), value: "Av. El Sol 456, Cusco, Perú" },
                     { icon: Phone, label: tc("phone"), value: "+51 84 123 456" },
                     { icon: Mail, label: tc("email"), value: "info@likeinhouse.com" },
-                    { icon: Clock, label: t("schedule_label"), value: t("schedule") },
                   ].map(({ icon: Icon, label, value }) => (
                     <div key={label} className="flex items-start gap-3">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-teal/10">

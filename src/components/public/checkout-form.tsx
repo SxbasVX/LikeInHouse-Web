@@ -31,8 +31,8 @@ const checkoutSchema = z.object({
     firstName: z.string().min(2, "Nombre requerido"),
     lastName: z.string().min(2, "Apellido requerido"),
     email: z.string().email("Correo invalido"),
-    phone: z.string().min(6, "Telefono requerido"),
-    country: z.string().min(2, "Pais requerido"),
+    phone: z.string().min(6, "Teléfono requerido"),
+    country: z.string().min(2, "País requerido"),
     adults: z.number().min(1, "Debe haber al menos 1 adulto"),
     children: z.number().min(0),
     departureId: z.string().optional(),
@@ -283,7 +283,7 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
                             <CardHeader>
                                 <CardTitle>{isEs ? "Tus Datos" : "Your Details"}</CardTitle>
                                 <CardDescription>
-                                    {isEs ? "Ingresa tu informacion para confirmar la reserva." : "Enter your info to confirm the booking."}
+                                    {isEs ? "Ingresa tu información para confirmar la reserva." : "Enter your info to confirm the booking."}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -307,15 +307,43 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
                                         {errors.email && <span className="text-sm text-destructive">{errors.email.message}</span>}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="phone">{isEs ? "Telefono / WhatsApp" : "Phone"}</Label>
+                                        <Label htmlFor="phone">{isEs ? "Teléfono / WhatsApp" : "Phone"}</Label>
                                         <Input id="phone" type="tel" placeholder="+51 999 888 777" {...register("phone")} />
                                         {errors.phone && <span className="text-sm text-destructive">{errors.phone.message}</span>}
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="country">{isEs ? "Pais de Residencia" : "Country"}</Label>
-                                    <Input id="country" placeholder="Peru, USA, Espana..." {...register("country")} />
+                                    <Label htmlFor="country">{isEs ? "País de Residencia" : "Country"}</Label>
+                                    <select
+                                      id="country"
+                                      {...register("country")}
+                                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                      defaultValue=""
+                                    >
+                                      <option value="" disabled>{isEs ? "Selecciona tu país" : "Select your country"}</option>
+                                      <option value="Peru">Perú</option>
+                                      <option value="Argentina">Argentina</option>
+                                      <option value="Bolivia">Bolivia</option>
+                                      <option value="Brasil">Brasil</option>
+                                      <option value="Chile">Chile</option>
+                                      <option value="Colombia">Colombia</option>
+                                      <option value="Ecuador">Ecuador</option>
+                                      <option value="Mexico">México</option>
+                                      <option value="Paraguay">Paraguay</option>
+                                      <option value="Uruguay">Uruguay</option>
+                                      <option value="Venezuela">Venezuela</option>
+                                      <option value="USA">Estados Unidos / USA</option>
+                                      <option value="Canada">Canadá</option>
+                                      <option value="Spain">España</option>
+                                      <option value="France">Francia / France</option>
+                                      <option value="Germany">Alemania / Germany</option>
+                                      <option value="UK">Reino Unido / UK</option>
+                                      <option value="Italy">Italia / Italy</option>
+                                      <option value="Australia">Australia</option>
+                                      <option value="Japan">Japón / Japan</option>
+                                      <option value="Other">{isEs ? "Otro" : "Other"}</option>
+                                    </select>
                                     {errors.country && <span className="text-sm text-destructive">{errors.country.message}</span>}
                                 </div>
                             </CardContent>

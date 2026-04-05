@@ -101,17 +101,17 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
           </div>
 
           {/* Filter Bar */}
-          <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3 flex-wrap">
+          <div className="mt-12 space-y-4">
             {/* Search */}
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
-              <div className="relative">
+            <form onSubmit={handleSearch} className="flex items-center justify-center gap-2">
+              <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={t("search_placeholder")}
-                  className="h-12 w-64 rounded-full border border-gray-200 bg-white pl-10 pr-10 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal transition-colors shadow-sm"
+                  className="h-12 w-full rounded-full border border-gray-200 bg-white pl-10 pr-10 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-teal/30 focus:border-brand-teal transition-colors shadow-sm"
                 />
                 {search && (
                   <button
@@ -128,52 +128,65 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
               </Button>
             </form>
 
-            <div className="h-6 w-px bg-gray-200 hidden sm:block" />
+            {/* Filters row */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+              {/* Destination */}
+              <div className="flex flex-col gap-1 w-full sm:w-auto">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 pl-4">{t("filter_destination")}</label>
+                <Select value={destination || "all"} onValueChange={(v) => { setDestination(v === "all" ? undefined : v); setPage(1); }}>
+                  <SelectTrigger className="h-12 w-full sm:w-48 rounded-full border-gray-200 bg-white shadow-sm text-sm focus:ring-brand-teal/30">
+                    <SelectValue placeholder={t("filter_all")} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    <SelectItem value="all">{t("filter_all")}</SelectItem>
+                    {destinations.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Destination */}
-            <Select value={destination || "all"} onValueChange={(v) => { setDestination(v === "all" ? undefined : v); setPage(1); }}>
-              <SelectTrigger className="h-12 w-48 rounded-full border-gray-200 bg-white shadow-sm text-sm focus:ring-brand-teal/30">
-                <SelectValue placeholder={t("filter_destination")} />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl">
-                <SelectItem value="all">{t("filter_all")}</SelectItem>
-                {destinations.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
+              {/* Category */}
+              <div className="flex flex-col gap-1 w-full sm:w-auto">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 pl-4">{t("filter_category")}</label>
+                <Select value={category || "all"} onValueChange={(v) => { setCategory(v === "all" ? undefined : v); setPage(1); }}>
+                  <SelectTrigger className="h-12 w-full sm:w-48 rounded-full border-gray-200 bg-white shadow-sm text-sm focus:ring-brand-teal/30">
+                    <SelectValue placeholder={t("filter_all")} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    <SelectItem value="all">{t("filter_all")}</SelectItem>
+                    {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Category */}
-            <Select value={category || "all"} onValueChange={(v) => { setCategory(v === "all" ? undefined : v); setPage(1); }}>
-              <SelectTrigger className="h-12 w-48 rounded-full border-gray-200 bg-white shadow-sm text-sm focus:ring-brand-teal/30">
-                <SelectValue placeholder={t("filter_category")} />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl">
-                <SelectItem value="all">{t("filter_all")}</SelectItem>
-                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
+              {/* Sort */}
+              <div className="flex flex-col gap-1 w-full sm:w-auto">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 pl-4">{t("sort_by")}</label>
+                <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
+                  <SelectTrigger className="h-12 w-full sm:w-48 rounded-full border-gray-200 bg-white shadow-sm text-sm focus:ring-brand-teal/30">
+                    <SelectValue placeholder={t("sort_newest")} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    <SelectItem value="newest">{t("sort_newest")}</SelectItem>
+                    <SelectItem value="price_asc">{t("sort_price_asc")}</SelectItem>
+                    <SelectItem value="price_desc">{t("sort_price_desc")}</SelectItem>
+                    <SelectItem value="popular">{t("sort_popular")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* Sort */}
-            <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
-              <SelectTrigger className="h-12 w-48 rounded-full border-gray-200 bg-white shadow-sm text-sm focus:ring-brand-teal/30">
-                <SelectValue placeholder={t("sort_by")} />
-              </SelectTrigger>
-              <SelectContent className="rounded-2xl">
-                <SelectItem value="newest">{t("sort_newest")}</SelectItem>
-                <SelectItem value="price_asc">{t("sort_price_asc")}</SelectItem>
-                <SelectItem value="price_desc">{t("sort_price_desc")}</SelectItem>
-                <SelectItem value="popular">{t("sort_popular")}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {activeFilterCount > 0 && (
-              <button
-                onClick={clearAll}
-                className="flex items-center gap-1.5 h-12 rounded-full px-5 text-sm font-medium text-gray-500 hover:text-brand-darkRed border border-gray-200 bg-white transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-                Limpiar ({activeFilterCount})
-              </button>
-            )}
+              {activeFilterCount > 0 && (
+                <div className="flex flex-col gap-1 w-full sm:w-auto">
+                  <label className="text-[11px] text-transparent pl-4 hidden sm:block">&nbsp;</label>
+                  <button
+                    onClick={clearAll}
+                    className="flex items-center justify-center gap-1.5 h-12 rounded-full px-5 text-sm font-medium text-gray-500 hover:text-brand-darkRed border border-gray-200 bg-white transition-colors w-full sm:w-auto"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Limpiar ({activeFilterCount})
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

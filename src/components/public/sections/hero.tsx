@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
-import { ArrowUpRight, Search } from "lucide-react";
+import { ArrowUpRight, Search, Star } from "lucide-react";
 import Image from "next/image";
 
 const DEFAULT_HERO_BG = "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=1920&q=80";
@@ -14,9 +14,10 @@ interface HeroProps {
   title?: string;
   subtitle?: string;
   imageUrl?: string;
+  testimonials?: { clientName: string; rating: number; textEs: string; textEn?: string | null; country?: string | null }[];
 }
 
-export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
+export function HeroSection({ title, subtitle, imageUrl, testimonials = [] }: HeroProps = {}) {
   const t = useTranslations("home");
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -60,18 +61,18 @@ export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
 
         {/* Title — full white, strong text shadow for readability over image */}
         <h1
-          className="animate-slide-up flex flex-col font-heading text-5xl sm:text-7xl lg:text-[7rem] font-light leading-[1.05] tracking-tight mb-12 lg:mb-14"
+          className="animate-slide-up font-heading text-5xl sm:text-7xl lg:text-[7rem] font-light leading-[1.05] tracking-tight mb-12 lg:mb-14"
           style={{
             animationDelay: "100ms",
             animationFillMode: "both",
             textShadow: "0 2px 20px rgba(0,0,0,0.6), 0 4px 40px rgba(0,0,0,0.45)",
           }}
         >
-          <span className="block text-white">{t("hero_title_1")}</span>
-          <span className="block font-serif italic font-normal text-[#f5dfc0] transform -rotate-1 my-1 lg:my-0 lg:-ml-12">
+          <span className="text-white">{t("hero_title_1")}</span>{" "}
+          <span className="font-serif italic font-normal text-[#f5dfc0]">
             {t("hero_title_2")}
-          </span>
-          <span className="block text-white">{t("hero_title_3")}</span>
+          </span>{" "}
+          <span className="text-white">{t("hero_title_3")}</span>
         </h1>
 
         {/* Search bar */}
@@ -118,31 +119,34 @@ export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
         </div>
       </div>
 
-      {/* Bottom: stats strip */}
-      <div
-        className="animate-slide-up relative z-30 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pb-8 lg:pb-12 flex items-center justify-start pointer-events-auto"
-        style={{ animationDelay: "400ms", animationFillMode: "both" }}
-      >
-        <div className="flex items-center gap-4 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/20 px-5 py-3">
-          <div className="flex -space-x-2.5">
-            {[
-              "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80",
-              "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80",
-              "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80",
-              "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
-            ].map((imgSrc, i) => (
-              <div key={i} className="h-9 w-9 rounded-full border-2 border-[#0A0D0C] relative overflow-hidden">
-                <Image src={imgSrc} alt="Viajero feliz" fill className="object-cover" />
+      {/* Bottom: mini testimonials */}
+      {testimonials.length > 0 && (
+        <div
+          className="animate-slide-up relative z-30 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pb-8 lg:pb-12 pointer-events-auto"
+          style={{ animationDelay: "400ms", animationFillMode: "both" }}
+        >
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+            {testimonials.slice(0, 4).map((test, i) => (
+              <div
+                key={i}
+                className="shrink-0 flex flex-col gap-2 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/15 px-5 py-4 max-w-[280px]"
+              >
+                <div className="flex gap-0.5">
+                  {[...Array(5)].map((_, s) => (
+                    <Star key={s} className={`h-3 w-3 ${s < test.rating ? "fill-brand-orange text-brand-orange" : "text-white/20"}`} />
+                  ))}
+                </div>
+                <p className="text-sm text-white/80 leading-snug line-clamp-2">
+                  &ldquo;{test.textEs}&rdquo;
+                </p>
+                <p className="text-xs text-white/40 font-medium">
+                  {test.clientName}{test.country ? ` · ${test.country}` : ""}
+                </p>
               </div>
             ))}
           </div>
-          <div className="h-5 w-px bg-white/30" />
-          <p className="text-base text-white leading-tight">
-            <span className="font-bold text-white text-lg">500+</span>{" "}
-            {t("hero_travelers", { fallback: t("hero_stats") })}
-          </p>
         </div>
-      </div>
+      )}
     </section>
   );
 }

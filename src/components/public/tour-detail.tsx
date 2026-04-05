@@ -80,6 +80,8 @@ export function TourDetail({ tour }: { tour: TourData }) {
   const [currentImage, setCurrentImage] = useState(0);
   const [activeTab, setActiveTab] = useState<"overview" | "itinerary" | "includes" | "gallery">("overview");
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1]));
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const cartHydrated = useCartHydration();
   const { addItem, removeItem, isInCart } = useCartStore();
   const { toast } = useToast();
@@ -150,6 +152,7 @@ export function TourDetail({ tour }: { tour: TourData }) {
   };
 
   return (
+    <>
     <div>
 
       {/* ── HERO ────────────────────────────────────────────────── */}
@@ -160,7 +163,8 @@ export function TourDetail({ tour }: { tour: TourData }) {
           <img
             src={tour.images[currentImage]?.url}
             alt={(isEs ? tour.images[currentImage]?.altEs : tour.images[currentImage]?.altEn) || name}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover cursor-pointer"
+            onClick={() => { setLightboxIndex(currentImage); setLightboxOpen(true); }}
           />
         ) : (
           <div className="h-full w-full bg-gray-200" />
@@ -395,12 +399,12 @@ export function TourDetail({ tour }: { tour: TourData }) {
                     <div
                       key={img.id}
                       onClick={() => {
-                        setCurrentImage(i);
-                        if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+                        setLightboxIndex(i);
+                        setLightboxOpen(true);
                       }}
                       className={`group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-2xl ${i === currentImage ? "ring-2 ring-brand-orange ring-offset-2" : ""}`}
                       role="button" tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === "Enter") setCurrentImage(i); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") { setLightboxIndex(i); setLightboxOpen(true); } }}
                     >
                       <img
                         src={img.url}
@@ -547,5 +551,49 @@ export function TourDetail({ tour }: { tour: TourData }) {
         </div>
       </div>
     </div>
+
+    {/* ── LIGHTBOX ──────────────────────────────────────────── */}
+    {lightboxOpen && tour.images.length > 0 && (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90"
+        onClick={() => setLightboxOpen(false)}
+      >
+        <button
+          onClick={() => setLightboxOpen(false)}
+          className="absolute top-4 right-4 z-10 rounded-full bg-white/10 p-2.5 text-white hover:bg-white/20 transition-colors"
+        >
+          <X className="h-6 w-6" />
+        </button>
+
+        <span className="absolute top-5 left-5 text-sm text-white/60">
+          {lightboxIndex + 1} / {tour.images.length}
+        </span>
+
+        {tour.images.length > 1 && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex((p) => (p === 0 ? tour.images.length - 1 : p - 1)); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition-colors"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex((p) => (p === tour.images.length - 1 ? 0 : p + 1)); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 transition-colors"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </>
+        )}
+
+        <img
+          src={tour.images[lightboxIndex]?.url}
+          alt={(isEs ? tour.images[lightboxIndex]?.altEs : tour.images[lightboxIndex]?.altEn) || name}
+          className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+    )}
+    </>
   );
 }
