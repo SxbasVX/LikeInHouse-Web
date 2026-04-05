@@ -1220,6 +1220,20 @@ const PREDEFINED_SETTINGS = [
   { key: "instagramUrl", label: "Instagram", placeholder: "https://instagram.com/..." },
   { key: "tiktokUrl", label: "TikTok", placeholder: "https://tiktok.com/@..." },
   { key: "youtubeUrl", label: "YouTube", placeholder: "https://youtube.com/@..." },
+  { key: "libroReclamacionesUrl", label: "Libro de Reclamaciones (URL)", placeholder: "https://..." },
+  { key: "codigoEsnnaUrl", label: "Código ESNNA (URL)", placeholder: "https://..." },
+  { key: "politicasCancelacionUrl", label: "Políticas de Cancelación (URL)", placeholder: "/politicas-cancelacion" },
+  { key: "proteccionDatosUrl", label: "Protección de Datos (URL)", placeholder: "/proteccion-datos" },
+  { key: "footerLogo1Url", label: "Footer Logo 1 - Imagen", placeholder: "https://res.cloudinary.com/..." },
+  { key: "footerLogo1Link", label: "Footer Logo 1 - Link", placeholder: "https://..." },
+  { key: "footerLogo2Url", label: "Footer Logo 2 - Imagen", placeholder: "https://res.cloudinary.com/..." },
+  { key: "footerLogo2Link", label: "Footer Logo 2 - Link", placeholder: "https://..." },
+  { key: "footerLogo3Url", label: "Footer Logo 3 - Imagen", placeholder: "https://res.cloudinary.com/..." },
+  { key: "footerLogo3Link", label: "Footer Logo 3 - Link", placeholder: "https://..." },
+  { key: "footerLogo4Url", label: "Footer Logo 4 - Imagen", placeholder: "https://res.cloudinary.com/..." },
+  { key: "footerLogo4Link", label: "Footer Logo 4 - Link", placeholder: "https://..." },
+  { key: "footerLogo5Url", label: "Footer Logo 5 - Imagen", placeholder: "https://res.cloudinary.com/..." },
+  { key: "footerLogo5Link", label: "Footer Logo 5 - Link", placeholder: "https://..." },
 ] as const;
 
 // ===== Settings =====
