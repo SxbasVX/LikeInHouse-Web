@@ -1,17 +1,15 @@
 "use client";
 
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
-// Brand colors
 const brand = {
   orange: "#e8411d",
   darkRed: "#1C0D0C",
   teal: "#2a6f6f",
   cream: "#f5efe7",
   creamLight: "#faf7f2",
-  gold: "#d4a574",
   text: "#1a1a1a",
   textLight: "#6b7280",
   border: "#e5ddd3",
@@ -23,35 +21,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     fontFamily: "Helvetica",
   },
-  // Top accent bar
   accentBar: {
     height: 6,
     backgroundColor: brand.orange,
   },
-  // Header section
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     paddingHorizontal: 40,
-    paddingTop: 28,
+    paddingTop: 24,
     paddingBottom: 20,
   },
-  logoSection: {
-    flexDirection: "column",
-  },
-  logoText: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: brand.orange,
-    letterSpacing: -0.5,
-  },
-  logoSubtext: {
-    fontSize: 8,
-    color: brand.textLight,
-    letterSpacing: 3,
-    textTransform: "uppercase",
-    marginTop: 2,
+  logo: {
+    width: 160,
+    height: 42,
   },
   voucherBadge: {
     backgroundColor: brand.cream,
@@ -77,23 +61,15 @@ const styles = StyleSheet.create({
     color: brand.textLight,
     marginTop: 2,
   },
-  // Divider
-  divider: {
-    height: 1,
-    backgroundColor: brand.border,
-    marginHorizontal: 40,
-  },
   dividerAccent: {
     height: 2,
     backgroundColor: brand.orange,
     marginHorizontal: 40,
   },
-  // Content area
   content: {
     paddingHorizontal: 40,
     paddingTop: 24,
   },
-  // Two column layout
   twoCol: {
     flexDirection: "row",
     gap: 20,
@@ -102,7 +78,6 @@ const styles = StyleSheet.create({
   colHalf: {
     flex: 1,
   },
-  // Info card
   infoCard: {
     backgroundColor: brand.creamLight,
     borderRadius: 8,
@@ -138,7 +113,6 @@ const styles = StyleSheet.create({
     color: brand.text,
     fontWeight: "bold",
   },
-  // Service section
   serviceSection: {
     marginBottom: 24,
   },
@@ -161,7 +135,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: "uppercase",
   },
-  // Service detail box
   serviceBox: {
     backgroundColor: brand.cream,
     borderRadius: 10,
@@ -192,17 +165,18 @@ const styles = StyleSheet.create({
     color: brand.text,
     fontWeight: "bold",
   },
-  // Payment section
+  // Payment section - cream style
   paymentBox: {
-    backgroundColor: brand.darkRed,
+    backgroundColor: brand.creamLight,
     borderRadius: 10,
     padding: 20,
     marginBottom: 24,
+    border: `1 solid ${brand.border}`,
   },
   paymentTitle: {
     fontSize: 8,
     fontWeight: "bold",
-    color: "rgba(255,255,255,0.5)",
+    color: brand.textLight,
     letterSpacing: 2,
     textTransform: "uppercase",
     marginBottom: 14,
@@ -214,35 +188,36 @@ const styles = StyleSheet.create({
   },
   paymentLabel: {
     fontSize: 10,
-    color: "rgba(255,255,255,0.7)",
+    color: brand.textLight,
   },
   paymentValue: {
     fontSize: 10,
-    color: "#ffffff",
+    color: brand.text,
     fontWeight: "bold",
   },
   paymentDivider: {
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: brand.border,
     marginVertical: 10,
   },
   paymentTotalLabel: {
-    fontSize: 11,
-    color: "#ffffff",
+    fontSize: 12,
+    color: brand.darkRed,
     fontWeight: "bold",
   },
   paymentTotalValue: {
-    fontSize: 16,
+    fontSize: 18,
     color: brand.orange,
     fontWeight: "bold",
   },
   balanceLabel: {
     fontSize: 9,
-    color: "rgba(255,255,255,0.5)",
+    color: brand.textLight,
   },
   balanceValue: {
     fontSize: 10,
-    color: "rgba(255,255,255,0.6)",
+    color: brand.teal,
+    fontWeight: "bold",
   },
   // Footer
   footer: {
@@ -306,21 +281,27 @@ interface VoucherProps {
   type: "RESERVATION" | "PAYMENT_LINK";
 }
 
+// Build logo URL from current origin
+function getLogoUrl() {
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/Logo-Azul.svg`;
+  }
+  return "/Logo-Azul.svg";
+}
+
 export function VoucherPDF({ data }: { data: VoucherProps }) {
   const { isEs } = data;
+  const logoUrl = getLogoUrl();
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Orange accent bar at top */}
+        {/* Orange accent bar */}
         <View style={styles.accentBar} />
 
-        {/* Header with logo and voucher info */}
+        {/* Header */}
         <View style={styles.header}>
-          <View style={styles.logoSection}>
-            <Text style={styles.logoText}>LikeInHouse</Text>
-            <Text style={styles.logoSubtext}>Travel Agency</Text>
-          </View>
+          <Image src={logoUrl} style={styles.logo} />
           <View style={styles.voucherBadge}>
             <Text style={styles.voucherTitle}>
               {isEs ? "Comprobante" : "Voucher"}
@@ -353,9 +334,7 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
                 </View>
                 {data.clientEmail && (
                   <View style={styles.cardRow}>
-                    <Text style={styles.cardLabel}>
-                      {isEs ? "Email:" : "Email:"}
-                    </Text>
+                    <Text style={styles.cardLabel}>Email:</Text>
                     <Text style={styles.cardValue}>{data.clientEmail}</Text>
                   </View>
                 )}
@@ -372,12 +351,8 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
                   </Text>
                   <Text style={styles.cardValue}>
                     {data.type === "RESERVATION"
-                      ? isEs
-                        ? "Reserva"
-                        : "Reservation"
-                      : isEs
-                      ? "Link de Pago"
-                      : "Payment Link"}
+                      ? isEs ? "Reserva" : "Reservation"
+                      : isEs ? "Link de Pago" : "Payment Link"}
                   </Text>
                 </View>
                 <View style={styles.cardRow}>
@@ -406,9 +381,7 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
                     <Text style={styles.serviceDetailLabel}>
                       {isEs ? "Fecha" : "Date"}
                     </Text>
-                    <Text style={styles.serviceDetailValue}>
-                      {data.dateStr}
-                    </Text>
+                    <Text style={styles.serviceDetailValue}>{data.dateStr}</Text>
                   </View>
                 )}
                 {data.adults !== undefined && (
@@ -424,14 +397,12 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
                     <Text style={styles.serviceDetailLabel}>
                       {isEs ? "Ninos" : "Children"}
                     </Text>
-                    <Text style={styles.serviceDetailValue}>
-                      {data.children}
-                    </Text>
+                    <Text style={styles.serviceDetailValue}>{data.children}</Text>
                   </View>
                 )}
                 <View style={styles.serviceDetail}>
                   <Text style={styles.serviceDetailLabel}>
-                    {isEs ? "Pasajeros" : "Passengers"}
+                    {isEs ? "Total Pasajeros" : "Total Passengers"}
                   </Text>
                   <Text style={styles.serviceDetailValue}>
                     {(data.adults || 0) + (data.children || 0)}
@@ -441,7 +412,7 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
             </View>
           </View>
 
-          {/* Payment section - dark card */}
+          {/* Payment section - light cream */}
           <View style={styles.paymentBox}>
             <Text style={styles.paymentTitle}>
               {isEs ? "Resumen de Pago" : "Payment Summary"}
@@ -449,9 +420,7 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
 
             <View style={styles.paymentRow}>
               <Text style={styles.paymentLabel}>{data.serviceName}</Text>
-              <Text style={styles.paymentValue}>
-                $ {data.totalAmount.toFixed(2)}
-              </Text>
+              <Text style={styles.paymentValue}>$ {data.totalAmount.toFixed(2)}</Text>
             </View>
 
             <View style={styles.paymentDivider} />
@@ -483,9 +452,7 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
           <View style={styles.footerContent}>
             <View style={styles.footerLeft}>
               <Text style={styles.footerCompany}>LikeInHouse Travel Agency</Text>
-              <Text style={styles.footerInfo}>
-                Bellavista B-9-A, Cusco 08000, Peru
-              </Text>
+              <Text style={styles.footerInfo}>Bellavista B-9-A, Cusco 08000, Peru</Text>
               <Text style={styles.footerInfo}>
                 {isEs
                   ? "Este documento es un comprobante electronico valido."
