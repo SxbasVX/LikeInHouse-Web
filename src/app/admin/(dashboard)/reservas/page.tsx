@@ -59,6 +59,7 @@ import {
   ChevronRight,
   Plus,
   Loader2,
+  FileDown,
 } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
@@ -194,6 +195,7 @@ export default function ReservasPage() {
                     <TableHead>Origen</TableHead>
                     <TableHead>Fuente</TableHead>
                     <TableHead>Campaña</TableHead>
+                    <TableHead>Voucher</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -249,6 +251,27 @@ export default function ReservasPage() {
                         <span className="text-xs">{(reservation as any).utmCampaign || "—"}</span>
                       </TableCell>
                       <TableCell>
+                        <DownloadPDFButton
+                          isEs={true}
+                          variant="ghost"
+                          className="h-8 gap-1.5 px-2.5 text-xs font-medium"
+                          data={{
+                            referenceCode: reservation.referenceCode,
+                            serviceName: reservation.tour?.nameEs || "Servicio",
+                            clientName: `${reservation.client.firstName} ${reservation.client.lastName}`,
+                            clientEmail: reservation.client.email,
+                            amountPaid: ["PAID", "COMPLETED"].includes(reservation.status) ? Number(reservation.totalAmount) : 0,
+                            totalAmount: Number(reservation.totalAmount),
+                            currency: reservation.currency,
+                            dateStr: reservation.departure ? new Date(reservation.departure.departureDate).toLocaleDateString("es-PE") : "Sin fecha",
+                            adults: reservation.adults,
+                            children: reservation.children,
+                            isEs: true,
+                            type: "RESERVATION" as const,
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
@@ -289,28 +312,6 @@ export default function ReservasPage() {
                             >
                               <XCircle className="mr-2 h-4 w-4" /> Cancelar
                             </DropdownMenuItem>
-
-                            <div className="px-1 py-1">
-                              <DownloadPDFButton
-                                isEs={true}
-                                variant="ghost"
-                                className="w-full justify-start h-8 px-2 py-1.5 text-sm font-normal"
-                                data={{
-                                  referenceCode: reservation.referenceCode,
-                                  serviceName: reservation.tour?.nameEs || "Servicio",
-                                  clientName: `${reservation.client.firstName} ${reservation.client.lastName}`,
-                                  clientEmail: reservation.client.email,
-                                  amountPaid: ["PAID", "COMPLETED"].includes(reservation.status) ? Number(reservation.totalAmount) : 0,
-                                  totalAmount: Number(reservation.totalAmount),
-                                  currency: reservation.currency,
-                                  dateStr: reservation.departure ? new Date(reservation.departure.departureDate).toLocaleDateString("es-PE") : "Sin fecha",
-                                  adults: reservation.adults,
-                                  children: reservation.children,
-                                  isEs: true,
-                                  type: "RESERVATION"
-                                }}
-                              />
-                            </div>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

@@ -113,10 +113,7 @@ export default function AnalyticsPage() {
                 <DollarSign className="h-5 w-5 text-brand-orange" />
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">$ {data.totalRevenueUSD.toLocaleString()}</p>
-                {data.totalRevenuePEN > 0 && (
-                  <p className="text-sm text-muted-foreground mt-1">+ S/ {data.totalRevenuePEN.toLocaleString()} PEN</p>
-                )}
+                <p className="text-3xl font-bold">$ {data.totalRevenue.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-1">USD</p>
               </CardContent>
             </Card>
@@ -164,7 +161,7 @@ export default function AnalyticsPage() {
                         <TableRow key={row.source}>
                           <TableCell><SourceBadge source={row.source} /></TableCell>
                           <TableCell className="text-right font-medium">{row.orders}</TableCell>
-                          <TableCell className="text-right font-medium">$ {row.revenueUSD.toLocaleString()}{row.revenuePEN > 0 ? ` + S/${row.revenuePEN}` : ""}</TableCell>
+                          <TableCell className="text-right font-medium">$ {row.revenue.toLocaleString()}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -203,7 +200,7 @@ export default function AnalyticsPage() {
                         <TableRow key={row.source}>
                           <TableCell><SourceBadge source={row.source} /></TableCell>
                           <TableCell className="text-right font-medium">{row.orders}</TableCell>
-                          <TableCell className="text-right font-medium">$ {row.revenueUSD.toLocaleString()}{row.revenuePEN > 0 ? ` + S/${row.revenuePEN}` : ""}</TableCell>
+                          <TableCell className="text-right font-medium">$ {row.revenue.toLocaleString()}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -246,9 +243,9 @@ export default function AnalyticsPage() {
                           <span className="font-mono text-sm">{row.campaign}</span>
                         </TableCell>
                         <TableCell className="text-right font-medium">{row.orders}</TableCell>
-                        <TableCell className="text-right font-medium">$ {row.revenueUSD.toLocaleString()}{row.revenuePEN > 0 ? ` + S/${row.revenuePEN}` : ""}</TableCell>
+                        <TableCell className="text-right font-medium">$ {row.revenue.toLocaleString()}</TableCell>
                         <TableCell className="text-right text-muted-foreground">
-                          $ {row.orders > 0 ? (row.revenueUSD / row.orders).toFixed(2) : "0.00"}
+                          $ {row.orders > 0 ? (row.revenue / row.orders).toFixed(2) : "0.00"}
                         </TableCell>
                       </TableRow>
                     ))}

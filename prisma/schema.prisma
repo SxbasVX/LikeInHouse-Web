@@ -286,7 +286,7 @@ model Reservation {
 
   adults          Int               @default(1)
   children        Int               @default(0)
-  currency        String            @default("PEN")
+  currency        String            @default("USD")
   totalAmount     Decimal           @db.Decimal(10, 2)
   depositAmount   Decimal?          @db.Decimal(10, 2)
   balanceAmount   Decimal?          @db.Decimal(10, 2)
@@ -348,7 +348,7 @@ model Payment {
   status           PaymentStatus @default(PENDING)
   method           PaymentMethod
   amount           Decimal       @db.Decimal(10, 2)
-  currency         String        @default("PEN")
+  currency         String        @default("USD")
 
   culqiChargeId    String?       @unique
   paypalOrderId    String?       @unique
@@ -394,7 +394,7 @@ model Quotation {
   titleEn         String?
   notesEs         String?         @db.Text
   notesEn         String?         @db.Text
-  currency        String          @default("PEN")
+  currency        String          @default("USD")
   totalAmount     Decimal         @db.Decimal(10, 2)
   customAmount    Decimal?        @db.Decimal(10, 2)
   validUntil      DateTime
@@ -480,7 +480,7 @@ model PaymentLink {
   adults          Int               @default(1)
   children        Int               @default(0)
 
-  currency        String            @default("PEN")
+  currency        String            @default("USD")
   totalAmount     Decimal           @db.Decimal(10, 2)
   depositRequired Boolean           @default(false)
   depositPercent  Decimal?          @db.Decimal(5, 2)

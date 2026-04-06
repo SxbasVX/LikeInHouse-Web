@@ -9,14 +9,15 @@ export default function PDFDownloadInner({ data, isEs, className, variant = "def
     return (
         <PDFDownloadLink
             document={<VoucherPDF data={data} />}
-            fileName={`comprobante-${data.referenceCode}.pdf`}
-            className={className}
+            fileName={`voucher-${data.referenceCode}.pdf`}
+            style={{ textDecoration: "none" }}
         >
-            {({ blob, url, loading, error }) => (
+            {({ loading, error }) => (
                 <Button
                     disabled={loading || !!error}
                     variant={variant}
-                    className={`w-full sm:w-auto h-12 gap-2 ${className || ""}`}
+                    className={className || "w-full sm:w-auto h-12 gap-2"}
+                    type="button"
                 >
                     {loading ? (
                         <>
@@ -26,7 +27,7 @@ export default function PDFDownloadInner({ data, isEs, className, variant = "def
                     ) : (
                         <>
                             <Download className="h-4 w-4" />
-                            {isEs ? "Descargar PDF" : "Download PDF"}
+                            {isEs ? "Descargar Voucher" : "Download Voucher"}
                         </>
                     )}
                 </Button>

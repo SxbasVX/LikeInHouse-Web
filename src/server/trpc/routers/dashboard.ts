@@ -86,74 +86,60 @@ export const dashboardRouter = router({
         },
       });
 
-      // Aggregate by first source (split by currency)
-      const byFirstSource: Record<string, { orders: number; revenueUSD: number; revenuePEN: number }> = {};
+      // Aggregate by first source
+      const byFirstSource: Record<string, { orders: number; revenue: number }> = {};
       // Aggregate by last source
-      const byLastSource: Record<string, { orders: number; revenueUSD: number; revenuePEN: number }> = {};
+      const byLastSource: Record<string, { orders: number; revenue: number }> = {};
       // Aggregate by campaign
-      const byCampaign: Record<string, { orders: number; revenueUSD: number; revenuePEN: number }> = {};
+      const byCampaign: Record<string, { orders: number; revenue: number }> = {};
 
       for (const r of reservations) {
         const amount = Number(r.totalAmount);
-        const currency = r.currency || "USD";
         const first = r.firstSource || "direct";
         const last = r.lastSource || "direct";
         const campaign = r.utmCampaign || "organic";
 
-        // First source
-        if (!byFirstSource[first]) byFirstSource[first] = { orders: 0, revenueUSD: 0, revenuePEN: 0 };
+        if (!byFirstSource[first]) byFirstSource[first] = { orders: 0, revenue: 0 };
         byFirstSource[first].orders++;
-        if (currency === "USD") byFirstSource[first].revenueUSD += amount;
-        else byFirstSource[first].revenuePEN += amount;
+        byFirstSource[first].revenue += amount;
 
-        // Last source
-        if (!byLastSource[last]) byLastSource[last] = { orders: 0, revenueUSD: 0, revenuePEN: 0 };
+        if (!byLastSource[last]) byLastSource[last] = { orders: 0, revenue: 0 };
         byLastSource[last].orders++;
-        if (currency === "USD") byLastSource[last].revenueUSD += amount;
-        else byLastSource[last].revenuePEN += amount;
+        byLastSource[last].revenue += amount;
 
-        // Campaign
-        if (!byCampaign[campaign]) byCampaign[campaign] = { orders: 0, revenueUSD: 0, revenuePEN: 0 };
+        if (!byCampaign[campaign]) byCampaign[campaign] = { orders: 0, revenue: 0 };
         byCampaign[campaign].orders++;
-        if (currency === "USD") byCampaign[campaign].revenueUSD += amount;
-        else byCampaign[campaign].revenuePEN += amount;
+        byCampaign[campaign].revenue += amount;
       }
 
-      // Convert to sorted arrays (sort by USD revenue, fallback to PEN)
-      const sortByRevenue = (a: { revenueUSD: number; revenuePEN: number }, b: { revenueUSD: number; revenuePEN: number }) =>
-        (b.revenueUSD + b.revenuePEN) - (a.revenueUSD + a.revenuePEN);
+      const sortByRevenue = (a: { revenue: number }, b: { revenue: number }) => b.revenue - a.revenue;
 
       const firstSourceStats = Object.entries(byFirstSource)
         .map(([source, data]) => ({
           source, ...data,
-          revenueUSD: Math.round(data.revenueUSD * 100) / 100,
-          revenuePEN: Math.round(data.revenuePEN * 100) / 100,
+          revenue: Math.round(data.revenue * 100) / 100,
         }))
         .sort(sortByRevenue);
 
       const lastSourceStats = Object.entries(byLastSource)
         .map(([source, data]) => ({
           source, ...data,
-          revenueUSD: Math.round(data.revenueUSD * 100) / 100,
-          revenuePEN: Math.round(data.revenuePEN * 100) / 100,
+          revenue: Math.round(data.revenue * 100) / 100,
         }))
         .sort(sortByRevenue);
 
       const campaignStats = Object.entries(byCampaign)
         .map(([campaign, data]) => ({
           campaign, ...data,
-          revenueUSD: Math.round(data.revenueUSD * 100) / 100,
-          revenuePEN: Math.round(data.revenuePEN * 100) / 100,
+          revenue: Math.round(data.revenue * 100) / 100,
         }))
         .sort(sortByRevenue);
 
-      const totalRevenueUSD = Math.round(reservations.filter(r => (r.currency || "USD") === "USD").reduce((sum, r) => sum + Number(r.totalAmount), 0) * 100) / 100;
-      const totalRevenuePEN = Math.round(reservations.filter(r => r.currency === "PEN").reduce((sum, r) => sum + Number(r.totalAmount), 0) * 100) / 100;
+      const totalRevenue = Math.round(reservations.reduce((sum, r) => sum + Number(r.totalAmount), 0) * 100) / 100;
 
       return {
         totalOrders: reservations.length,
-        totalRevenueUSD,
-        totalRevenuePEN,
+        totalRevenue,
         days,
         firstSourceStats,
         lastSourceStats,
