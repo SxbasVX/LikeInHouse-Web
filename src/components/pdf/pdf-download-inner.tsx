@@ -2,10 +2,10 @@
 
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { VoucherPDF } from "./voucher-pdf";
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export default function PDFDownloadInner({ data, isEs, className, variant = "default" }: any) {
+export default function PDFDownloadInner({ data, isEs, className }: any) {
     return (
         <PDFDownloadLink
             document={<VoucherPDF data={data} />}
@@ -13,24 +13,26 @@ export default function PDFDownloadInner({ data, isEs, className, variant = "def
             style={{ textDecoration: "none" }}
         >
             {({ loading, error }) => (
-                <Button
-                    disabled={loading || !!error}
-                    variant={variant}
-                    className={className || "w-full sm:w-auto h-12 gap-2"}
-                    type="button"
+                <span
+                    className={cn(
+                        "inline-flex items-center gap-1.5 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                        "hover:bg-accent hover:text-accent-foreground",
+                        loading && "opacity-50 pointer-events-none",
+                        className || "h-8 px-2.5 text-xs"
+                    )}
                 >
                     {loading ? (
                         <>
-                            <Download className="h-4 w-4 animate-bounce" />
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             {isEs ? "Generando..." : "Generating..."}
                         </>
                     ) : (
                         <>
-                            <Download className="h-4 w-4" />
+                            <Download className="h-3.5 w-3.5" />
                             {isEs ? "Descargar Voucher" : "Download Voucher"}
                         </>
                     )}
-                </Button>
+                </span>
             )}
         </PDFDownloadLink>
     );
