@@ -53,7 +53,7 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' blob: https://www.paypal.com https://www.sandbox.paypal.com https://*.paypal.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://va.vercel-scripts.com https://widget.cloudinary.com https://upload-widget.cloudinary.com",
+              "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://www.paypal.com https://www.sandbox.paypal.com https://*.paypal.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://va.vercel-scripts.com https://widget.cloudinary.com https://upload-widget.cloudinary.com",
               "worker-src 'self' blob:",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://www.paypalobjects.com https://www.google-analytics.com https://www.googletagmanager.com https://www.facebook.com https://upload-widget.cloudinary.com",
