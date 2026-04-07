@@ -692,3 +692,30 @@ model ContactMessage {
   @@index([isRead])
   @@index([createdAt])
 }
+
+// ============================================================
+// DOCUMENTOS PÚBLICOS (PDFs y páginas de contenido)
+// ============================================================
+
+enum DocumentType {
+  PDF
+  CONTENT
+}
+
+model Document {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  titleEs     String
+  titleEn     String
+  type        DocumentType @default(PDF)
+  pdfUrl      String?      // URL de Cloudinary para tipo PDF
+  contentEs   String?      @db.Text
+  contentEn   String?      @db.Text
+  isPublished Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([slug])
+  @@index([isPublished])
+}

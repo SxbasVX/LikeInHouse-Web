@@ -4,7 +4,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import type { RouterOutput } from "@/types";
 
-type Client = RouterOutput["client"]["list"]["clients"][number];
+type Client = RouterOutput["clients"]["list"]["clients"][number];
 import {
   Card,
   CardContent,
@@ -92,13 +92,13 @@ export default function ClientesPage() {
   const resetForm = () =>
     setForm({ email: "", firstName: "", lastName: "", phone: "", country: "", language: "es", notes: "" });
 
-  const { data, isLoading, refetch } = trpc.client.list.useQuery({
+  const { data, isLoading, refetch } = trpc.clients.list.useQuery({
     page,
     limit: 10,
     search: search || undefined,
   });
 
-  const createClient = trpc.client.create.useMutation({
+  const createClient = trpc.clients.create.useMutation({
     onSuccess: () => {
       toast({ title: "Cliente creado" });
       refetch();
@@ -110,7 +110,7 @@ export default function ClientesPage() {
     },
   });
 
-  const updateClient = trpc.client.update.useMutation({
+  const updateClient = trpc.clients.update.useMutation({
     onSuccess: () => {
       toast({ title: "Cliente actualizado" });
       refetch();
@@ -121,7 +121,7 @@ export default function ClientesPage() {
     },
   });
 
-  const deleteClient = trpc.client.delete.useMutation({
+  const deleteClient = trpc.clients.delete.useMutation({
     onSuccess: () => {
       toast({ title: "Cliente eliminado" });
       refetch();

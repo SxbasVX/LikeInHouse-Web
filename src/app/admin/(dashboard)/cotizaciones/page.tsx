@@ -497,12 +497,12 @@ function CreateQuotationDialog({
   const [clientSearch, setClientSearch] = useState("");
   const [selectedClientLabel, setSelectedClientLabel] = useState("");
 
-  const { data: clientsData } = trpc.client.list.useQuery(
+  const { data: clientsData } = trpc.clients.list.useQuery(
     { page: 1, limit: 50, search: clientSearch || undefined },
     { enabled: open && clientMode === "existing" }
   );
 
-  const createClient = trpc.client.create.useMutation();
+  const createClient = trpc.clients.create.useMutation();
 
   const createQuotation = trpc.quotation.create.useMutation({
     onSuccess: () => {

@@ -53,7 +53,7 @@ export default function NuevaReservaPage() {
   });
 
   // Queries
-  const { data: clientsData } = trpc.client.list.useQuery({
+  const { data: clientsData } = trpc.clients.list.useQuery({
     page: 1,
     limit: 50,
     search: clientSearch || undefined,
@@ -72,7 +72,7 @@ export default function NuevaReservaPage() {
   );
 
   // Mutations
-  const createClient = trpc.client.create.useMutation({
+  const createClient = trpc.clients.create.useMutation({
     onSuccess: (client) => {
       setClientId(client.id);
       setShowNewClient(false);

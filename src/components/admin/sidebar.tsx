@@ -21,6 +21,7 @@ import {
   BarChart3,
   Menu,
   X,
+  BookMarked,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,7 @@ const navSections = [
     label: "Configuración",
     items: [
       { label: "Contenido", href: "/admin/contenido", icon: Newspaper },
+      { label: "Documentos", href: "/admin/documentos", icon: BookMarked },
       { label: "Galeria", href: "/admin/galeria", icon: ImageIcon },
       { label: "Usuarios", href: "/admin/usuarios", icon: UserCog },
     ],

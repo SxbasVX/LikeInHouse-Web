@@ -11,6 +11,7 @@ import { contentRouter } from "./routers/content";
 import { publicRouter } from "./routers/public";
 import { paypalRouter } from "./routers/paypal";
 import { paymentLinkRouter } from "./routers/paymentLink";
+import { documentRouter } from "./routers/document";
 
 export const appRouter = router({
   auth: authRouter,
@@ -18,13 +19,14 @@ export const appRouter = router({
   paymentLink: paymentLinkRouter,
   tour: tourRouter,
   dashboard: dashboardRouter,
-  client: clientRouter,
+  clients: clientRouter,
   reservation: reservationRouter,
   payment: paymentRouter,
   quotation: quotationRouter,
   user: userRouter,
   content: contentRouter,
   public: publicRouter,
+  docs: documentRouter,
 });
 
 export type AppRouter = typeof appRouter;

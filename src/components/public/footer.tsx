@@ -4,7 +4,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { trpc } from "@/lib/trpc";
 import Image from "next/image";
-import { MapPin, Phone, Mail, ArrowUpRight, BookOpen, Shield, FileText, ShieldCheck } from "lucide-react";
+import { MapPin, Phone, Mail, ArrowUpRight, BookOpen, Shield, FileText, ShieldCheck, ScrollText, Lock } from "lucide-react";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -63,12 +63,18 @@ export function Footer() {
   const phone = getSetting("phone", "+51 913 406 888");
   const email = getSetting("contactEmail", "info@likeinhouse.com");
 
-  // Links legales
-  const legalLinks = [
+  // Links legales desde settings (externos o internos)
+  const legalSettingsLinks = [
     { key: "libroReclamacionesUrl", label: isEs ? "Libro de Reclamaciones" : "Complaints Book", icon: BookOpen },
     { key: "codigoEsnnaUrl", label: isEs ? "Código ESNNA" : "ESNNA Code", icon: Shield },
     { key: "politicasCancelacionUrl", label: isEs ? "Políticas de Cancelación" : "Cancellation Policy", icon: FileText },
     { key: "proteccionDatosUrl", label: isEs ? "Protección de Datos" : "Data Protection", icon: ShieldCheck },
+  ];
+
+  // Links estáticos T&C y Privacidad (siempre disponibles)
+  const staticLegalLinks = [
+    { href: "/terminos", label: isEs ? "Términos y Condiciones" : "Terms & Conditions", icon: ScrollText },
+    { href: "/privacidad", label: isEs ? "Política de Privacidad" : "Privacy Policy", icon: Lock },
   ];
 
   return (
@@ -181,7 +187,20 @@ export function Footer() {
                   Legal
                 </h4>
                 <ul className="space-y-3">
-                  {legalLinks.map(({ key, label, icon: Icon }) => {
+                  {/* Links estáticos siempre disponibles */}
+                  {staticLegalLinks.map(({ href, label, icon: Icon }) => (
+                    <li key={href}>
+                      <Link
+                        href={href as any}
+                        className="flex items-center gap-2 text-sm text-white/55 hover:text-brand-orange transition-colors"
+                      >
+                        <Icon className="h-3.5 w-3.5 shrink-0" />
+                        {label}
+                      </Link>
+                    </li>
+                  ))}
+                  {/* Links desde settings (libro reclamaciones, ESNNA, etc.) */}
+                  {legalSettingsLinks.map(({ key, label, icon: Icon }) => {
                     const href = getSetting(key);
                     if (!href) {
                       return (
@@ -206,7 +225,7 @@ export function Footer() {
                           </a>
                         ) : (
                           <Link
-                            href={href}
+                            href={href as any}
                             className="flex items-center gap-2 text-sm text-white/55 hover:text-brand-orange transition-colors"
                           >
                             <Icon className="h-3.5 w-3.5 shrink-0" />

@@ -57,11 +57,18 @@ export function TestimonialsSection({ testimonials, title, subtitle }: Testimoni
     : 4.5;
 
   return (
-    <section className="bg-[#1C0D0C] py-20 lg:py-28 relative overflow-hidden">
+    <section className="bg-[#1C0D0C] pt-0 pb-20 lg:pb-28 relative overflow-hidden">
+      {/* Onda superior — transición desde blanco */}
+      <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
+        <svg viewBox="0 0 1440 90" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full" preserveAspectRatio="none">
+          <path d="M0 0 L1440 0 L1440 40 Q1080 90 720 50 Q360 10 0 70 Z" fill="white" fillOpacity="1" />
+        </svg>
+      </div>
+
       {/* Decoración sutil */}
       <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 pt-16 lg:pt-20">
         {/* Header */}
         <div ref={header.ref} className={`${header.isVisible ? "scroll-visible" : "scroll-hidden"} flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 mb-14`}>
           <div>

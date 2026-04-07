@@ -2,6 +2,7 @@
 
 import { useLocale } from "next-intl";
 import Image from "next/image";
+import { Link } from "@/i18n/routing";
 import { trpc } from "@/lib/trpc";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 import { Award } from "lucide-react";
@@ -63,12 +64,16 @@ export function CertificationsSection() {
                   className="h-10 sm:h-12 w-auto object-contain grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all duration-300"
                 />
               );
-              return item.link ? (
+              if (!item.link) return <div key={i}>{img}</div>;
+              const isExternal = item.link.startsWith("http");
+              return isExternal ? (
                 <a key={i} href={item.link} target="_blank" rel="noopener noreferrer">
                   {img}
                 </a>
               ) : (
-                <div key={i}>{img}</div>
+                <Link key={i} href={item.link as any}>
+                  {img}
+                </Link>
               );
             })}
           </div>
