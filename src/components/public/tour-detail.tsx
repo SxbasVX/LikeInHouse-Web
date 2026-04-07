@@ -96,6 +96,7 @@ export function TourDetail({ tour }: { tour: TourData }) {
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1]));
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [selectedDate, setSelectedDate] = useState("");
   const cartHydrated = useCartHydration();
   const { addItem, removeItem, isInCart } = useCartStore();
   const { toast } = useToast();
@@ -141,8 +142,15 @@ export function TourDetail({ tour }: { tour: TourData }) {
 
   const handleWhatsApp = () => {
     if (typeof window !== "undefined") {
-      const n = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "51984123456";
-      window.open(`https://wa.me/${n}?text=${encodeURIComponent(`Hola, me interesa el tour: ${tour.nameEs}`)}`, "_blank");
+      const n = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "51984123456").replace(/\D/g, "");
+      const tourName = isEs ? tour.nameEs : tour.nameEn;
+      const dateText = selectedDate
+        ? ` para el ${new Date(selectedDate).toLocaleDateString(isEs ? "es-PE" : "en-US", { day: "numeric", month: "long", year: "numeric" })}`
+        : "";
+      const msg = isEs
+        ? `Hola, me interesa el tour: ${tourName}${dateText}`
+        : `Hi, I'm interested in the tour: ${tourName}${dateText}`;
+      window.open(`https://wa.me/${n}?text=${encodeURIComponent(msg)}`, "_blank");
     }
   };
 
@@ -484,7 +492,7 @@ export function TourDetail({ tour }: { tour: TourData }) {
                   {/* Selector de fecha / salidas — DENTRO de la card, antes del CTA */}
                   {tour.tourType !== "INFORMATIONAL" && (
                     <div className="px-6 py-4">
-                      {/* Modo CALENDAR o BOTH: date picker */}
+                      {/* Modo CALENDAR o BOTH: date picker — guarda fecha, NO redirige */}
                       {(tour.bookingMode === "CALENDAR" || tour.bookingMode === "BOTH") && (
                         <div className="space-y-2">
                           <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500">
@@ -494,27 +502,20 @@ export function TourDetail({ tour }: { tour: TourData }) {
                           <input
                             type="date"
                             min={new Date().toISOString().split("T")[0]}
+                            value={selectedDate}
                             className="w-full rounded-xl border-2 border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-700 font-medium focus:border-brand-teal focus:bg-white focus:outline-none transition-all"
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                const dateStr = new Date(e.target.value).toLocaleDateString(
-                                  isEs ? "es-PE" : "en-US",
-                                  { day: "numeric", month: "long", year: "numeric" }
-                                );
-                                const msg = isEs
-                                  ? `Hola, quiero reservar el tour "${tour.nameEs}" para el ${dateStr}`
-                                  : `Hi, I'd like to book the tour "${tour.nameEn}" for ${dateStr}`;
-                                window.open(
-                                  `https://wa.me/${(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "51984123456").replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`,
-                                  "_blank"
-                                );
-                              }
-                            }}
+                            onChange={(e) => setSelectedDate(e.target.value)}
                           />
-                          <p className="text-[11px] text-gray-400 flex items-center gap-1">
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-teal" />
-                            {isEs ? "Al elegir fecha te redirigimos por WhatsApp" : "Picking a date opens WhatsApp for you"}
-                          </p>
+                          {selectedDate ? (
+                            <p className="text-[11px] text-brand-teal flex items-center gap-1 font-medium">
+                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-teal" />
+                              {isEs ? "Fecha seleccionada — haz clic en Reservar" : "Date selected — click Reserve to continue"}
+                            </p>
+                          ) : (
+                            <p className="text-[11px] text-gray-400">
+                              {isEs ? "Selecciona una fecha para continuar" : "Pick a date to continue"}
+                            </p>
+                          )}
                         </div>
                       )}
 
@@ -567,7 +568,7 @@ export function TourDetail({ tour }: { tour: TourData }) {
                       </Link>
                     ) : (
                       <Link
-                        href={`/tours/${tour.slug}/reservar`}
+                        href={`/tours/${tour.slug}/reservar${selectedDate ? `?date=${selectedDate}` : ""}`}
                         className="flex items-center justify-between w-full rounded-2xl bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-2 py-3 text-sm font-bold transition-all group shadow-sm"
                       >
                         {t("book_now")}
