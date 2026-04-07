@@ -436,34 +436,38 @@ export function TourDetail({ tour }: { tour: TourData }) {
 
             {/* ── SIDEBAR ─────────────────────────────────────────── */}
             <div className="lg:col-span-1">
-              <div className="sticky top-24 space-y-4">
+              <div className="sticky top-24 space-y-3">
 
-                {/* Card de reserva */}
+                {/* ── Card principal de reserva ── */}
                 <div className="overflow-hidden rounded-3xl bg-white shadow-md border border-gray-100">
 
-                  {/* Precio */}
-                  <div className="px-6 py-5 border-b border-gray-100">
+                  {/* Precio + tarifas */}
+                  <div className="px-6 pt-6 pb-4">
                     {tour.tourType !== "INFORMATIONAL" && price ? (
                       <>
-                        <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">{t("from_price")}</p>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-xl font-semibold text-gray-500 leading-none">{currency}</span>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">{t("from_price")}</p>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-lg font-semibold text-gray-400 leading-none">{currency}</span>
                           <span className="font-heading text-5xl font-bold text-brand-orange leading-none">{price.toFixed(0)}</span>
+                          <span className="text-sm text-gray-400 ml-1">/ {t("per_person")}</span>
                         </div>
-                        <p className="text-sm text-gray-500 mt-1.5">/ {t("per_person")}</p>
-                        {/* Show all pricing tiers */}
+                        {/* Tarifas por categoría */}
                         {tour.pricing?.tiers && tour.pricing.tiers.length > 1 && (
-                          <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-3">
+                          <div className="mt-3 flex flex-wrap gap-2">
                             {tour.pricing.tiers.map((tier) => {
                               const tierPrice = Number(tier.priceUsd);
                               const tierLabel = isEs ? tier.labelEs : tier.labelEn;
                               return (
-                                <div key={tier.id} className="flex items-center justify-between text-sm">
-                                  <span className="text-gray-500">{tierLabel}</span>
-                                  <span className={`font-semibold ${tier.isDefault ? "text-brand-orange" : "text-gray-700"}`}>
-                                    {currency} {tierPrice.toFixed(0)}
-                                  </span>
-                                </div>
+                                <span
+                                  key={tier.id}
+                                  className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
+                                    tier.isDefault
+                                      ? "bg-brand-orange/10 text-brand-orange"
+                                      : "bg-gray-100 text-gray-600"
+                                  }`}
+                                >
+                                  {tierLabel} · {currency}{tierPrice.toFixed(0)}
+                                </span>
                               );
                             })}
                           </div>
@@ -474,40 +478,100 @@ export function TourDetail({ tour }: { tour: TourData }) {
                     )}
                   </div>
 
-                  {/* Detalles */}
-                  <div className="px-6 py-4 space-y-0 divide-y divide-gray-50">
-                    {[
-                      { icon: <Clock className="h-4 w-4" />, label: t("duration_label"), value: formatDuration(tour.durationDays, tour.durationNights, tour.durationHours) },
-                      { icon: <Mountain className="h-4 w-4" />, label: t("difficulty_label"), value: t(`difficulty_${tour.difficulty.toLowerCase()}`) },
-                      { icon: <MapPin className="h-4 w-4" />, label: t("destination"), value: tour.destination },
-                    ].map((row, i) => (
-                      <div key={i} className="flex items-center justify-between py-3 text-sm">
-                        <span className="flex items-center gap-2 text-gray-400">{row.icon}{row.label}</span>
-                        <span className="font-semibold text-gray-800">{row.value}</span>
-                      </div>
-                    ))}
-                  </div>
+                  {/* Separador */}
+                  <div className="mx-6 border-t border-gray-100" />
+
+                  {/* Selector de fecha / salidas — DENTRO de la card, antes del CTA */}
+                  {tour.tourType !== "INFORMATIONAL" && (
+                    <div className="px-6 py-4">
+                      {/* Modo CALENDAR o BOTH: date picker */}
+                      {(tour.bookingMode === "CALENDAR" || tour.bookingMode === "BOTH") && (
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500">
+                            <Calendar className="h-3.5 w-3.5 text-brand-teal" />
+                            {isEs ? "¿Cuándo quieres ir?" : "When do you want to go?"}
+                          </label>
+                          <input
+                            type="date"
+                            min={new Date().toISOString().split("T")[0]}
+                            className="w-full rounded-xl border-2 border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-700 font-medium focus:border-brand-teal focus:bg-white focus:outline-none transition-all"
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                const dateStr = new Date(e.target.value).toLocaleDateString(
+                                  isEs ? "es-PE" : "en-US",
+                                  { day: "numeric", month: "long", year: "numeric" }
+                                );
+                                const msg = isEs
+                                  ? `Hola, quiero reservar el tour "${tour.nameEs}" para el ${dateStr}`
+                                  : `Hi, I'd like to book the tour "${tour.nameEn}" for ${dateStr}`;
+                                window.open(
+                                  `https://wa.me/${(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "51984123456").replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`,
+                                  "_blank"
+                                );
+                              }
+                            }}
+                          />
+                          <p className="text-[11px] text-gray-400 flex items-center gap-1">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-teal" />
+                            {isEs ? "Al elegir fecha te redirigimos por WhatsApp" : "Picking a date opens WhatsApp for you"}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Modo DEPARTURES o BOTH: lista de salidas */}
+                      {(tour.bookingMode === "DEPARTURES" || tour.bookingMode === "BOTH") && tour.departures.length > 0 && (
+                        <div className={`space-y-2 ${tour.bookingMode === "BOTH" ? "mt-4 pt-4 border-t border-gray-100" : ""}`}>
+                          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                            <Calendar className="h-3.5 w-3.5 text-brand-orange" />
+                            {t("departures")}
+                          </p>
+                          <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                            {tour.departures.slice(0, 5).map((dep) => {
+                              const available = dep.maxCapacity - dep.bookedCount;
+                              return (
+                                <div key={dep.id} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2.5 text-sm">
+                                  <span className="text-gray-700 font-medium">
+                                    {new Date(dep.departureDate).toLocaleDateString(
+                                      isEs ? "es-PE" : "en-US",
+                                      { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }
+                                    )}
+                                  </span>
+                                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                                    available <= 3 ? "bg-red-100 text-red-600" : "bg-emerald-100 text-emerald-700"
+                                  }`}>
+                                    {available} {t("spots")}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Separador */}
+                  <div className="mx-6 border-t border-gray-100" />
 
                   {/* CTAs */}
-                  <div className="px-6 pb-6 pt-2 space-y-3">
-                    {/* Botón principal — naranja vibrante */}
+                  <div className="px-6 py-5 space-y-2.5">
                     {tour.tourType === "INFORMATIONAL" ? (
                       <Link
                         href="/contacto"
-                        className="flex items-center justify-between w-full rounded-full bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-1.5 py-1.5 text-sm font-bold transition-all group shadow-sm"
+                        className="flex items-center justify-between w-full rounded-2xl bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-2 py-3 text-sm font-bold transition-all group shadow-sm"
                       >
                         {t("contact_us")}
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 group-hover:bg-white group-hover:text-brand-darkRed transition-colors">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20 group-hover:bg-white group-hover:text-brand-darkRed transition-colors">
                           <ArrowUpRight className="h-4 w-4 group-hover:rotate-12 transition-transform" />
                         </span>
                       </Link>
                     ) : (
                       <Link
                         href={`/tours/${tour.slug}/reservar`}
-                        className="flex items-center justify-between w-full rounded-full bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-1.5 py-1.5 text-sm font-bold transition-all group shadow-sm"
+                        className="flex items-center justify-between w-full rounded-2xl bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-2 py-3 text-sm font-bold transition-all group shadow-sm"
                       >
                         {t("book_now")}
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 group-hover:bg-white group-hover:text-brand-darkRed transition-colors">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20 group-hover:bg-white group-hover:text-brand-darkRed transition-colors">
                           <ArrowUpRight className="h-4 w-4 group-hover:rotate-12 transition-transform" />
                         </span>
                       </Link>
@@ -516,7 +580,7 @@ export function TourDetail({ tour }: { tour: TourData }) {
                     {/* Agregar al carrito */}
                     <button
                       onClick={handleCart}
-                      className={`w-full flex items-center justify-center gap-2 rounded-full border py-2.5 text-sm font-medium transition-all ${
+                      className={`w-full flex items-center justify-center gap-2 rounded-2xl border-2 py-2.5 text-sm font-semibold transition-all ${
                         inCart
                           ? "border-brand-teal/40 bg-brand-teal/8 text-brand-darkTeal"
                           : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
@@ -525,88 +589,42 @@ export function TourDetail({ tour }: { tour: TourData }) {
                       {inCart ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
                       {inCart ? tCart("in_cart") : tCart("add_to_cart")}
                     </button>
-
-                    {/* WhatsApp + Compartir */}
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={handleWhatsApp}
-                        className="flex-1 rounded-full border border-gray-200 py-2 text-xs font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-all"
-                      >
-                        {t("whatsapp")}
-                      </button>
-                      <button
-                        onClick={handleShare}
-                        className="flex items-center justify-center rounded-full border border-gray-200 px-3 py-2 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-all"
-                      >
-                        <Share2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
                   </div>
                 </div>
 
-                {/* Calendario abierto */}
-                {tour.tourType !== "INFORMATIONAL" && (tour.bookingMode === "CALENDAR" || tour.bookingMode === "BOTH") && (
-                  <div className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5">
-                    <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-gray-800">
-                      <Calendar className="h-4 w-4 text-brand-teal" />
-                      {isEs ? "Elige tu fecha" : "Choose your date"}
-                    </h3>
-                    <input
-                      type="date"
-                      min={new Date().toISOString().split("T")[0]}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700 focus:border-brand-teal focus:outline-none focus:ring-1 focus:ring-brand-teal"
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          const dateStr = new Date(e.target.value).toLocaleDateString(
-                            isEs ? "es-PE" : "en-US",
-                            { day: "numeric", month: "long", year: "numeric" }
-                          );
-                          const msg = isEs
-                            ? `Hola, quiero reservar el tour "${isEs ? tour.nameEs : tour.nameEn}" para el ${dateStr}`
-                            : `Hi, I'd like to book the tour "${tour.nameEn}" for ${dateStr}`;
-                          window.open(
-                            `https://wa.me/${(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "51984123456").replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`,
-                            "_blank"
-                          );
-                        }
-                      }}
-                    />
-                    <p className="mt-2 text-xs text-gray-400">
-                      {isEs ? "Selecciona una fecha y te contactamos por WhatsApp" : "Pick a date and we'll reach out via WhatsApp"}
-                    </p>
-                  </div>
-                )}
-
-                {/* Próximas salidas fijas */}
-                {tour.tourType !== "INFORMATIONAL" && (tour.bookingMode === "DEPARTURES" || tour.bookingMode === "BOTH") && tour.departures.length > 0 && (
-                  <div className="rounded-3xl bg-white border border-gray-100 shadow-sm p-5">
-                    <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-gray-800">
-                      <Calendar className="h-4 w-4 text-brand-orange" />
-                      {t("departures")}
-                    </h3>
-                    <div className="space-y-1.5">
-                      {tour.departures.slice(0, 5).map((dep) => {
-                        const available = dep.maxCapacity - dep.bookedCount;
-                        return (
-                          <div key={dep.id} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2.5 text-sm">
-                            <span className="flex items-center gap-2 text-gray-600">
-                              <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                              {new Date(dep.departureDate).toLocaleDateString(
-                                isEs ? "es-PE" : "en-US",
-                                { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }
-                              )}
-                            </span>
-                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                              available <= 3 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-700"
-                            }`}>
-                              {available} {t("spots")}
-                            </span>
-                          </div>
-                        );
-                      })}
+                {/* ── Detalles del tour — card secundaria limpia ── */}
+                <div className="rounded-3xl bg-white border border-gray-100 shadow-sm divide-y divide-gray-50">
+                  {[
+                    { icon: <Clock className="h-4 w-4 text-brand-teal" />, label: t("duration_label"), value: formatDuration(tour.durationDays, tour.durationNights, tour.durationHours) },
+                    { icon: <Mountain className="h-4 w-4 text-brand-teal" />, label: t("difficulty_label"), value: t(`difficulty_${tour.difficulty.toLowerCase()}`) },
+                    { icon: <MapPin className="h-4 w-4 text-brand-teal" />, label: t("destination"), value: tour.destination },
+                  ].map((row, i) => (
+                    <div key={i} className="flex items-center justify-between px-5 py-3.5 text-sm">
+                      <span className="flex items-center gap-2 text-gray-400">{row.icon}{row.label}</span>
+                      <span className="font-semibold text-gray-800">{row.value}</span>
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+
+                {/* ── Compartir — discreto, al final ── */}
+                <div className="flex items-center justify-between px-1">
+                  <button
+                    onClick={handleWhatsApp}
+                    className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors font-medium py-2 px-3 rounded-full hover:bg-gray-100"
+                  >
+                    <span className="w-5 h-5 rounded-full bg-[#25D366] flex items-center justify-center">
+                      <svg viewBox="0 0 24 24" fill="white" className="w-3 h-3"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.555 4.118 1.528 5.845L.057 23.617a.75.75 0 0 0 .92.92l5.772-1.471A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.89 0-3.658-.523-5.166-1.43l-.37-.22-3.827.976.991-3.618-.242-.373A9.957 9.957 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                    </span>
+                    WhatsApp
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors font-medium py-2 px-3 rounded-full hover:bg-gray-100"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    {isEs ? "Compartir" : "Share"}
+                  </button>
+                </div>
 
               </div>
             </div>
