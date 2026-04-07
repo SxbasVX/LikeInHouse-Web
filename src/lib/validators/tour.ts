@@ -46,9 +46,17 @@ const tourDepartureSchema = z.object({
   maxCapacity: z.number().int("Debe ser entero").positive("Debe ser mayor a 0"),
 });
 
+const pricingTierSchema = z.object({
+  labelEs: z.string().min(1, "Etiqueta requerida"),
+  labelEn: z.string().min(1, "Label required"),
+  ageMin: z.number().int().min(0).optional().nullable(),
+  ageMax: z.number().int().min(0).optional().nullable(),
+  priceUsd: z.number().nonnegative("Precio no puede ser negativo"),
+  isDefault: z.boolean().default(false),
+});
+
 const pricingSchema = z.object({
-  basePriceUsdAdult: z.number().positive("Precio requerido"),
-  basePriceUsdChild: z.number().nonnegative().default(0),
+  tiers: z.array(pricingTierSchema).min(1, "Se requiere al menos una tarifa"),
   groupDiscountPercent: z.number().min(0, "Mínimo 0").max(100, "Máximo 100").optional(),
   groupMinPersons: z.number().int("Debe ser entero").positive("Debe ser al menos 1 persona").optional(),
   promoDiscountPercent: z.number().min(0, "Mínimo 0").max(100, "Máximo 100").optional(),
@@ -66,8 +74,9 @@ export const tourCreateSchema = z.object({
   bookingMode: z.enum(["CALENDAR", "DEPARTURES", "BOTH"]).default("CALENDAR"),
   category: z.string().min(1, "Categoría requerida"),
   difficulty: z.enum(["EASY", "MODERATE", "CHALLENGING"]).default("EASY"),
-  durationDays: z.number().int("Debe ser un número entero").positive("Debe ser al menos 1 día"),
+  durationDays: z.number().int("Debe ser un número entero").min(0, "No puede ser negativo"),
   durationNights: z.number().int("Debe ser un número entero").min(0, "No puede ser negativo"),
+  durationHours: z.number().int("Debe ser un número entero").min(0).max(23).optional().nullable(),
   destination: z.string().min(1, "Destino requerido"),
   shortDescEs: z.string().min(10, "Mínimo 10 caracteres"),
   shortDescEn: z.string().min(10, "Minimum 10 characters"),
@@ -92,6 +101,14 @@ export const tourCreateSchema = z.object({
 }, {
   message: "Los tours comprables requieren precios",
   path: ["pricing"],
+}).refine((data) => {
+  if (data.durationDays === 0 && (!data.durationHours || data.durationHours <= 0)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Si duración en días es 0, debe especificar horas",
+  path: ["durationHours"],
 });
 
 export type TourCreateInput = z.infer<typeof tourCreateSchema>;
@@ -105,8 +122,9 @@ export const tourUpdateSchema = z.object({
   bookingMode: z.enum(["CALENDAR", "DEPARTURES", "BOTH"]).optional(),
   category: z.string().min(1).optional(),
   difficulty: z.enum(["EASY", "MODERATE", "CHALLENGING"]).optional(),
-  durationDays: z.number().int().positive().optional(),
+  durationDays: z.number().int().min(0).optional(),
   durationNights: z.number().int().min(0).optional(),
+  durationHours: z.number().int().min(0).max(23).optional().nullable(),
   destination: z.string().min(1).optional(),
   shortDescEs: z.string().min(10).optional(),
   shortDescEn: z.string().min(10).optional(),

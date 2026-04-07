@@ -33,7 +33,9 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
     const tour = await db.tour.findUnique({
         where: { slug },
         include: {
-            pricing: true,
+            pricing: {
+                include: { tiers: { orderBy: { sortOrder: "asc" } } },
+            },
             departures: {
                 where: {
                     departureDate: { gte: new Date() },
@@ -61,6 +63,15 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
         pricing: tour.pricing ? {
             basePriceUsdAdult: Number(tour.pricing.basePriceUsdAdult),
             basePriceUsdChild: Number(tour.pricing.basePriceUsdChild),
+            tiers: (tour.pricing as any).tiers?.map((t: any) => ({
+                id: t.id,
+                labelEs: t.labelEs,
+                labelEn: t.labelEn,
+                ageMin: t.ageMin,
+                ageMax: t.ageMax,
+                priceUsd: Number(t.priceUsd),
+                isDefault: t.isDefault,
+            })) || [],
         } : null,
         departures: tour.departures.map((d: any) => ({
             id: d.id,

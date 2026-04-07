@@ -19,10 +19,11 @@ interface Tour {
   difficulty: string;
   durationDays: number;
   durationNights: number;
+  durationHours?: number | null;
   isFeatured: boolean;
   tourType?: string;
   images: { url: string; altEs: string | null; altEn: string | null }[];
-  pricing: { basePriceUsdAdult: any } | null;
+  pricing: { basePriceUsdAdult: any; tiers?: { priceUsd: any; isDefault: boolean }[] } | null;
 }
 
 const SHOWCASE_BG = "https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=800&q=80";
@@ -89,7 +90,8 @@ export function FeaturedToursSection({ tours, title, subtitle }: FeaturedToursSe
             const image = tour.images[0];
             const price = tour.pricing
               ? (() => {
-                  const raw = Number(tour.pricing.basePriceUsdAdult);
+                  const defaultTier = tour.pricing.tiers?.find((t) => t.isDefault) || tour.pricing.tiers?.[0];
+                  const raw = defaultTier ? Number(defaultTier.priceUsd) : Number(tour.pricing.basePriceUsdAdult);
                   return isFinite(raw) ? raw : null;
                 })()
               : null;

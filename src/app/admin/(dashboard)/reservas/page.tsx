@@ -258,6 +258,7 @@ export default function ReservasPage() {
                           data={{
                             referenceCode: reservation.referenceCode,
                             serviceName: reservation.tour?.nameEs || "Servicio",
+                            serviceDescription: (reservation.tour as any)?.shortDescEs || "",
                             clientName: `${reservation.client.firstName} ${reservation.client.lastName}`,
                             clientEmail: reservation.client.email,
                             amountPaid: ["PAID", "COMPLETED"].includes(reservation.status) ? Number(reservation.totalAmount) : 0,

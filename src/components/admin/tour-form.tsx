@@ -53,6 +53,7 @@ interface TourFormData {
   difficulty: "EASY" | "MODERATE" | "CHALLENGING";
   durationDays: number;
   durationNights: number;
+  durationHours: number | null;
   destination: string;
   shortDescEs: string;
   shortDescEn: string;
@@ -71,8 +72,14 @@ interface TourFormData {
     descriptionEn: string;
   }[];
   pricing: {
-    basePriceUsdAdult: number;
-    basePriceUsdChild: number;
+    tiers: {
+      labelEs: string;
+      labelEn: string;
+      ageMin?: number | null;
+      ageMax?: number | null;
+      priceUsd: number;
+      isDefault: boolean;
+    }[];
     groupDiscountPercent?: number;
     groupMinPersons?: number;
   };
@@ -121,6 +128,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
       difficulty: "EASY",
       durationDays: 1,
       durationNights: 0,
+      durationHours: null,
       destination: "",
       shortDescEs: "",
       shortDescEn: "",
@@ -133,8 +141,10 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
       isFeatured: false,
       itinerary: [],
       pricing: {
-        basePriceUsdAdult: 0,
-        basePriceUsdChild: 0,
+        tiers: [
+          { labelEs: "Adulto", labelEn: "Adult", priceUsd: 0, isDefault: true },
+          { labelEs: "Niño", labelEn: "Child", priceUsd: 0, isDefault: false },
+        ],
       },
       includes: [],
       excludes: [],
@@ -147,6 +157,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
   const [activeTab, setActiveTab] = useState("general");
 
   const itinerary = useFieldArray({ control, name: "itinerary" });
+  const pricingTiers = useFieldArray({ control, name: "pricing.tiers" });
   const includes = useFieldArray({ control, name: "includes" });
   const excludes = useFieldArray({ control, name: "excludes" });
   const images = useFieldArray({ control, name: "images" });
@@ -253,7 +264,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4 mb-8">
-          <TabsTrigger value="general" className={Object.keys(errors).some(k => ["nameEs", "nameEn", "slug", "tourType", "category", "difficulty", "durationDays", "durationNights", "destination", "shortDescEs", "shortDescEn", "longDescEs", "longDescEn"].includes(k)) ? "text-red-500" : ""}>Información General</TabsTrigger>
+          <TabsTrigger value="general" className={Object.keys(errors).some(k => ["nameEs", "nameEn", "slug", "tourType", "category", "difficulty", "durationDays", "durationNights", "durationHours", "destination", "shortDescEs", "shortDescEn", "longDescEs", "longDescEn"].includes(k)) ? "text-red-500" : ""}>Información General</TabsTrigger>
           <TabsTrigger value="multimedia" className={errors.images ? "text-red-500" : ""}>Imágenes</TabsTrigger>
           <TabsTrigger value="precios" disabled={!isBookable} className={(errors.pricing || errors.departures) ? "text-red-500" : ""}>Precios y Fechas</TabsTrigger>
           <TabsTrigger value="avanzado" className={Object.keys(errors).some(k => ["itinerary", "includes", "excludes", "metaTitleEs", "metaTitleEn", "metaDescEs", "metaDescEn"].includes(k)) ? "text-red-500" : ""}>Itinerario y Otros</TabsTrigger>
@@ -378,7 +389,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
 
               {/* Categoría y Duración */}
               <Separator />
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label className={errors.category ? "text-destructive" : ""}>Categoría *</Label>
                   <Input {...register("category")} placeholder="Ej. Aventura, Cultural" className={errors.category ? "border-destructive" : ""} />
@@ -401,14 +412,20 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className={errors.durationDays ? "text-destructive" : ""}>Días *</Label>
-                  <Input type="number" min={1} {...register("durationDays", { valueAsNumber: true })} className={errors.durationDays ? "border-destructive" : ""} />
+                  <Label className={errors.durationDays ? "text-destructive" : ""}>Días</Label>
+                  <Input type="number" min={0} {...register("durationDays", { valueAsNumber: true })} className={errors.durationDays ? "border-destructive" : ""} />
                   {errors.durationDays && <p className="text-[11px] font-medium text-destructive">{errors.durationDays.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label className={errors.durationNights ? "text-destructive" : ""}>Noches</Label>
                   <Input type="number" min={0} {...register("durationNights", { valueAsNumber: true })} className={errors.durationNights ? "border-destructive" : ""} />
                   {errors.durationNights && <p className="text-[11px] font-medium text-destructive">{errors.durationNights.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label className={(errors as any).durationHours ? "text-destructive" : ""}>Horas</Label>
+                  <Input type="number" min={0} max={23} {...register("durationHours", { valueAsNumber: true, setValueAs: (v: any) => v === "" || v === 0 ? null : Number(v) })} placeholder="Solo medio día" className={(errors as any).durationHours ? "border-destructive" : ""} />
+                  {(errors as any).durationHours && <p className="text-[11px] font-medium text-destructive">{(errors as any).durationHours.message}</p>}
+                  <p className="text-[10px] text-muted-foreground">Usa si el tour dura horas (ej: 4h)</p>
                 </div>
               </div>
 
@@ -525,16 +542,64 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                 <div className="text-sm text-muted-foreground">Configura los precios de venta y las fechas en las que los clientes podrán reservar este paquete.</div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg">
-                  <div className="space-y-2">
-                    <Label className={`font-semibold text-primary ${errors.pricing?.basePriceUsdAdult ? "text-destructive" : ""}`}>Adulto USD ($) *</Label>
-                    <Input type="number" step="0.01" min={0} {...register("pricing.basePriceUsdAdult", { valueAsNumber: true })} className={`text-lg ${errors.pricing?.basePriceUsdAdult ? "border-destructive" : ""}`} />
-                    {errors.pricing?.basePriceUsdAdult && <p className="text-[11px] font-medium text-destructive">{errors.pricing.basePriceUsdAdult.message}</p>}
+                  {/* Tarifas por categoría de pasajero */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base font-semibold">Tarifas por Categoría</Label>
+                      <p className="text-sm text-muted-foreground">Define las categorías de pasajero y sus precios. Marca una como "Principal" para mostrar en listados.</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => pricingTiers.append({ labelEs: "", labelEn: "", priceUsd: 0, isDefault: false, ageMin: null, ageMax: null })}
+                    >
+                      <Plus className="mr-2 h-4 w-4" /> Agregar Tarifa
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Niño USD ($)</Label>
-                    <Input type="number" step="0.01" min={0} {...register("pricing.basePriceUsdChild", { valueAsNumber: true })} />
-                  </div>
+                  {(errors.pricing as any)?.tiers?.message && (
+                    <p className="text-[11px] font-medium text-destructive">{(errors.pricing as any).tiers.message}</p>
+                  )}
+                  {pricingTiers.fields.length === 0 ? (
+                    <div className="rounded border border-dashed p-6 text-center text-muted-foreground bg-muted/10">
+                      Sin tarifas configuradas. Agrega al menos una categoría (ej: Adulto).
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {pricingTiers.fields.map((field, index) => (
+                        <div key={field.id} className="grid grid-cols-[1fr_1fr_80px_80px_100px_auto_auto] items-end gap-2 p-3 border rounded-lg bg-muted/20">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">Etiqueta ES *</Label>
+                            <Input {...register(`pricing.tiers.${index}.labelEs`)} placeholder="Adulto, Niño (3-11)..." className="text-sm" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">Etiqueta EN *</Label>
+                            <Input {...register(`pricing.tiers.${index}.labelEn`)} placeholder="Adult, Child (3-11)..." className="text-sm" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">Edad Min</Label>
+                            <Input type="number" min={0} {...register(`pricing.tiers.${index}.ageMin`, { valueAsNumber: true, setValueAs: (v: any) => v === "" ? null : Number(v) })} placeholder="—" className="text-sm" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">Edad Max</Label>
+                            <Input type="number" min={0} {...register(`pricing.tiers.${index}.ageMax`, { valueAsNumber: true, setValueAs: (v: any) => v === "" ? null : Number(v) })} placeholder="—" className="text-sm" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">USD ($) *</Label>
+                            <Input type="number" step="0.01" min={0} {...register(`pricing.tiers.${index}.priceUsd`, { valueAsNumber: true })} className="text-sm font-semibold" />
+                          </div>
+                          <div className="flex items-center gap-1.5 pb-0.5">
+                            <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary" {...register(`pricing.tiers.${index}.isDefault`)} />
+                            <Label className="text-xs whitespace-nowrap">Principal</Label>
+                          </div>
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => pricingTiers.remove(index)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Descuento Grupal */}
@@ -787,15 +852,18 @@ function TourPreview({ data }: { data: TourFormData }) {
         </div>
         <h2 className="text-xl font-bold">{data.nameEs || "Sin nombre"}</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          {data.durationDays} dias / {data.durationNights} noches
+          {data.durationDays > 0 ? `${data.durationDays} dias / ${data.durationNights} noches` : `${data.durationHours || 0} horas`}
         </p>
       </div>
       <p className="text-sm">{data.shortDescEs || "Sin descripcion corta"}</p>
-      {data.tourType === "BOOKABLE" && data.pricing?.basePriceUsdAdult > 0 && (
-        <div className="rounded-lg bg-primary/10 p-3">
-          <span className="text-sm text-muted-foreground">Desde </span>
-          <span className="text-xl font-bold text-primary">$ {data.pricing.basePriceUsdAdult}</span>
-          <span className="text-sm text-muted-foreground"> / persona</span>
+      {data.tourType === "BOOKABLE" && data.pricing?.tiers?.length > 0 && (
+        <div className="rounded-lg bg-primary/10 p-3 space-y-1">
+          {data.pricing.tiers.map((tier, i) => (
+            <div key={i} className="flex justify-between text-sm">
+              <span className="text-muted-foreground">{tier.labelEs}{tier.ageMin != null || tier.ageMax != null ? ` (${tier.ageMin ?? 0}-${tier.ageMax ?? "+"})` : ""}</span>
+              <span className={`font-bold ${tier.isDefault ? "text-primary" : ""}`}>$ {tier.priceUsd}</span>
+            </div>
+          ))}
         </div>
       )}
       {data.longDescEs && (

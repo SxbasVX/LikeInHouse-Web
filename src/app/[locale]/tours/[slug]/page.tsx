@@ -56,7 +56,10 @@ export default async function TourDetailPage({
     image: tour.images?.[0]?.url || "",
     offers: {
       "@type": "Offer",
-      price: tour.pricing?.basePriceUsdAdult?.toString() || "0.00",
+      price: (() => {
+        const dt = (tour.pricing as any)?.tiers?.find((t: any) => t.isDefault) || (tour.pricing as any)?.tiers?.[0];
+        return dt ? String(Number(dt.priceUsd)) : (tour.pricing?.basePriceUsdAdult?.toString() || "0.00");
+      })(),
       priceCurrency: "USD",
       availability: "https://schema.org/InStock",
       url: `${process.env.NEXT_PUBLIC_BASE_URL}/${locale}/tours/${slug}`,

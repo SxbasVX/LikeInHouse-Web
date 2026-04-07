@@ -48,7 +48,16 @@ export const tourRouter = router({
           orderBy: { createdAt: "desc" },
           include: {
             images: { where: { isPrimary: true }, take: 1 },
-            pricing: { select: { basePriceUsdAdult: true } },
+            pricing: {
+              select: {
+                basePriceUsdAdult: true,
+                tiers: {
+                  where: { isDefault: true },
+                  take: 1,
+                  select: { priceUsd: true, isDefault: true },
+                },
+              },
+            },
             _count: { select: { reservations: true, departures: true } },
           },
         }),
@@ -84,7 +93,9 @@ export const tourRouter = router({
         include: {
           images: { orderBy: { sortOrder: "asc" } },
           itinerary: { orderBy: { dayNumber: "asc" } },
-          pricing: true,
+          pricing: {
+            include: { tiers: { orderBy: { sortOrder: "asc" } } },
+          },
           includes: { orderBy: { sortOrder: "asc" } },
           seasons: true,
           departures: { orderBy: { departureDate: "asc" } },
@@ -107,7 +118,9 @@ export const tourRouter = router({
         include: {
           images: { orderBy: { sortOrder: "asc" } },
           itinerary: { orderBy: { dayNumber: "asc" } },
-          pricing: true,
+          pricing: {
+            include: { tiers: { orderBy: { sortOrder: "asc" } } },
+          },
           includes: { orderBy: { sortOrder: "asc" } },
           seasons: true,
           departures: {
@@ -153,8 +166,6 @@ export const tourRouter = router({
             ...(pricing ? {
               pricing: {
                 create: {
-                  basePriceUsdAdult: pricing.basePriceUsdAdult,
-                  basePriceUsdChild: pricing.basePriceUsdChild,
                   groupDiscountPercent: pricing.groupDiscountPercent,
                   groupMinPersons: pricing.groupMinPersons,
                   promoDiscountPercent: pricing.promoDiscountPercent,
@@ -162,6 +173,17 @@ export const tourRouter = router({
                   promoEndDate: pricing.promoEndDate ? new Date(pricing.promoEndDate) : undefined,
                   promoLabelEs: pricing.promoLabelEs,
                   promoLabelEn: pricing.promoLabelEn,
+                  tiers: {
+                    create: pricing.tiers.map((tier, i) => ({
+                      labelEs: tier.labelEs,
+                      labelEn: tier.labelEn,
+                      ageMin: tier.ageMin ?? null,
+                      ageMax: tier.ageMax ?? null,
+                      priceUsd: tier.priceUsd,
+                      isDefault: tier.isDefault,
+                      sortOrder: i,
+                    })),
+                  },
                 },
               },
             } : {}),
@@ -243,22 +265,45 @@ export const tourRouter = router({
         if (pricing === null) {
           await tx.tourPricing.deleteMany({ where: { tourId: id } });
         } else if (pricing) {
-          await tx.tourPricing.upsert({
+          const upsertedPricing = await tx.tourPricing.upsert({
             where: { tourId: id },
             create: {
               tourId: id,
-              basePriceUsdAdult: pricing.basePriceUsdAdult,
-              basePriceUsdChild: pricing.basePriceUsdChild,
               groupDiscountPercent: pricing.groupDiscountPercent,
               groupMinPersons: pricing.groupMinPersons,
+              promoDiscountPercent: pricing.promoDiscountPercent,
+              promoStartDate: pricing.promoStartDate ? new Date(pricing.promoStartDate) : undefined,
+              promoEndDate: pricing.promoEndDate ? new Date(pricing.promoEndDate) : undefined,
+              promoLabelEs: pricing.promoLabelEs,
+              promoLabelEn: pricing.promoLabelEn,
             },
             update: {
-              basePriceUsdAdult: pricing.basePriceUsdAdult,
-              basePriceUsdChild: pricing.basePriceUsdChild,
               groupDiscountPercent: pricing.groupDiscountPercent,
               groupMinPersons: pricing.groupMinPersons,
+              promoDiscountPercent: pricing.promoDiscountPercent,
+              promoStartDate: pricing.promoStartDate ? new Date(pricing.promoStartDate) : undefined,
+              promoEndDate: pricing.promoEndDate ? new Date(pricing.promoEndDate) : undefined,
+              promoLabelEs: pricing.promoLabelEs,
+              promoLabelEn: pricing.promoLabelEn,
             },
           });
+
+          // Recreate tiers
+          await tx.tourPricingTier.deleteMany({ where: { pricingId: upsertedPricing.id } });
+          if (pricing.tiers.length > 0) {
+            await tx.tourPricingTier.createMany({
+              data: pricing.tiers.map((tier, i) => ({
+                pricingId: upsertedPricing.id,
+                labelEs: tier.labelEs,
+                labelEn: tier.labelEn,
+                ageMin: tier.ageMin ?? null,
+                ageMax: tier.ageMax ?? null,
+                priceUsd: tier.priceUsd,
+                isDefault: tier.isDefault,
+                sortOrder: i,
+              })),
+            });
+          }
         }
 
         if (includes || excludes) {
@@ -334,7 +379,9 @@ export const tourRouter = router({
           include: {
             images: true,
             itinerary: true,
-            pricing: true,
+            pricing: {
+              include: { tiers: { orderBy: { sortOrder: "asc" } } },
+            },
             includes: true,
             departures: true,
           },

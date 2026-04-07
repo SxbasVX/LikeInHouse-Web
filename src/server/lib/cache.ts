@@ -45,6 +45,11 @@ export const getCachedFeaturedTours = unstable_cache(
                         promoEndDate: true,
                         promoLabelEs: true,
                         promoLabelEn: true,
+                        tiers: {
+                            where: { isDefault: true },
+                            take: 1,
+                            select: { priceUsd: true, isDefault: true, labelEs: true, labelEn: true },
+                        },
                     },
                 },
             },

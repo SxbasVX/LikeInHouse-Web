@@ -12,6 +12,7 @@ export interface CartItem {
   destination: string;
   durationDays: number;
   durationNights: number;
+  durationHours: number | null;
   imageUrl: string | null;
   priceUsd: number | null;
   originalPriceUsd: number | null;

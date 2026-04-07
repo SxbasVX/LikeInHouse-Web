@@ -9,6 +9,7 @@ import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { getFinalPrice } from "@/lib/pricing";
+import { formatDuration } from "@/lib/utils";
 
 interface TourCardProps {
   tour: {
@@ -23,6 +24,7 @@ interface TourCardProps {
     difficulty: string;
     durationDays: number;
     durationNights: number;
+    durationHours?: number | null;
     isFeatured: boolean;
     tourType?: string;
     images: { url: string; altEs?: string | null; altEn?: string | null }[];
@@ -33,6 +35,7 @@ interface TourCardProps {
       promoEndDate?: any;
       promoLabelEs?: string | null;
       promoLabelEn?: string | null;
+      tiers?: { priceUsd: any; isDefault: boolean; labelEs: string; labelEn: string }[];
     } | null;
   };
 }
@@ -57,10 +60,13 @@ export function TourCard({ tour }: TourCardProps) {
   const desc = isEs ? tour.shortDescEs : tour.shortDescEn;
   const image = tour.images[0];
 
-  // Calculate pricing with discounts
+  // Calculate pricing with discounts — prefer tiers if available
   const priceInfo = useMemo(() => {
     if (!tour.pricing) return null;
-    const basePrice = Number(tour.pricing.basePriceUsdAdult);
+
+    // Use default tier price if tiers exist, otherwise fall back to legacy field
+    const defaultTier = tour.pricing.tiers?.find((t) => t.isDefault) || tour.pricing.tiers?.[0];
+    const basePrice = defaultTier ? Number(defaultTier.priceUsd) : Number(tour.pricing.basePriceUsdAdult);
     if (!isFinite(basePrice)) return null;
 
     const result = getFinalPrice({
@@ -96,6 +102,7 @@ export function TourCard({ tour }: TourCardProps) {
       destination: tour.destination,
       durationDays: tour.durationDays,
       durationNights: tour.durationNights,
+      durationHours: tour.durationHours ?? null,
       imageUrl: image?.url || null,
       priceUsd: priceInfo?.finalPrice ?? null,
       originalPriceUsd: priceInfo?.originalPrice ?? null,
@@ -171,7 +178,7 @@ export function TourCard({ tour }: TourCardProps) {
         <span className="h-[3px] w-[3px] rounded-full bg-gray-300" />
         <span className="flex items-center gap-1">
           <Clock className="h-3 w-3" />
-          {tour.durationDays}{t("days")} / {tour.durationNights}{t("nights")}
+          {formatDuration(tour.durationDays, tour.durationNights, tour.durationHours)}
         </span>
       </div>
 

@@ -77,6 +77,11 @@ export const publicRouter = router({
                 promoEndDate: true,
                 promoLabelEs: true,
                 promoLabelEn: true,
+                tiers: {
+                  where: { isDefault: true },
+                  take: 1,
+                  select: { priceUsd: true, isDefault: true, labelEs: true, labelEn: true },
+                },
               },
             },
             _count: { select: { departures: true } },
@@ -107,7 +112,9 @@ export const publicRouter = router({
         include: {
           images: { orderBy: { sortOrder: "asc" }, take: 12 },
           itinerary: { orderBy: { dayNumber: "asc" } },
-          pricing: true,
+          pricing: {
+            include: { tiers: { orderBy: { sortOrder: "asc" } } },
+          },
           includes: { orderBy: { sortOrder: "asc" } },
           departures: {
             where: { status: "AVAILABLE", departureDate: { gte: new Date() } },

@@ -100,6 +100,7 @@ model Tour {
   difficulty     Difficulty @default(EASY)
   durationDays   Int
   durationNights Int
+  durationHours  Int?
   destination    String
 
   nameEs         String
@@ -168,8 +169,9 @@ model TourPricing {
   tourId               String   @unique
   tour                 Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
 
-  basePriceUsdAdult    Decimal  @db.Decimal(10, 2)
-  basePriceUsdChild    Decimal  @db.Decimal(10, 2)
+  // Legacy fields kept for migration — use tiers instead
+  basePriceUsdAdult    Decimal  @default(0) @db.Decimal(10, 2)
+  basePriceUsdChild    Decimal  @default(0) @db.Decimal(10, 2)
 
   groupDiscountPercent Decimal? @db.Decimal(5, 2)
   groupMinPersons      Int?
@@ -179,6 +181,23 @@ model TourPricing {
   promoEndDate         DateTime?
   promoLabelEs         String?
   promoLabelEn         String?
+
+  tiers                TourPricingTier[]
+}
+
+model TourPricingTier {
+  id        String      @id @default(cuid())
+  pricingId String
+  pricing   TourPricing @relation(fields: [pricingId], references: [id], onDelete: Cascade)
+  labelEs   String      // "Adulto", "Niño (3-11 años)", "Estudiante Pregrado"
+  labelEn   String      // "Adult", "Child (3-11 years)", "Undergraduate Student"
+  ageMin    Int?        // Optional minimum age
+  ageMax    Int?        // Optional maximum age
+  priceUsd  Decimal     @db.Decimal(10, 2)
+  isDefault Boolean     @default(false) // Main tier shown in cards/listings
+  sortOrder Int         @default(0)
+
+  @@index([pricingId, sortOrder])
 }
 
 model TourSeason {

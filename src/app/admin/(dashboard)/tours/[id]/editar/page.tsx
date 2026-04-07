@@ -86,6 +86,7 @@ export default function EditarTourPage() {
     difficulty: tour.difficulty,
     durationDays: tour.durationDays,
     durationNights: tour.durationNights,
+    durationHours: tour.durationHours ?? null,
     destination: tour.destination,
     shortDescEs: tour.shortDescEs,
     shortDescEn: tour.shortDescEn,
@@ -105,16 +106,26 @@ export default function EditarTourPage() {
     })),
     pricing: tour.pricing
       ? {
-        basePriceUsdAdult: Number(tour.pricing.basePriceUsdAdult),
-        basePriceUsdChild: Number(tour.pricing.basePriceUsdChild),
+        tiers: (tour.pricing as any).tiers?.map((tier: any) => ({
+          labelEs: tier.labelEs,
+          labelEn: tier.labelEn,
+          ageMin: tier.ageMin,
+          ageMax: tier.ageMax,
+          priceUsd: Number(tier.priceUsd),
+          isDefault: tier.isDefault,
+        })) || [
+          { labelEs: "Adulto", labelEn: "Adult", priceUsd: Number(tour.pricing.basePriceUsdAdult), isDefault: true },
+          ...(Number(tour.pricing.basePriceUsdChild) > 0 ? [{ labelEs: "Niño", labelEn: "Child", priceUsd: Number(tour.pricing.basePriceUsdChild), isDefault: false }] : []),
+        ],
         groupDiscountPercent: tour.pricing.groupDiscountPercent
           ? Number(tour.pricing.groupDiscountPercent)
           : undefined,
         groupMinPersons: tour.pricing.groupMinPersons || undefined,
       }
       : {
-        basePriceUsdAdult: 0,
-        basePriceUsdChild: 0,
+        tiers: [
+          { labelEs: "Adulto", labelEn: "Adult", priceUsd: 0, isDefault: true },
+        ],
       },
     includes: tour.includes
       .filter((inc) => inc.type === "INCLUDE")

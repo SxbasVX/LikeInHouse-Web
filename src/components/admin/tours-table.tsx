@@ -42,8 +42,9 @@ interface Tour {
   category: string;
   durationDays: number;
   durationNights: number;
+  durationHours?: number | null;
   images: { url: string; altEs: string | null }[];
-  pricing: { basePriceUsdAdult: any } | null;
+  pricing: { basePriceUsdAdult: any; tiers?: { priceUsd: any; isDefault: boolean }[] } | null;
   _count: { reservations: number; departures: number };
 }
 
@@ -143,7 +144,7 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>{tour.destination}</TableCell>
-                <TableCell>{tour.durationDays}D/{tour.durationNights}N</TableCell>
+                <TableCell>{tour.durationDays > 0 ? `${tour.durationDays}D/${tour.durationNights}N` : `${tour.durationHours || 0}h`}</TableCell>
                 <TableCell>
                   <Badge variant={tour.tourType === "BOOKABLE" ? "default" : "outline"}>
                     {tour.tourType === "BOOKABLE" ? "Comprable" : "Info"}
@@ -156,7 +157,11 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
                 </TableCell>
                 <TableCell>
                   {tour.tourType === "BOOKABLE" && tour.pricing
-                    ? `$ ${Number(tour.pricing.basePriceUsdAdult).toFixed(2)}`
+                    ? (() => {
+                        const dt = tour.pricing.tiers?.find((t) => t.isDefault) || tour.pricing.tiers?.[0];
+                        const p = dt ? Number(dt.priceUsd) : Number(tour.pricing.basePriceUsdAdult);
+                        return `$ ${p.toFixed(2)}`;
+                      })()
                     : "-"}
                 </TableCell>
                 <TableCell>{tour._count.reservations}</TableCell>

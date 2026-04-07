@@ -112,7 +112,7 @@ export const reservationRouter = router({
           orderBy: { createdAt: "desc" },
           include: {
             client: { select: { firstName: true, lastName: true, email: true } },
-            tour: { select: { nameEs: true, slug: true } },
+            tour: { select: { nameEs: true, slug: true, shortDescEs: true } },
             departure: { select: { departureDate: true } },
             assignedUser: { select: { name: true } },
             _count: { select: { payments: true } },
@@ -233,7 +233,7 @@ export const reservationRouter = router({
       // Validate tour exists and is bookable
       const tour = await ctx.db.tour.findUnique({
         where: { id: input.tourId },
-        include: { pricing: true },
+        include: { pricing: { include: { tiers: { orderBy: { sortOrder: "asc" } } } } },
       });
       if (!tour) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Tour no encontrado" });
@@ -244,9 +244,15 @@ export const reservationRouter = router({
 
       // Server-side price validation: recalculate from tour pricing (with discounts)
       if (tour.pricing) {
+        // Use tiers if available, fallback to legacy fields
+        const defaultTier = tour.pricing.tiers.find((t) => t.isDefault) || tour.pricing.tiers[0];
+        const childTier = tour.pricing.tiers.find((t) => !t.isDefault && t.ageMax != null);
+        const adultPrice = defaultTier ? Number(defaultTier.priceUsd) : Number(tour.pricing.basePriceUsdAdult);
+        const childPrice = childTier ? Number(childTier.priceUsd) : Number(tour.pricing.basePriceUsdChild);
+
         const pricingData = {
-          basePriceUsdAdult: Number(tour.pricing.basePriceUsdAdult),
-          basePriceUsdChild: Number(tour.pricing.basePriceUsdChild),
+          basePriceUsdAdult: adultPrice,
+          basePriceUsdChild: childPrice,
           promoDiscountPercent: tour.pricing.promoDiscountPercent ? Number(tour.pricing.promoDiscountPercent) : null,
           promoStartDate: tour.pricing.promoStartDate,
           promoEndDate: tour.pricing.promoEndDate,
@@ -327,7 +333,7 @@ export const reservationRouter = router({
       // Validate tour exists and is bookable
       const tour = await ctx.db.tour.findUnique({
         where: { id: input.tourId },
-        include: { pricing: true },
+        include: { pricing: { include: { tiers: { orderBy: { sortOrder: "asc" } } } } },
       });
 
       if (!tour || tour.status !== "PUBLISHED" || tour.tourType !== "BOOKABLE") {
@@ -338,10 +344,16 @@ export const reservationRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Tour sin precios configurados" });
       }
 
+      // Use tiers if available, fallback to legacy fields
+      const defaultTier = tour.pricing.tiers.find((t) => t.isDefault) || tour.pricing.tiers[0];
+      const childTier = tour.pricing.tiers.find((t) => !t.isDefault && t.ageMax != null);
+      const adultPrice = defaultTier ? Number(defaultTier.priceUsd) : Number(tour.pricing.basePriceUsdAdult);
+      const childPrice = childTier ? Number(childTier.priceUsd) : Number(tour.pricing.basePriceUsdChild);
+
       // Calculate price server-side with discounts (never trust client amount)
       const pricingData = {
-        basePriceUsdAdult: Number(tour.pricing.basePriceUsdAdult),
-        basePriceUsdChild: Number(tour.pricing.basePriceUsdChild),
+        basePriceUsdAdult: adultPrice,
+        basePriceUsdChild: childPrice,
         promoDiscountPercent: tour.pricing.promoDiscountPercent ? Number(tour.pricing.promoDiscountPercent) : null,
         promoStartDate: tour.pricing.promoStartDate,
         promoEndDate: tour.pricing.promoEndDate,

@@ -201,14 +201,18 @@ async function main() {
     ],
   });
 
-  // Pricing
-  await prisma.tourPricing.create({
+  // Pricing with tiers
+  const pricing = await prisma.tourPricing.create({
     data: {
       tourId: tour.id,
-      basePriceUsdAdult: 499.0,
-      basePriceUsdChild: 349.0,
       groupDiscountPercent: 10,
       groupMinPersons: 4,
+      tiers: {
+        create: [
+          { labelEs: "Adulto", labelEn: "Adult", priceUsd: 499.0, isDefault: true, sortOrder: 0 },
+          { labelEs: "Niño (5-9 años)", labelEn: "Child (5-9 years)", ageMin: 5, ageMax: 9, priceUsd: 349.0, isDefault: false, sortOrder: 1 },
+        ],
+      },
     },
   });
 

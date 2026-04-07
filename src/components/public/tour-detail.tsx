@@ -10,6 +10,7 @@ import {
 import { useState } from "react";
 import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import { useToast } from "@/hooks/use-toast";
+import { formatDuration } from "@/lib/utils";
 
 interface TourImage {
   id: string;
@@ -42,9 +43,20 @@ interface Departure {
   bookedCount: number;
 }
 
+interface PricingTier {
+  id: string;
+  labelEs: string;
+  labelEn: string;
+  ageMin: number | null;
+  ageMax: number | null;
+  priceUsd: any;
+  isDefault: boolean;
+}
+
 interface Pricing {
   basePriceUsdAdult: any;
   basePriceUsdChild: any;
+  tiers?: PricingTier[];
 }
 
 interface TourData {
@@ -61,6 +73,7 @@ interface TourData {
   difficulty: string;
   durationDays: number;
   durationNights: number;
+  durationHours?: number | null;
   isFeatured: boolean;
   tourType?: string;
   bookingMode?: string;
@@ -91,8 +104,9 @@ export function TourDetail({ tour }: { tour: TourData }) {
   const name = isEs ? tour.nameEs : tour.nameEn;
   const shortDesc = isEs ? tour.shortDescEs : (tour.shortDescEn || tour.shortDescEs);
   const desc = isEs ? tour.longDescEs : (tour.longDescEn || tour.longDescEs);
-  const price = tour.pricing ? Number(tour.pricing.basePriceUsdAdult) : null;
-  const childPrice = tour.pricing ? Number(tour.pricing.basePriceUsdChild) : null;
+  // Prefer tiers over legacy fields
+  const defaultTier = tour.pricing?.tiers?.find((t) => t.isDefault) || tour.pricing?.tiers?.[0];
+  const price = defaultTier ? Number(defaultTier.priceUsd) : (tour.pricing ? Number(tour.pricing.basePriceUsdAdult) : null);
   const currency = "$";
 
   const included = tour.includes.filter((i) => i.type === "INCLUDED");
@@ -137,11 +151,12 @@ export function TourDetail({ tour }: { tour: TourData }) {
       removeItem(tour.id);
       toast({ title: tCart("removed_from_cart") });
     } else {
-      const priceVal = tour.pricing ? Number(tour.pricing.basePriceUsdAdult) : null;
+      const priceVal = price;
       addItem({
         id: tour.id, slug: tour.slug, nameEs: tour.nameEs, nameEn: tour.nameEn,
         destination: tour.destination, durationDays: tour.durationDays,
-        durationNights: tour.durationNights, imageUrl: tour.images[0]?.url || null,
+        durationNights: tour.durationNights, durationHours: tour.durationHours ?? null,
+        imageUrl: tour.images[0]?.url || null,
         priceUsd: priceVal && isFinite(priceVal) ? priceVal : null,
         originalPriceUsd: priceVal && isFinite(priceVal) ? priceVal : null,
         discountPercent: 0,
@@ -254,7 +269,7 @@ export function TourDetail({ tour }: { tour: TourData }) {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
           <div className="grid grid-cols-2 divide-x divide-gray-100 sm:grid-cols-4">
             {[
-              { icon: <Clock className="h-5 w-5 text-brand-orange" />, label: t("duration_label"), value: `${tour.durationDays}d / ${tour.durationNights}n` },
+              { icon: <Clock className="h-5 w-5 text-brand-orange" />, label: t("duration_label"), value: formatDuration(tour.durationDays, tour.durationNights, tour.durationHours) },
               { icon: <Mountain className="h-5 w-5 text-brand-orange" />, label: t("difficulty_label"), value: t(`difficulty_${tour.difficulty.toLowerCase()}`) },
               { icon: <MapPin className="h-5 w-5 text-brand-orange" />, label: t("destination"), value: tour.destination },
               { icon: <Users className="h-5 w-5 text-brand-orange" />, label: t("tour_type"), value: tour.tourType === "INFORMATIONAL" ? t("informational") : t("bookable") },
@@ -436,8 +451,22 @@ export function TourDetail({ tour }: { tour: TourData }) {
                           <span className="font-heading text-5xl font-bold text-brand-orange leading-none">{price.toFixed(0)}</span>
                         </div>
                         <p className="text-sm text-gray-500 mt-1.5">/ {t("per_person")}</p>
-                        {childPrice && childPrice > 0 && (
-                          <p className="text-sm text-gray-400 mt-0.5">{t("child_price")}: {currency} {childPrice.toFixed(0)}</p>
+                        {/* Show all pricing tiers */}
+                        {tour.pricing?.tiers && tour.pricing.tiers.length > 1 && (
+                          <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-3">
+                            {tour.pricing.tiers.map((tier) => {
+                              const tierPrice = Number(tier.priceUsd);
+                              const tierLabel = isEs ? tier.labelEs : tier.labelEn;
+                              return (
+                                <div key={tier.id} className="flex items-center justify-between text-sm">
+                                  <span className="text-gray-500">{tierLabel}</span>
+                                  <span className={`font-semibold ${tier.isDefault ? "text-brand-orange" : "text-gray-700"}`}>
+                                    {currency} {tierPrice.toFixed(0)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </>
                     ) : (
@@ -448,7 +477,7 @@ export function TourDetail({ tour }: { tour: TourData }) {
                   {/* Detalles */}
                   <div className="px-6 py-4 space-y-0 divide-y divide-gray-50">
                     {[
-                      { icon: <Clock className="h-4 w-4" />, label: t("duration_label"), value: `${tour.durationDays}d / ${tour.durationNights}n` },
+                      { icon: <Clock className="h-4 w-4" />, label: t("duration_label"), value: formatDuration(tour.durationDays, tour.durationNights, tour.durationHours) },
                       { icon: <Mountain className="h-4 w-4" />, label: t("difficulty_label"), value: t(`difficulty_${tour.difficulty.toLowerCase()}`) },
                       { icon: <MapPin className="h-4 w-4" />, label: t("destination"), value: tour.destination },
                     ].map((row, i) => (

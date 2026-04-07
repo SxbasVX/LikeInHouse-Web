@@ -92,8 +92,12 @@ export default function NuevaReservaPage() {
   // Computed pricing
   const pricing = useMemo(() => {
     if (!tourDetail?.pricing) return null;
-    const adultPrice = Number(tourDetail.pricing.basePriceUsdAdult);
-    const childPrice = Number(tourDetail.pricing.basePriceUsdChild);
+    // Use tiers if available, fallback to legacy fields
+    const tiers = (tourDetail.pricing as any).tiers || [];
+    const defaultTier = tiers.find((t: any) => t.isDefault) || tiers[0];
+    const childTier = tiers.find((t: any) => !t.isDefault && (t.ageMax != null || t.labelEs?.toLowerCase().includes("niño")));
+    const adultPrice = defaultTier ? Number(defaultTier.priceUsd) : Number(tourDetail.pricing.basePriceUsdAdult);
+    const childPrice = childTier ? Number(childTier.priceUsd) : Number(tourDetail.pricing.basePriceUsdChild);
     const total = adultPrice * adults + childPrice * children;
     return { adultPrice, childPrice, total };
   }, [tourDetail, adults, children]);
@@ -300,7 +304,11 @@ export default function NuevaReservaPage() {
                     {toursData?.tours.map((tour) => (
                       <SelectItem key={tour.id} value={tour.id}>
                         {tour.nameEs} — {tour.destination}
-                        {tour.pricing && ` (USD ${Number(tour.pricing.basePriceUsdAdult).toFixed(0)})`}
+                        {tour.pricing && (() => {
+                          const dt = (tour.pricing as any).tiers?.find((t: any) => t.isDefault) || (tour.pricing as any).tiers?.[0];
+                          const p = dt ? Number(dt.priceUsd) : Number(tour.pricing.basePriceUsdAdult);
+                          return ` (USD ${p.toFixed(0)})`;
+                        })()}
                       </SelectItem>
                     ))}
                   </SelectContent>

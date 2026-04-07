@@ -40,6 +40,16 @@ const checkoutSchema = z.object({
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
+interface PricingTier {
+    id: string;
+    labelEs: string;
+    labelEn: string;
+    ageMin: number | null;
+    ageMax: number | null;
+    priceUsd: number;
+    isDefault: boolean;
+}
+
 interface TourData {
     id: string;
     nameEs: string;
@@ -48,6 +58,7 @@ interface TourData {
     pricing: {
         basePriceUsdAdult: number;
         basePriceUsdChild: number;
+        tiers?: PricingTier[];
     } | null;
     departures: {
         id: string;
@@ -81,8 +92,11 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
     const adults = watch("adults") || 1;
     const children = watch("children") || 0;
 
-    const adultPrice = tour.pricing?.basePriceUsdAdult || 0;
-    const childPrice = tour.pricing?.basePriceUsdChild || 0;
+    // Use tiers if available, else fallback to legacy fields
+    const defaultTier = tour.pricing?.tiers?.find((t) => t.isDefault) || tour.pricing?.tiers?.[0];
+    const childTier = tour.pricing?.tiers?.find((t) => !t.isDefault && (t.ageMax != null || t.labelEs.toLowerCase().includes("niño")));
+    const adultPrice = defaultTier ? defaultTier.priceUsd : (tour.pricing?.basePriceUsdAdult || 0);
+    const childPrice = childTier ? childTier.priceUsd : (tour.pricing?.basePriceUsdChild || 0);
     const totalAdults = adultPrice * adults;
     const totalChildren = childPrice * children;
     const grandTotal = totalAdults + totalChildren;
