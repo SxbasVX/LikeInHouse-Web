@@ -2,36 +2,20 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure } from "../trpc";
 
-// ─── Tipo de cambio BCRP (fuente oficial que usa SUNAT) ──────────────────────
-const SPANISH_MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Set","Oct","Nov","Dic"];
-
-function bcrpDate(d: Date) {
-  return `${String(d.getDate()).padStart(2,"0")}${SPANISH_MONTHS[d.getMonth()]}${d.getFullYear()}`;
-}
-
+// ─── Tipo de cambio oficial SUNAT (vía apis.net.pe) ──────────────────────────
+// Fuente: SUNAT publica el tipo de cambio diariamente. Este endpoint
+// lo agrega y expone en JSON. Se usa el tipo "venta" (lo que paga el cliente).
 async function fetchTipoCambioSunat(): Promise<number> {
   const FALLBACK = parseFloat(process.env.USD_TO_PEN_RATE_FALLBACK || "3.75");
   try {
-    const today = new Date();
-    // Pedimos los últimos 5 días para asegurar tener un valor (fines de semana no hay publicación)
-    const from = new Date(today);
-    from.setDate(from.getDate() - 5);
-    const url = `https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04637PD/json/${bcrpDate(from)}/${bcrpDate(today)}`;
-
-    const res = await fetch(url, {
+    const res = await fetch("https://api.apis.net.pe/v1/tipo-cambio-sunat", {
       next: { revalidate: 14400 }, // caché Next.js: 4 horas
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", Referer: "https://likeinhouse.com" },
     });
-
     if (!res.ok) return FALLBACK;
-
+    // { origen: "SUNAT", compra: 3.389, venta: 3.399, moneda: "USD", fecha: "2026-04-09" }
     const data = await res.json();
-    // La API devuelve períodos en orden, tomamos el último (más reciente)
-    const periods: { values: string[] }[] = data?.periods ?? [];
-    if (!periods.length) return FALLBACK;
-
-    const last = periods[periods.length - 1];
-    const rate = parseFloat(last.values?.[0] ?? "");
+    const rate = parseFloat(data?.venta ?? "");
     return isNaN(rate) ? FALLBACK : rate;
   } catch {
     return FALLBACK;
