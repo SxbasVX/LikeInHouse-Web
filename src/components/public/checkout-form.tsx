@@ -22,8 +22,7 @@ import { DownloadPDFButton } from "@/components/pdf/download-button";
 
 // ─── Tipo de moneda ────────────────────────────────────────────────────────────
 type Currency = "USD" | "PEN";
-// Tipo de cambio por defecto. En producción, configura NEXT_PUBLIC_USD_TO_PEN_RATE
-const DEFAULT_RATE = parseFloat(process.env.NEXT_PUBLIC_USD_TO_PEN_RATE || "3.75");
+const RATE_FALLBACK = 3.75;
 
 // ─── Formulario ────────────────────────────────────────────────────────────────
 const checkoutSchema = z.object({
@@ -93,6 +92,12 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
     const [culqiReady, setCulqiReady] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
+    // Tipo de cambio oficial BCRP (fuente SUNAT)
+    const { data: rateData } = trpc.culqiCharge.getExchangeRate.useQuery(undefined, {
+        staleTime: 4 * 60 * 60 * 1000, // 4 horas
+    });
+    const exchangeRate = rateData?.rate ?? RATE_FALLBACK;
+
     const emailRef = useRef<string>("");
     const amountRef = useRef<number>(0); // en centavos
 
@@ -114,7 +119,7 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
     const adultPriceUsd = defaultTier?.priceUsd ?? (tour.pricing?.basePriceUsdAdult ?? 0);
     const childPriceUsd = childTier?.priceUsd ?? (tour.pricing?.basePriceUsdChild ?? 0);
 
-    const rate = currency === "PEN" ? DEFAULT_RATE : 1;
+    const rate = currency === "PEN" ? exchangeRate : 1;
     const adultPrice = adultPriceUsd * rate;
     const childPrice = childPriceUsd * rate;
     const totalAdults = adultPrice * adults;
@@ -520,7 +525,7 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
                                         </div>
                                         {currency === "PEN" && (
                                             <p className="text-xs text-muted-foreground text-right">
-                                                ≈ $ {grandTotalUsd.toFixed(2)} USD (tipo de cambio {DEFAULT_RATE})
+                                                ≈ $ {grandTotalUsd.toFixed(2)} USD (tipo de cambio {exchangeRate})
                                             </p>
                                         )}
                                     </div>
@@ -622,8 +627,8 @@ export function CheckoutForm({ tour, locale }: { tour: TourData; locale: string 
                                 {currency === "PEN" && (
                                     <p className="text-xs text-muted-foreground text-center">
                                         {isEs
-                                            ? `Tipo de cambio: 1 USD = S/ ${DEFAULT_RATE}`
-                                            : `Exchange rate: 1 USD = S/ ${DEFAULT_RATE}`}
+                                            ? `Tipo de cambio: 1 USD = S/ ${exchangeRate}`
+                                            : `Exchange rate: 1 USD = S/ ${exchangeRate}`}
                                     </p>
                                 )}
                             </div>

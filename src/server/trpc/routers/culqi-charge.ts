@@ -2,7 +2,52 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure } from "../trpc";
 
+// ─── Tipo de cambio BCRP (fuente oficial que usa SUNAT) ──────────────────────
+const SPANISH_MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Set","Oct","Nov","Dic"];
+
+function bcrpDate(d: Date) {
+  return `${String(d.getDate()).padStart(2,"0")}${SPANISH_MONTHS[d.getMonth()]}${d.getFullYear()}`;
+}
+
+async function fetchTipoCambioSunat(): Promise<number> {
+  const FALLBACK = parseFloat(process.env.USD_TO_PEN_RATE_FALLBACK || "3.75");
+  try {
+    const today = new Date();
+    // Pedimos los últimos 5 días para asegurar tener un valor (fines de semana no hay publicación)
+    const from = new Date(today);
+    from.setDate(from.getDate() - 5);
+    const url = `https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04637PD/json/${bcrpDate(from)}/${bcrpDate(today)}`;
+
+    const res = await fetch(url, {
+      next: { revalidate: 14400 }, // caché Next.js: 4 horas
+      headers: { Accept: "application/json" },
+    });
+
+    if (!res.ok) return FALLBACK;
+
+    const data = await res.json();
+    // La API devuelve períodos en orden, tomamos el último (más reciente)
+    const periods: { values: string[] }[] = data?.periods ?? [];
+    if (!periods.length) return FALLBACK;
+
+    const last = periods[periods.length - 1];
+    const rate = parseFloat(last.values?.[0] ?? "");
+    return isNaN(rate) ? FALLBACK : rate;
+  } catch {
+    return FALLBACK;
+  }
+}
+
 export const culqiChargeRouter = router({
+  /**
+   * Devuelve el tipo de cambio USD→PEN del BCRP (fuente oficial SUNAT).
+   * Cacheado 4 horas en el servidor.
+   */
+  getExchangeRate: publicProcedure.query(async () => {
+    const rate = await fetchTipoCambioSunat();
+    return { rate, source: "BCRP" };
+  }),
+
   /**
    * Crea un cargo en Culqi con el token generado en el cliente.
    * Recibe el token de Culqi.js, llama a la API de Culqi server-side
