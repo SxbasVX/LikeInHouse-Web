@@ -32,7 +32,7 @@ const reservationCreateSchema = z.object({
   departureId: z.string().optional(),
   adults: z.number().min(1).default(1),
   children: z.number().min(0).default(0),
-  currency: z.literal("USD").default("USD"),
+  currency: z.enum(["USD", "PEN"]).default("USD"),
   totalAmount: z.number().min(0),
   depositAmount: z.number().min(0).optional(),
   origin: z.enum(["WEB", "MANUAL", "QUOTATION", "PAYMENT_LINK"]).default("MANUAL"),
@@ -72,7 +72,7 @@ const guestReservationSchema = z.object({
   // Reservation details
   adults: z.number().min(1).default(1),
   children: z.number().min(0).default(0),
-  currency: z.literal("USD").default("USD"),
+  currency: z.enum(["USD", "PEN"]).default("USD"),
   totalAmount: z.number().min(0),
 
   // Traffic source attribution
