@@ -59,6 +59,7 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
         nameEs: tour.nameEs,
         nameEn: tour.nameEn,
         slug: tour.slug,
+        bookingMode: tour.bookingMode as "CALENDAR" | "DEPARTURES" | "BOTH",
         pricing: tour.pricing ? {
             basePriceUsdAdult: Number(tour.pricing.basePriceUsdAdult),
             basePriceUsdChild: Number(tour.pricing.basePriceUsdChild),

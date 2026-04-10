@@ -41,6 +41,7 @@ interface TourData {
     nameEs: string;
     nameEn: string;
     slug: string;
+    bookingMode: "CALENDAR" | "DEPARTURES" | "BOTH";
     pricing: {
         basePriceUsdAdult: number;
         basePriceUsdChild: number;
@@ -132,9 +133,16 @@ export function CheckoutForm({
     const [isProcessing, setIsProcessing] = useState(false);
 
     // ── Fecha ────────────────────────────────────────────────────────────────
-    const hasDepartures = tour.departures.length > 0;
+    // hasDepartures = true solo si el modo lo permite Y hay salidas en DB
+    const showDepartures =
+        (tour.bookingMode === "DEPARTURES" || tour.bookingMode === "BOTH") &&
+        tour.departures.length > 0;
+    const showOpenCalendar =
+        tour.bookingMode === "CALENDAR" || tour.bookingMode === "BOTH";
+    // Alias para compatibilidad con resto del código
+    const hasDepartures = showDepartures;
     const [selectedDeparture, setSelectedDeparture] = useState<string>("");
-    // Si no hay departures fijos usamos date picker (pre-llenado desde ?date=)
+    // Si hay calendario abierto usamos date picker (pre-llenado desde ?date=)
     const [openDate, setOpenDate] = useState<string>(initialDate || "");
     const todayStr = new Date().toISOString().split("T")[0];
 
@@ -258,12 +266,16 @@ export function CheckoutForm({
 
     // ── Submit paso 1 ────────────────────────────────────────────────────────
     const onSubmit = (data: CheckoutFormData) => {
-        if (hasDepartures && !selectedDeparture) {
+        if (showDepartures && !showOpenCalendar && !selectedDeparture) {
             toast({ variant: "destructive", title: isEs ? "Fecha requerida" : "Date required", description: isEs ? "Selecciona una fecha de salida" : "Please select a departure date" });
             return;
         }
-        if (!hasDepartures && !openDate) {
+        if (showOpenCalendar && !showDepartures && !openDate) {
             toast({ variant: "destructive", title: isEs ? "Fecha requerida" : "Date required", description: isEs ? "Indica la fecha en que deseas el tour" : "Please indicate your desired tour date" });
+            return;
+        }
+        if (tour.bookingMode === "BOTH" && !selectedDeparture && !openDate) {
+            toast({ variant: "destructive", title: isEs ? "Fecha requerida" : "Date required", description: isEs ? "Selecciona una fecha de salida o indica tu fecha preferida" : "Select a departure date or indicate your preferred date" });
             return;
         }
         if (totalParticipants === 0) {
@@ -291,7 +303,7 @@ export function CheckoutForm({
             currency,
             totalAmount: grandTotal,
             internalNotes: [
-                !hasDepartures && openDate ? `Fecha solicitada: ${openDate}` : null,
+                openDate && !selectedDeparture ? `Fecha solicitada: ${openDate}` : null,
                 tierNote,
             ].filter(Boolean).join(" | ") || undefined,
             trafficSource: {
@@ -357,7 +369,7 @@ export function CheckoutForm({
                             amountPaid:   grandTotal,
                             totalAmount:  grandTotal,
                             currency,
-                            dateStr:      hasDepartures && selectedDeparture
+                            dateStr:      showDepartures && selectedDeparture
                                 ? format(new Date(tour.departures.find((d) => d.id === selectedDeparture)?.departureDate || new Date()), "dd MMM yyyy", { locale: isEs ? es : undefined })
                                 : openDate || "",
                             adults:    adultsForBackend,
@@ -483,45 +495,55 @@ export function CheckoutForm({
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    {hasDepartures ? (
-                                        /* Fechas fijas de salida */
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                            {tour.departures.map((dep) => {
-                                                const available = dep.maxCapacity - dep.bookedCount;
-                                                const isSel = selectedDeparture === dep.id;
-                                                return (
-                                                    <button key={dep.id} type="button"
-                                                        onClick={() => setSelectedDeparture(dep.id)}
-                                                        className={`flex flex-col text-left p-3.5 rounded-xl border-2 transition-all ${
-                                                            isSel ? "border-brand-orange bg-brand-orange/8 ring-1 ring-brand-orange" : "border-border hover:border-brand-orange/50"
-                                                        }`}>
-                                                        <span className={`font-semibold text-sm ${isSel ? "text-brand-orange" : ""}`}>
-                                                            {format(new Date(dep.departureDate), "dd MMM yyyy", { locale: isEs ? es : undefined })}
-                                                        </span>
-                                                        <span className="text-xs text-muted-foreground mt-1">
-                                                            {available} {isEs ? "cupos" : "spots"}
-                                                        </span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        /* Calendario abierto */
-                                        <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">
-                                                {isEs
-                                                    ? "Este tour se realiza a pedido. Elige tu fecha preferida y nos coordinaremos contigo."
-                                                    : "This tour runs on request. Pick your preferred date and we'll coordinate with you."}
-                                            </p>
-                                            <Input
-                                                type="date"
-                                                value={openDate}
-                                                min={todayStr}
-                                                onChange={(e) => setOpenDate(e.target.value)}
-                                                className="max-w-xs"
-                                            />
-                                        </div>
-                                    )}
+                                    <div className="space-y-4">
+                                        {showDepartures && (
+                                            /* Fechas fijas de salida */
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                {tour.departures.map((dep) => {
+                                                    const available = dep.maxCapacity - dep.bookedCount;
+                                                    const isSel = selectedDeparture === dep.id;
+                                                    return (
+                                                        <button key={dep.id} type="button"
+                                                            onClick={() => setSelectedDeparture(dep.id)}
+                                                            className={`flex flex-col text-left p-3.5 rounded-xl border-2 transition-all ${
+                                                                isSel ? "border-brand-orange bg-brand-orange/8 ring-1 ring-brand-orange" : "border-border hover:border-brand-orange/50"
+                                                            }`}>
+                                                            <span className={`font-semibold text-sm ${isSel ? "text-brand-orange" : ""}`}>
+                                                                {format(new Date(dep.departureDate), "dd MMM yyyy", { locale: isEs ? es : undefined })}
+                                                            </span>
+                                                            <span className="text-xs text-muted-foreground mt-1">
+                                                                {available} {isEs ? "cupos" : "spots"}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                        {showOpenCalendar && (
+                                            /* Calendario abierto */
+                                            <div className="space-y-2">
+                                                {tour.bookingMode === "BOTH" && (
+                                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                                        {isEs ? "O elige otra fecha:" : "Or pick another date:"}
+                                                    </p>
+                                                )}
+                                                {tour.bookingMode === "CALENDAR" && (
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {isEs
+                                                            ? "Este tour se realiza a pedido. Elige tu fecha preferida y nos coordinaremos contigo."
+                                                            : "This tour runs on request. Pick your preferred date and we'll coordinate with you."}
+                                                    </p>
+                                                )}
+                                                <Input
+                                                    type="date"
+                                                    value={openDate}
+                                                    min={todayStr}
+                                                    onChange={(e) => setOpenDate(e.target.value)}
+                                                    className="max-w-xs"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
                                 </CardContent>
                             </Card>
 
