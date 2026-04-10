@@ -75,6 +75,9 @@ const guestReservationSchema = z.object({
   currency: z.enum(["USD", "PEN"]).default("USD"),
   totalAmount: z.number().min(0),
 
+  // Internal notes (tier breakdown, requested date for open-calendar tours)
+  internalNotes: z.string().max(500).optional(),
+
   // Traffic source attribution
   trafficSource: trafficSourceSchema,
 });
@@ -429,6 +432,7 @@ export const reservationRouter = router({
             children: input.children,
             currency: input.currency,
             totalAmount: serverTotal,
+            internalNotes: input.internalNotes || null,
             // Traffic source attribution
             firstSource: input.trafficSource?.firstSource || "direct",
             lastSource: input.trafficSource?.lastSource || "direct",

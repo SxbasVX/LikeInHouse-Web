@@ -3,7 +3,11 @@
     "allow": [
       "Bash(xargs wc -l)",
       "Bash(npx tsc:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "WebSearch",
+      "WebFetch(domain:likeinhouse.tukuy.club)",
+      "WebFetch(domain:www.google.com)",
+      "Bash(npx prisma:*)"
     ]
   }
 }

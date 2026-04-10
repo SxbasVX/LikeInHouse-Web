@@ -4,10 +4,8 @@ import { db } from "@/server/lib/db";
 import { CheckoutForm } from "@/components/public/checkout-form";
 
 interface CheckoutPageProps {
-    params: Promise<{
-        locale: string;
-        slug: string;
-    }>;
+    params: Promise<{ locale: string; slug: string }>;
+    searchParams: Promise<{ date?: string }>;
 }
 
 export async function generateMetadata({ params }: CheckoutPageProps): Promise<Metadata> {
@@ -26,8 +24,9 @@ export async function generateMetadata({ params }: CheckoutPageProps): Promise<M
     };
 }
 
-export default async function CheckoutPage({ params }: CheckoutPageProps) {
+export default async function CheckoutPage({ params, searchParams }: CheckoutPageProps) {
     const { slug, locale } = await params;
+    const { date: initialDate } = await searchParams;
 
     // Retrieve tour data necessary for checkout
     const tour = await db.tour.findUnique({
@@ -96,7 +95,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
                     </p>
                 </div>
 
-                <CheckoutForm tour={tourData} locale={locale} />
+                <CheckoutForm tour={tourData} locale={locale} initialDate={initialDate} />
             </div>
         </div>
     );
