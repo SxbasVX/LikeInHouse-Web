@@ -76,7 +76,7 @@ export const tourRouter = router({
   saveDraft: adminOrMarketing
     .input(tourUpdateSchema)
     .mutation(async ({ ctx, input }) => {
-      const { id, itinerary, pricing, includes, excludes, images, departures, ...tourData } = input;
+      const { id, itinerary, pricing, includes, excludes, conditions, images, departures, ...tourData } = input;
       const existing = await ctx.db.tour.findUnique({ where: { id } });
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Tour no encontrado" });
@@ -97,6 +97,7 @@ export const tourRouter = router({
             include: { tiers: { orderBy: { sortOrder: "asc" } } },
           },
           includes: { orderBy: { sortOrder: "asc" } },
+          conditions: { where: { isActive: true }, orderBy: { sortOrder: "asc" } },
           seasons: true,
           departures: { orderBy: { departureDate: "asc" } },
         },
@@ -122,6 +123,7 @@ export const tourRouter = router({
             include: { tiers: { orderBy: { sortOrder: "asc" } } },
           },
           includes: { orderBy: { sortOrder: "asc" } },
+          conditions: { where: { isActive: true }, orderBy: { sortOrder: "asc" } },
           seasons: true,
           departures: {
             where: { status: "AVAILABLE", departureDate: { gte: new Date() } },
@@ -141,7 +143,7 @@ export const tourRouter = router({
   create: adminOrMarketing
     .input(tourCreateSchema)
     .mutation(async ({ ctx, input }) => {
-      const { itinerary, pricing, includes, excludes, images, departures, ...tourData } = input;
+      const { itinerary, pricing, includes, excludes, conditions, images, departures, ...tourData } = input;
 
       // Wrap in transaction to ensure atomicity (tour + all relations)
       const tour = await ctx.db.$transaction(async (tx) => {
@@ -193,6 +195,15 @@ export const tourRouter = router({
                 ...excludes.map((exc, i) => ({ type: "EXCLUDE", textEs: exc.textEs, textEn: exc.textEn, sortOrder: i })),
               ],
             },
+            conditions: conditions.length > 0 ? {
+              create: conditions.map((c, i) => ({
+                type: c.type,
+                textEs: c.textEs,
+                textEn: c.textEn,
+                isActive: c.isActive,
+                sortOrder: i,
+              })),
+            } : undefined,
             images: {
               create: images.map((img, i) => ({
                 cloudinaryId: img.cloudinaryId,
@@ -221,7 +232,7 @@ export const tourRouter = router({
   update: adminOrMarketing
     .input(tourUpdateSchema)
     .mutation(async ({ ctx, input }) => {
-      const { id, itinerary, pricing, includes, excludes, images, departures, ...tourData } = input;
+      const { id, itinerary, pricing, includes, excludes, conditions, images, departures, ...tourData } = input;
 
       const existing = await ctx.db.tour.findUnique({ where: { id } });
       if (!existing) {
@@ -317,6 +328,23 @@ export const tourRouter = router({
           }
         }
 
+        if (conditions) {
+          await tx.tourCondition.deleteMany({ where: { tourId: id } });
+          if (conditions.length > 0) {
+            type ConditionInput = { type: "HEALTH"|"AGE"|"BEHAVIOR"|"GROUP_SIZE"|"PHYSICAL"|"GENERAL"; textEs: string; textEn: string; isActive: boolean };
+            await tx.tourCondition.createMany({
+              data: (conditions as ConditionInput[]).map((c, i) => ({
+                tourId: id,
+                type: c.type,
+                textEs: c.textEs,
+                textEn: c.textEn,
+                isActive: c.isActive,
+                sortOrder: i,
+              })),
+            });
+          }
+        }
+
         if (images) {
           await tx.tourImage.deleteMany({ where: { tourId: id } });
           if (images.length > 0) {
@@ -383,6 +411,7 @@ export const tourRouter = router({
               include: { tiers: { orderBy: { sortOrder: "asc" } } },
             },
             includes: true,
+            conditions: { orderBy: { sortOrder: "asc" } },
             departures: true,
           },
         });

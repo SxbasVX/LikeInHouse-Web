@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import { useToast } from "@/hooks/use-toast";
 import { formatDuration } from "@/lib/utils";
+import { TourConditions } from "@/components/public/tour-conditions";
 
 interface TourImage {
   id: string;
@@ -81,6 +82,7 @@ interface TourData {
   itinerary: ItineraryDay[];
   pricing: Pricing | null;
   includes: TourInclude[];
+  conditions?: { id: string; type: string; textEs: string; textEn: string }[];
   departures: Departure[];
   seasons: any[];
 }
@@ -324,9 +326,19 @@ export function TourDetail({ tour }: { tour: TourData }) {
 
               {/* Tab: Resumen */}
               {activeTab === "overview" && (
-                <div className="animate-fade-in rounded-2xl bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-3">{t("description")}</h2>
-                  <p className="text-gray-600 leading-relaxed text-[15px] whitespace-pre-line">{desc}</p>
+                <div className="animate-fade-in space-y-5">
+                  <div className="rounded-2xl bg-white p-6 shadow-sm">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-3">{t("description")}</h2>
+                    <p className="text-gray-600 leading-relaxed text-[15px] whitespace-pre-line">{desc}</p>
+                  </div>
+                  {tour.conditions && tour.conditions.length > 0 && (
+                    <div className="rounded-2xl bg-white p-6 shadow-sm">
+                      <TourConditions
+                        conditions={tour.conditions as any}
+                        isEs={isEs}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -82,6 +82,7 @@ export default function EditarTourPage() {
     nameEn: tour.nameEn,
     slug: tour.slug,
     tourType: tour.tourType,
+    bookingMode: tour.bookingMode,
     category: tour.category,
     difficulty: tour.difficulty,
     durationDays: tour.durationDays,
@@ -133,6 +134,12 @@ export default function EditarTourPage() {
     excludes: tour.includes
       .filter((inc) => inc.type === "EXCLUDE")
       .map((inc) => ({ textEs: inc.textEs, textEn: inc.textEn })),
+    conditions: ((tour as any).conditions || []).map((c: any) => ({
+      type: c.type as "HEALTH" | "AGE" | "BEHAVIOR" | "GROUP_SIZE" | "PHYSICAL" | "GENERAL",
+      textEs: c.textEs,
+      textEn: c.textEn,
+      isActive: c.isActive,
+    })),
     images: tour.images.map((img) => ({
       cloudinaryId: img.cloudinaryId,
       url: img.url,

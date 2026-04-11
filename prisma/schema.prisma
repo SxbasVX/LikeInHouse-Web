@@ -89,6 +89,15 @@ enum BookingMode {
   BOTH
 }
 
+enum ConditionType {
+  HEALTH     // Salud: hipertensión, embarazo, enfermedades
+  AGE        // Edad mínima/máxima
+  BEHAVIOR   // Comportamiento: no tocar, no gritar
+  GROUP_SIZE // Mínimo de personas requeridas
+  PHYSICAL   // Condición física: nivel de esfuerzo
+  GENERAL    // Condición general / aviso importante
+}
+
 model Tour {
   id             String     @id @default(cuid())
   slug           String     @unique
@@ -127,6 +136,7 @@ model Tour {
   pricing        TourPricing?
   seasons        TourSeason[]
   includes       TourInclude[]
+  conditions     TourCondition[]
   departures     TourDeparture[]
   reservations   Reservation[]
   quotationItems QuotationItem[]
@@ -222,6 +232,19 @@ model TourInclude {
   sortOrder Int    @default(0)
 
   @@index([tourId, type])
+}
+
+model TourCondition {
+  id        String        @id @default(cuid())
+  tourId    String
+  tour      Tour          @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  type      ConditionType @default(GENERAL)
+  textEs    String
+  textEn    String
+  isActive  Boolean       @default(true)
+  sortOrder Int           @default(0)
+
+  @@index([tourId])
 }
 
 enum DepartureStatus {

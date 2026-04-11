@@ -116,6 +116,7 @@ export const publicRouter = router({
             include: { tiers: { orderBy: { sortOrder: "asc" } } },
           },
           includes: { orderBy: { sortOrder: "asc" } },
+          conditions: { where: { isActive: true }, orderBy: { sortOrder: "asc" } },
           departures: {
             where: { status: "AVAILABLE", departureDate: { gte: new Date() } },
             orderBy: { departureDate: "asc" },

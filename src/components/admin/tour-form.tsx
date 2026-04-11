@@ -85,6 +85,12 @@ interface TourFormData {
   };
   includes: { textEs: string; textEn: string }[];
   excludes: { textEs: string; textEn: string }[];
+  conditions: {
+    type: "HEALTH" | "AGE" | "BEHAVIOR" | "GROUP_SIZE" | "PHYSICAL" | "GENERAL";
+    textEs: string;
+    textEn: string;
+    isActive: boolean;
+  }[];
   images: {
     cloudinaryId: string;
     url: string;
@@ -148,6 +154,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
       },
       includes: [],
       excludes: [],
+      conditions: [],
       images: [],
       departures: [],
       ...initialData,
@@ -160,6 +167,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
   const pricingTiers = useFieldArray({ control, name: "pricing.tiers" });
   const includes = useFieldArray({ control, name: "includes" });
   const excludes = useFieldArray({ control, name: "excludes" });
+  const conditions = useFieldArray({ control, name: "conditions" });
   const images = useFieldArray({ control, name: "images" });
   const departures = useFieldArray({ control, name: "departures" });
 
@@ -786,6 +794,76 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
               </CardContent>
             </Card>
           </div>
+
+          {/* Condiciones del Tour */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>⚠️ Condiciones del Tour</CardTitle>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Restricciones de salud, edad, comportamiento o grupo mínimo que los viajeros deben conocer antes de reservar.
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => conditions.append({ type: "GENERAL", textEs: "", textEn: "", isActive: true })}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Agregar Condición
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {conditions.fields.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground border border-dashed rounded-lg bg-muted/10">
+                  Sin condiciones registradas. Agrégalas si el tour requiere condiciones especiales de salud, edad, comportamiento o grupo mínimo.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {conditions.fields.map((field, index) => (
+                    <div key={field.id} className="rounded-xl border p-4 space-y-3 bg-amber-50/40 border-amber-200 relative group">
+                      <div className="flex items-center justify-between">
+                        <select
+                          {...register(`conditions.${index}.type`)}
+                          className="text-xs font-semibold border rounded-md px-2 py-1 bg-white focus:ring-1 focus:ring-brand-orange outline-none"
+                        >
+                          <option value="HEALTH">❤️ Salud</option>
+                          <option value="AGE">👶 Edad</option>
+                          <option value="BEHAVIOR">🤫 Comportamiento</option>
+                          <option value="GROUP_SIZE">👥 Grupo mínimo</option>
+                          <option value="PHYSICAL">💪 Condición física</option>
+                          <option value="GENERAL">ℹ️ General</option>
+                        </select>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive opacity-50 group-hover:opacity-100 transition-opacity"
+                          onClick={() => conditions.remove(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Textarea
+                          rows={2}
+                          placeholder="ES: No se recomienda a personas con hipertensión arterial"
+                          {...register(`conditions.${index}.textEs`)}
+                          className="text-sm"
+                        />
+                        <Textarea
+                          rows={2}
+                          placeholder="EN: Not recommended for people with arterial hypertension"
+                          {...register(`conditions.${index}.textEn`)}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* SEO */}
           <Card>

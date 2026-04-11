@@ -32,6 +32,15 @@ const tourIncludeSchema = z.object({
   textEn: z.string().min(1, "Field required"),
 });
 
+const conditionTypeEnum = z.enum(["HEALTH", "AGE", "BEHAVIOR", "GROUP_SIZE", "PHYSICAL", "GENERAL"]);
+
+export const tourConditionSchema = z.object({
+  type: conditionTypeEnum.default("GENERAL"),
+  textEs: z.string().min(3, "Campo requerido"),
+  textEn: z.string().min(3, "Field required"),
+  isActive: z.boolean().default(true),
+});
+
 const tourImageSchema = z.object({
   cloudinaryId: z.string().min(1, "Se requiere la imagen"),
   url: z.string().url("URL de imagen inválida"),
@@ -91,6 +100,7 @@ export const tourCreateSchema = z.object({
   pricing: pricingSchema.optional(),
   includes: z.array(tourIncludeSchema).default([]),
   excludes: z.array(tourIncludeSchema).default([]),
+  conditions: z.array(tourConditionSchema).default([]),
   images: z.array(tourImageSchema).default([]),
   departures: z.array(tourDepartureSchema).default([]),
 }).refine((data) => {
@@ -139,6 +149,7 @@ export const tourUpdateSchema = z.object({
   pricing: pricingSchema.optional().nullable(),
   includes: z.array(tourIncludeSchema).optional(),
   excludes: z.array(tourIncludeSchema).optional(),
+  conditions: z.array(tourConditionSchema).optional(),
   images: z.array(tourImageSchema).optional(),
   departures: z.array(tourDepartureSchema).optional(),
 });
