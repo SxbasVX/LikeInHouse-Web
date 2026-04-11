@@ -65,7 +65,7 @@ function PrivacidadEs() {
       <p>Recopilamos los siguientes tipos de datos personales:</p>
       <ul>
         <li><strong>Datos de identificación:</strong> Nombre, DNI/pasaporte, fecha de nacimiento.</li>
-        <li><strong>Datos de contacto:</strong> Email, teléfono, dirección.</li>
+        <li><strong>Datos de contacto:</strong> Email, teléfono, país de origen.</li>
         <li><strong>Datos de pago:</strong> Procesados de forma segura a través de pasarelas certificadas (no almacenamos datos de tarjetas).</li>
         <li><strong>Datos de navegación:</strong> Cookies técnicas y de analítica para mejorar la experiencia en nuestro sitio.</li>
       </ul>
@@ -146,7 +146,7 @@ function PrivacidadEn() {
       <p>We collect the following types of personal data:</p>
       <ul>
         <li><strong>Identification data:</strong> Name, ID/passport, date of birth.</li>
-        <li><strong>Contact data:</strong> Email, phone, address.</li>
+        <li><strong>Contact data:</strong> Email, phone, country of origin.</li>
         <li><strong>Payment data:</strong> Processed securely through certified gateways (we do not store card details).</li>
         <li><strong>Browsing data:</strong> Technical and analytics cookies to improve your site experience.</li>
       </ul>

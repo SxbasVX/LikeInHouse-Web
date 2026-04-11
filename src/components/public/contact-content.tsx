@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations, useLocale } from "next-intl";
-import { Phone, Mail, MapPin, Clock, ArrowUpRight, MessageCircle } from "lucide-react";
+import { Phone, Mail, Clock, ArrowUpRight, MessageCircle } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
 export function ContactContent() {
@@ -13,7 +13,6 @@ export function ContactContent() {
 
   const heroAnim = useScrollAnimation({ threshold: 0.1 });
   const cardsAnim = useScrollAnimation({ threshold: 0.1 });
-  const mapAnim = useScrollAnimation({ threshold: 0.1 });
 
   return (
     <>
@@ -119,22 +118,6 @@ export function ContactContent() {
                 </div>
               </div>
 
-              {/* Ubicación */}
-              <div className="flex items-start gap-4 rounded-2xl bg-[#faf8f5] p-6 flex-1">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-teal/10">
-                  <MapPin className="h-5 w-5 text-brand-teal" />
-                </span>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
-                    {isEs ? "Ubicación" : "Location"}
-                  </p>
-                  <p className="text-base font-semibold text-gray-800">Cusco, Perú</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {isEs ? "Centro histórico" : "Historic center"}
-                  </p>
-                </div>
-              </div>
-
               {/* Horario */}
               <div className="flex items-start gap-4 rounded-2xl bg-[#faf8f5] p-6 flex-1">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-teal/10">
@@ -153,23 +136,6 @@ export function ContactContent() {
             </div>
           </div>
 
-          {/* Mapa o imagen de Cusco */}
-          <div
-            ref={mapAnim.ref}
-            className={`${mapAnim.isVisible ? "scroll-visible" : "scroll-hidden"} mt-12 rounded-3xl overflow-hidden border border-gray-100 shadow-sm`}
-          >
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3879.2!2d-71.9675!3d-13.52!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x916dd5d826598431%3A0x2aa996cc609e2861!2sCusco!5e0!3m2!1ses!2spe!4v1700000000000"
-              width="100%"
-              height="300"
-              style={{ border: 0 }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="w-full"
-              title={isEs ? "Ubicación en Cusco" : "Location in Cusco"}
-            />
-          </div>
         </div>
       </section>
     </>

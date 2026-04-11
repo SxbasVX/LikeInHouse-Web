@@ -4,7 +4,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { trpc } from "@/lib/trpc";
 import Image from "next/image";
-import { MapPin, Phone, Mail, ArrowUpRight, BookOpen, Shield, FileText, ShieldCheck, ScrollText, Lock } from "lucide-react";
+import { Phone, Mail, ArrowUpRight, BookOpen, Shield, FileText, ShieldCheck, ScrollText, Lock } from "lucide-react";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -59,7 +59,6 @@ export function Footer() {
     return (settings as Record<string, string>)[key] || fallback;
   };
 
-  const address = getSetting("address", "Bellavista B-9-A, Cusco 08000");
   const phone = getSetting("phone", "+51 913 406 888");
   const email = getSetting("contactEmail", "info@likeinhouse.com");
 
@@ -173,10 +172,6 @@ export function Footer() {
                   <li className="flex items-start gap-2.5">
                     <Phone className="h-4 w-4 mt-0.5 shrink-0 text-brand-orange" />
                     <span className="text-sm text-white/55">{phone}</span>
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-brand-orange" />
-                    <span className="text-sm text-white/55 leading-snug">{address}</span>
                   </li>
                 </ul>
               </div>
