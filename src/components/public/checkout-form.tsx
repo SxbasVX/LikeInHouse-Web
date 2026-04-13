@@ -9,6 +9,7 @@ import {
     CreditCard, ShieldCheck, CheckCircle2, ArrowLeft, Loader2,
     DollarSign, Minus, Plus, CalendarDays, Users,
 } from "lucide-react";
+
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -130,7 +131,11 @@ export function CheckoutForm({
     const [referenceCode, setReferenceCode] = useState<string>("");
     const [currency, setCurrency] = useState<Currency>("USD");
     const [culqiReady, setCulqiReady] = useState(false);
+    const [paypalReady, setPaypalReady] = useState(false);
+    const [paypalRendered, setPaypalRendered] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal">("card");
     const [isProcessing, setIsProcessing] = useState(false);
+    const paypalContainerRef = useRef<HTMLDivElement>(null);
 
     // ── Fecha ────────────────────────────────────────────────────────────────
     // hasDepartures = true solo si el modo lo permite Y hay salidas en DB
@@ -229,6 +234,52 @@ export function CheckoutForm({
             toast({ variant: "destructive", title: isEs ? "Pago rechazado" : "Payment declined", description: e.message });
         },
     });
+
+    const createPaypalOrder = trpc.paypal.createOrder.useMutation();
+    const capturePaypalOrder = trpc.paypal.captureOrder.useMutation({
+        onSuccess: () => { setIsProcessing(false); setStep("success"); },
+        onError: (e: any) => {
+            setIsProcessing(false);
+            toast({ variant: "destructive", title: isEs ? "Pago PayPal fallido" : "PayPal payment failed", description: e.message });
+        },
+    });
+
+    // ── PayPal buttons (renderiza cuando el SDK carga y método=paypal) ────────
+    useEffect(() => {
+        if (
+            step !== "payment" ||
+            paymentMethod !== "paypal" ||
+            !paypalReady ||
+            !reservationId ||
+            !referenceCode ||
+            paypalRendered
+        ) return;
+        if (!window.paypal || !paypalContainerRef.current) return;
+
+        setPaypalRendered(true);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).paypal.Buttons({
+            style: { layout: "vertical", color: "gold", shape: "rect", label: "pay" },
+            createOrder: async () => {
+                const order = await createPaypalOrder.mutateAsync({ reservationId: reservationId!, referenceCode });
+                return order.id;
+            },
+            onApprove: async (data: { orderID: string }) => {
+                setIsProcessing(true);
+                capturePaypalOrder.mutate({ orderId: data.orderID, reservationId: reservationId!, referenceCode });
+            },
+            onError: (err: any) => {
+                console.error("PayPal error", err);
+                toast({ variant: "destructive", title: "PayPal Error", description: isEs ? "Ocurrió un error con PayPal. Intenta de nuevo." : "PayPal encountered an error. Please try again." });
+            },
+        }).render(paypalContainerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [step, paymentMethod, paypalReady, reservationId, referenceCode, paypalRendered]);
+
+    // Resetea paypalRendered cuando cambia el método de pago
+    useEffect(() => {
+        if (paymentMethod !== "paypal") setPaypalRendered(false);
+    }, [paymentMethod]);
 
     // ── Culqi callback ────────────────────────────────────────────────────────
     useEffect(() => {
@@ -401,6 +452,11 @@ export function CheckoutForm({
     return (
         <>
             <Script src="https://checkout.culqi.com/js/v4" strategy="lazyOnload" onLoad={() => setCulqiReady(true)} />
+            <Script
+                src={`https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "sb"}&currency=USD&intent=capture`}
+                strategy="lazyOnload"
+                onLoad={() => setPaypalReady(true)}
+            />
 
             <div className="grid lg:grid-cols-12 gap-8 items-start">
 
@@ -680,28 +736,93 @@ export function CheckoutForm({
                                         )}
                                     </div>
 
-                                    <Button
-                                        onClick={openCulqi}
-                                        disabled={!culqiReady || isProcessing}
-                                        size="lg"
-                                        className="w-full h-14 text-base bg-brand-orange hover:bg-brand-darkRed gap-2"
-                                    >
-                                        {isProcessing ? (
-                                            <><Loader2 className="h-5 w-5 animate-spin" />{isEs ? "Procesando..." : "Processing..."}</>
-                                        ) : !culqiReady ? (
-                                            <><Loader2 className="h-5 w-5 animate-spin" />{isEs ? "Cargando pasarela..." : "Loading..."}</>
-                                        ) : (
-                                            <><CreditCard className="h-5 w-5" />{isEs ? "Pagar con Tarjeta" : "Pay with Card"} — {currencySymbol} {grandTotal.toFixed(2)}</>
-                                        )}
-                                    </Button>
-
-                                    <div className="text-center space-y-1">
-                                        <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                                            <ShieldCheck className="h-4 w-4 text-brand-teal" />
-                                            {isEs ? "Pago procesado por Culqi · 100% seguro" : "Payment processed by Culqi · 100% secure"}
+                                    {/* Selector de método de pago */}
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                            {isEs ? "Método de pago" : "Payment method"}
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setPaymentMethod("card")}
+                                                className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 text-sm font-medium transition-all ${
+                                                    paymentMethod === "card"
+                                                        ? "border-brand-orange bg-brand-orange/5 text-brand-orange"
+                                                        : "border-border hover:border-brand-orange/40"
+                                                }`}
+                                            >
+                                                <CreditCard className="h-4 w-4" />
+                                                {isEs ? "Tarjeta / Yape" : "Card / Yape"}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setPaymentMethod("paypal"); if (currency !== "USD") setCurrency("USD"); }}
+                                                className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 text-sm font-medium transition-all ${
+                                                    paymentMethod === "paypal"
+                                                        ? "border-[#003087] bg-[#003087]/5 text-[#003087]"
+                                                        : "border-border hover:border-[#003087]/40"
+                                                }`}
+                                            >
+                                                <span className="font-bold text-[#003087]">Pay</span>
+                                                <span className="font-bold text-[#009cde]">Pal</span>
+                                            </button>
                                         </div>
-                                        <p className="text-xs text-muted-foreground">Visa · Mastercard · Amex · Diners · Yape</p>
+                                        {paymentMethod === "paypal" && currency === "USD" && (
+                                            <p className="text-xs text-muted-foreground text-center">
+                                                {isEs ? "PayPal solo acepta pagos en USD" : "PayPal only accepts USD payments"}
+                                            </p>
+                                        )}
                                     </div>
+
+                                    {/* Pago con tarjeta (Culqi) */}
+                                    {paymentMethod === "card" && (
+                                        <div className="space-y-3">
+                                            <Button
+                                                onClick={openCulqi}
+                                                disabled={!culqiReady || isProcessing}
+                                                size="lg"
+                                                className="w-full h-14 text-base bg-brand-orange hover:bg-brand-darkRed gap-2"
+                                            >
+                                                {isProcessing ? (
+                                                    <><Loader2 className="h-5 w-5 animate-spin" />{isEs ? "Procesando..." : "Processing..."}</>
+                                                ) : !culqiReady ? (
+                                                    <><Loader2 className="h-5 w-5 animate-spin" />{isEs ? "Cargando pasarela..." : "Loading..."}</>
+                                                ) : (
+                                                    <><CreditCard className="h-5 w-5" />{isEs ? "Pagar con Tarjeta" : "Pay with Card"} — {currencySymbol} {grandTotal.toFixed(2)}</>
+                                                )}
+                                            </Button>
+                                            <div className="text-center space-y-1">
+                                                <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                                                    <ShieldCheck className="h-4 w-4 text-brand-teal" />
+                                                    {isEs ? "Pago seguro por Culqi" : "Secure payment by Culqi"}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">Visa · Mastercard · Amex · Diners · Yape</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Pago con PayPal */}
+                                    {paymentMethod === "paypal" && (
+                                        <div className="space-y-3">
+                                            {isProcessing ? (
+                                                <div className="flex items-center justify-center h-14">
+                                                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                                    <span className="text-sm">{isEs ? "Procesando pago..." : "Processing payment..."}</span>
+                                                </div>
+                                            ) : !paypalReady ? (
+                                                <div className="flex items-center justify-center h-14">
+                                                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                                    <span className="text-sm text-muted-foreground">{isEs ? "Cargando PayPal..." : "Loading PayPal..."}</span>
+                                                </div>
+                                            ) : (
+                                                <div ref={paypalContainerRef} className="min-h-[50px]" />
+                                            )}
+                                            <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                                                <ShieldCheck className="h-4 w-4 text-brand-teal" />
+                                                {isEs ? "Pago seguro por PayPal" : "Secure payment by PayPal"}
+                                            </div>
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
 
