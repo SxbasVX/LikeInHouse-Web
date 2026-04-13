@@ -65,7 +65,7 @@ export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
         <div className="animate-slide-down inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-2 backdrop-blur-md mb-8">
           <span className="h-2 w-2 rounded-full bg-brand-orange animate-pulse" />
           <span className="text-sm font-semibold tracking-wide uppercase text-white">
-            {subtitle || t("hero_badge", { fallback: "Explora Perú como en casa" })}
+            {t("hero_badge")}
           </span>
         </div>
 
