@@ -78,6 +78,15 @@ const guestReservationSchema = z.object({
   // Internal notes (tier breakdown, requested date for open-calendar tours)
   internalNotes: z.string().max(500).optional(),
 
+  // USD total for server-side validation (always USD regardless of display currency)
+  totalAmountUsd: z.number().min(0).optional(),
+
+  // Tier quantities for multi-tier price validation
+  tierQuantities: z.array(z.object({
+    tierId: z.string(),
+    quantity: z.number().int().min(0),
+  })).optional(),
+
   // Traffic source attribution
   trafficSource: trafficSourceSchema,
 });
@@ -347,30 +356,52 @@ export const reservationRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Tour sin precios configurados" });
       }
 
-      // Use tiers if available, fallback to legacy fields
-      const defaultTier = tour.pricing.tiers.find((t) => t.isDefault) || tour.pricing.tiers[0];
-      const childTier = tour.pricing.tiers.find((t) => !t.isDefault && t.ageMax != null);
-      const adultPrice = defaultTier ? Number(defaultTier.priceUsd) : Number(tour.pricing.basePriceUsdAdult);
-      const childPrice = childTier ? Number(childTier.priceUsd) : Number(tour.pricing.basePriceUsdChild);
+      let serverTotalUsd: number;
 
-      // Calculate price server-side with discounts (never trust client amount)
-      const pricingData = {
-        basePriceUsdAdult: adultPrice,
-        basePriceUsdChild: childPrice,
-        promoDiscountPercent: tour.pricing.promoDiscountPercent ? Number(tour.pricing.promoDiscountPercent) : null,
-        promoStartDate: tour.pricing.promoStartDate,
-        promoEndDate: tour.pricing.promoEndDate,
-        groupDiscountPercent: tour.pricing.groupDiscountPercent ? Number(tour.pricing.groupDiscountPercent) : null,
-        groupMinPersons: tour.pricing.groupMinPersons,
-      };
-      const { total: serverTotal } = calculateTotalWithDiscount(pricingData, input.adults, input.children);
+      if (input.tierQuantities && input.tierQuantities.length > 0 && tour.pricing.tiers.length > 0) {
+        // Multi-tier validation: compute USD total from each tier's price × quantity
+        serverTotalUsd = 0;
+        for (const { tierId, quantity } of input.tierQuantities) {
+          const tier = tour.pricing.tiers.find((t) => t.id === tierId);
+          if (!tier) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Tarifa de precio no encontrada" });
+          }
+          serverTotalUsd += Number(tier.priceUsd) * quantity;
+        }
+        // Validate against client USD total (allow 5 cents tolerance for rounding)
+        const clientTotalUsd = input.totalAmountUsd ?? input.totalAmount;
+        if (Math.abs(serverTotalUsd - clientTotalUsd) > 0.05) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "El monto no coincide con los precios del tour",
+          });
+        }
+      } else {
+        // Legacy validation (adults × adultPrice + children × childPrice in USD)
+        const defaultTier = tour.pricing.tiers.find((t) => t.isDefault) || tour.pricing.tiers[0];
+        const childTier = tour.pricing.tiers.find((t) => !t.isDefault && t.ageMax != null);
+        const adultPrice = defaultTier ? Number(defaultTier.priceUsd) : Number(tour.pricing.basePriceUsdAdult);
+        const childPrice = childTier ? Number(childTier.priceUsd) : Number(tour.pricing.basePriceUsdChild);
 
-      // Allow small rounding tolerance (1 cent)
-      if (Math.abs(serverTotal - input.totalAmount) > 0.01) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "El monto no coincide con los precios del tour",
-        });
+        const pricingData = {
+          basePriceUsdAdult: adultPrice,
+          basePriceUsdChild: childPrice,
+          promoDiscountPercent: tour.pricing.promoDiscountPercent ? Number(tour.pricing.promoDiscountPercent) : null,
+          promoStartDate: tour.pricing.promoStartDate,
+          promoEndDate: tour.pricing.promoEndDate,
+          groupDiscountPercent: tour.pricing.groupDiscountPercent ? Number(tour.pricing.groupDiscountPercent) : null,
+          groupMinPersons: tour.pricing.groupMinPersons,
+        };
+        const { total } = calculateTotalWithDiscount(pricingData, input.adults, input.children);
+        serverTotalUsd = total;
+
+        const clientTotalUsd = input.totalAmountUsd ?? input.totalAmount;
+        if (Math.abs(serverTotalUsd - clientTotalUsd) > 0.05) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "El monto no coincide con los precios del tour",
+          });
+        }
       }
 
       // Use serializable transaction to prevent race conditions on departure capacity
@@ -431,7 +462,7 @@ export const reservationRouter = router({
             adults: input.adults,
             children: input.children,
             currency: input.currency,
-            totalAmount: serverTotal,
+            totalAmount: input.totalAmount,
             internalNotes: input.internalNotes || null,
             // Traffic source attribution
             firstSource: input.trafficSource?.firstSource || "direct",

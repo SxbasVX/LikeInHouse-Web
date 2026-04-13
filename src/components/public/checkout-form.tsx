@@ -298,10 +298,15 @@ export function CheckoutForm({
             email:       data.email,
             phone:       data.phone,
             country:     data.country,
-            adults:      adultsForBackend,
-            children:    childrenForBackend,
+            adults:         adultsForBackend,
+            children:       childrenForBackend,
             currency,
-            totalAmount: grandTotal,
+            totalAmount:    grandTotal,
+            totalAmountUsd: grandTotalUsd,
+            tierQuantities: hasTiers
+                ? tiers.filter((t) => (quantities[t.id] ?? 0) > 0)
+                       .map((t) => ({ tierId: t.id, quantity: quantities[t.id] ?? 0 }))
+                : undefined,
             internalNotes: [
                 openDate && !selectedDeparture ? `Fecha solicitada: ${openDate}` : null,
                 tierNote,
