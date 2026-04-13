@@ -1,6 +1,6 @@
 "use client";
 
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image as PdfImage } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -42,25 +42,11 @@ const S = StyleSheet.create({
     paddingBottom: 22,
   },
 
-  // Logo en texto
-  logoWrapper: {
-    flexDirection: "column",
-  },
-  logoMain: {
-    fontSize: 22,
-    fontFamily: "Helvetica-Bold",
-    color: c.darkRed,
-    letterSpacing: 0.5,
-  },
-  logoAccent: {
-    color: c.orange,
-  },
-  logoSub: {
-    fontSize: 7.5,
-    color: c.teal,
-    letterSpacing: 2.5,
-    textTransform: "uppercase",
-    marginTop: 2,
+  // Logo imagen
+  logoImg: {
+    width: 64,
+    height: 64,
+    objectFit: "contain",
   },
 
   // Badge del comprobante
@@ -310,15 +296,11 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
 
         {/* Header: logo + badge */}
         <View style={S.header}>
-          {/* Logo texto */}
-          <View style={S.logoWrapper}>
-            <Text style={S.logoMain}>
-              <Text>Like</Text>
-              <Text style={S.logoAccent}>In</Text>
-              <Text>House</Text>
-            </Text>
-            <Text style={S.logoSub}>Travel Agency</Text>
-          </View>
+          {/* Logo imagen */}
+          <PdfImage
+            src={`${process.env.NEXT_PUBLIC_BASE_URL || "https://likeinhouse.com"}/Logo-Cuadrado.png`}
+            style={S.logoImg}
+          />
 
           {/* Badge comprobante */}
           <View style={S.badge}>
