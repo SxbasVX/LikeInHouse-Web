@@ -117,7 +117,7 @@ export function Navbar() {
       <header className="fixed top-0 left-0 right-0 z-50 w-full pointer-events-none py-4">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
 
-          <Link href="/" className="pointer-events-auto flex items-center shrink-0 group relative z-20">
+          <Link href="/" className="pointer-events-auto hidden sm:flex items-center shrink-0 group relative z-20">
             <Image src="/Logo.svg" alt="Like In House Logo" width={200} height={51}
               className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
               priority
@@ -197,7 +197,7 @@ export function Navbar() {
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white shadow-md animate-slide-down">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
 
-        <Link href="/" className="flex items-center shrink-0 group">
+        <Link href="/" className="hidden sm:flex items-center shrink-0 group">
           <Image src="/Logo-Azul.svg" alt="Like In House Logo" width={200} height={51}
             className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
             priority
