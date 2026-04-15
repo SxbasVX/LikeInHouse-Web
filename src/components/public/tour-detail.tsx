@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
+import { waUrl } from "@/lib/whatsapp";
 import {
   MapPin, Clock, Star, Calendar, Check, X, Users,
   ChevronLeft, ChevronRight, ChevronDown, Mountain,
@@ -144,7 +145,6 @@ export function TourDetail({ tour }: { tour: TourData }) {
 
   const handleWhatsApp = () => {
     if (typeof window !== "undefined") {
-      const n = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "51984123456").replace(/\D/g, "");
       const tourName = isEs ? tour.nameEs : tour.nameEn;
       const dateText = selectedDate
         ? ` para el ${new Date(selectedDate).toLocaleDateString(isEs ? "es-PE" : "en-US", { day: "numeric", month: "long", year: "numeric" })}`
@@ -152,7 +152,7 @@ export function TourDetail({ tour }: { tour: TourData }) {
       const msg = isEs
         ? `Hola, me interesa el tour: ${tourName}${dateText}`
         : `Hi, I'm interested in the tour: ${tourName}${dateText}`;
-      window.open(`https://wa.me/${n}?text=${encodeURIComponent(msg)}`, "_blank");
+      window.open(waUrl(msg), "_blank");
     }
   };
 

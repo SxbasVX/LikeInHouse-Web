@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense, type FormEvent } from "react";
+import { waUrl } from "@/lib/whatsapp";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { trpc } from "@/lib/trpc";
@@ -282,7 +283,7 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
             {tc("custom_trip_desc", { fallback: "Cuéntanos qué tienes en mente y diseñaremos el viaje perfecto para ti. Respondemos en minutos." })}
           </p>
           <a
-            href={`https://wa.me/${(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "51999888777").replace(/\D/g, "")}?text=${encodeURIComponent("Hola! Me gustaría un tour personalizado 🌎")}`}
+            href={waUrl("Hola! Me gustaría un tour personalizado 🌎")}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2.5 rounded-full bg-[#25D366] hover:bg-[#1fb855] text-white font-bold px-8 py-3.5 text-sm transition-all hover:scale-[1.02] shadow-lg"

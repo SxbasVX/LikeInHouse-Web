@@ -3,13 +3,13 @@
 import { useTranslations, useLocale } from "next-intl";
 import { Phone, Mail, Clock, ArrowUpRight, MessageCircle } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
+import { waUrl } from "@/lib/whatsapp";
 
 export function ContactContent() {
   const t = useTranslations("contact");
   const tc = useTranslations("common");
   const locale = useLocale();
   const isEs = locale === "es";
-  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "51984123456";
 
   const heroAnim = useScrollAnimation({ threshold: 0.1 });
   const cardsAnim = useScrollAnimation({ threshold: 0.1 });
@@ -70,7 +70,7 @@ export function ContactContent() {
                 </div>
               </div>
               <a
-                href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}?text=${encodeURIComponent(isEs ? "Hola, quiero información sobre tours" : "Hi, I'd like info about tours")}`}
+                href={waUrl(isEs ? "Hola, quiero información sobre tours" : "Hi, I'd like info about tours")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-between rounded-full bg-[#25D366] hover:bg-[#1fb855] text-white pl-7 pr-2 py-3 text-base font-bold transition-all group shadow-lg hover:shadow-xl hover:scale-[1.02] w-full sm:w-auto sm:max-w-xs"

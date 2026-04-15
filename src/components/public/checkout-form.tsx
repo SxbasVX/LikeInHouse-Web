@@ -436,7 +436,7 @@ export function CheckoutForm({
                     />
                     <Button asChild className="h-12">
                         <a
-                            href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "51984123456"}?text=${encodeURIComponent(`Hola, confirmé mi reserva del tour ${tour.nameEs}. Código: ${referenceCode}`)}`}
+                            href={`https://api.whatsapp.com/send/?phone=51913406888&text=${encodeURIComponent(`Hola, confirmé mi reserva del tour ${tour.nameEs}. Código: ${referenceCode}`)}&type=phone_number&app_absent=0`}
                             target="_blank" rel="noopener noreferrer"
                         >WhatsApp</a>
                     </Button>
