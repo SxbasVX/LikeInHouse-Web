@@ -52,9 +52,14 @@ const navSections = [
     ],
   },
   {
-    label: "Configuración",
+    label: "Marketing",
     items: [
       { label: "Promociones", href: "/admin/promociones", icon: Tag },
+    ],
+  },
+  {
+    label: "Configuración",
+    items: [
       { label: "Contenido", href: "/admin/contenido", icon: Newspaper },
       { label: "Documentos", href: "/admin/documentos", icon: BookMarked },
       { label: "Galeria", href: "/admin/galeria", icon: ImageIcon },
