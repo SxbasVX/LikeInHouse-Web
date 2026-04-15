@@ -8,6 +8,7 @@ import { TestimonialsSection } from "@/components/public/sections/testimonials";
 import { FAQSection } from "@/components/public/sections/faq";
 import { CTASection } from "@/components/public/sections/cta";
 import { CertificationsSection } from "@/components/public/sections/certifications";
+import { HowToBookSection } from "@/components/public/sections/how-to-book";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -130,6 +131,8 @@ export default async function HomePage() {
   return (
     <div>
       {sortedSections.map((s) => s.render())}
+      {/* Cómo reservar */}
+      <HowToBookSection />
       {/* Certificaciones — solo aparece si hay logos configurados */}
       <CertificationsSection />
       {/* FAQs siempre visibles — no están en el sistema de HomeSections */}

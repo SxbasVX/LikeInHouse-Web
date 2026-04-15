@@ -56,7 +56,16 @@
     "cta_subtitle": "Discover breathtaking views, natural landscapes, and unforgettable moments in one of South America's most iconic destinations.",
     "cta_button": "Reserve Your Tour Now",
     "blog_title": "From the Blog",
-    "blog_subtitle": "Travel tips and guides"
+    "blog_subtitle": "Travel tips and guides",
+    "htb_badge": "That simple",
+    "htb_title": "Book with us",
+    "htb_step1_title": "Get in touch",
+    "htb_step1_desc": "Choose one of our pre-designed trips or tell us your ideas. We'll respond within one business day to start planning your adventure.",
+    "htb_step2_title": "Personalize your trip",
+    "htb_step2_desc": "Your travel advisor will work with you to personalize every detail, creating a trip tailored to your pace, interests and travel style.",
+    "htb_step3_title": "Travel with confidence",
+    "htb_step3_desc": "From your arrival to your final farewell, we handle all the logistics. Relax and enjoy — we take care of the rest.",
+    "htb_cta": "Message us on WhatsApp"
   },
   "tours": {
     "catalog": "Tour Catalog",
