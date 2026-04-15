@@ -6,7 +6,6 @@ import { HeroSection } from "@/components/public/sections/hero";
 import { FeaturedToursSection } from "@/components/public/sections/featured-tours";
 import { TestimonialsSection } from "@/components/public/sections/testimonials";
 import { FAQSection } from "@/components/public/sections/faq";
-import { CTASection } from "@/components/public/sections/cta";
 import { CertificationsSection } from "@/components/public/sections/certifications";
 import { HowToBookSection } from "@/components/public/sections/how-to-book";
 import { PromoBannersSection } from "@/components/public/sections/promo-banners";
@@ -106,17 +105,6 @@ export default async function HomePage() {
             subtitle={getSubtitle("TESTIMONIALS")}
           />
         ) : null,
-    },
-    {
-      type: "CTA",
-      render: () => (
-        <CTASection
-          key="cta"
-          title={getTitle("CTA")}
-          subtitle={getSubtitle("CTA")}
-          imageUrl={getImage("CTA")}
-        />
-      ),
     },
   ];
 
