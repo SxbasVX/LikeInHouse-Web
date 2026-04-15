@@ -144,7 +144,10 @@ function BannersTab() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen} modal={false}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>{editing ? "Editar banner" : "Nuevo banner"}</DialogTitle>
           </DialogHeader>
