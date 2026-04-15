@@ -22,6 +22,7 @@ import {
   Menu,
   X,
   BookMarked,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,7 @@ const navSections = [
   {
     label: "Configuración",
     items: [
+      { label: "Promociones", href: "/admin/promociones", icon: Tag },
       { label: "Contenido", href: "/admin/contenido", icon: Newspaper },
       { label: "Documentos", href: "/admin/documentos", icon: BookMarked },
       { label: "Galeria", href: "/admin/galeria", icon: ImageIcon },

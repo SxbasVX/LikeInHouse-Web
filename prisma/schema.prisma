@@ -742,3 +742,42 @@ model Document {
   @@index([slug])
   @@index([isPublished])
 }
+
+// ============================================================
+// BANNERS PROMOCIONALES (flyers en home page)
+// ============================================================
+
+model Banner {
+  id          String    @id @default(cuid())
+  titleEs     String
+  titleEn     String
+  subtitleEs  String?
+  subtitleEn  String?
+  imageUrl    String
+  linkUrl     String?
+  linkTextEs  String?
+  linkTextEn  String?
+  isActive    Boolean   @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+// ============================================================
+// DESCUENTO GLOBAL (aplica a todos los tours)
+// ============================================================
+
+model GlobalDiscount {
+  id        String   @id @default(cuid())
+  name      String   // "Black Friday", "Verano 2025"
+  percent   Decimal  @db.Decimal(5, 2)
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}

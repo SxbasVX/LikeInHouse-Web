@@ -200,6 +200,34 @@ export const publicRouter = router({
     return getCachedCategories();
   }),
 
+  // Banners promocionales activos (para home page)
+  activeBanners: publicProcedure.query(async ({ ctx }) => {
+    const now = new Date();
+    return ctx.db.banner.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { startsAt: null },
+          { startsAt: { lte: now } },
+        ],
+        AND: [
+          {
+            OR: [
+              { endsAt: null },
+              { endsAt: { gte: now } },
+            ],
+          },
+        ],
+      },
+      orderBy: { sortOrder: "asc" },
+    });
+  }),
+
+  // Descuento global activo (Black Friday, etc.)
+  activeGlobalDiscount: publicProcedure.query(async ({ ctx }) => {
+    return ctx.db.globalDiscount.findFirst({ where: { isActive: true } });
+  }),
+
   // Enviar mensaje de contacto (rate limited)
   submitContact: rateLimitedProcedure(RATE_LIMITS.contactForm)
     .input(

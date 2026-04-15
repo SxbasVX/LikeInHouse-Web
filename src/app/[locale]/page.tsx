@@ -9,6 +9,7 @@ import { FAQSection } from "@/components/public/sections/faq";
 import { CTASection } from "@/components/public/sections/cta";
 import { CertificationsSection } from "@/components/public/sections/certifications";
 import { HowToBookSection } from "@/components/public/sections/how-to-book";
+import { PromoBannersSection } from "@/components/public/sections/promo-banners";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -131,6 +132,8 @@ export default async function HomePage() {
   return (
     <div>
       {sortedSections.map((s) => s.render())}
+      {/* Banners promocionales (solo si hay activos) */}
+      <PromoBannersSection />
       {/* Cómo reservar */}
       <HowToBookSection />
       {/* Certificaciones — solo aparece si hay logos configurados */}

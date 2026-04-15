@@ -358,4 +358,109 @@ export const contentRouter = router({
     .mutation(async ({ ctx, input }) => {
       return ctx.db.contactMessage.delete({ where: { id: input.id } });
     }),
+
+  // ===== BANNERS PROMOCIONALES =====
+  bannerList: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.db.banner.findMany({ orderBy: { sortOrder: "asc" } });
+  }),
+
+  bannerCreate: adminOrMarketing
+    .input(z.object({
+      titleEs: z.string().min(1),
+      titleEn: z.string().min(1),
+      subtitleEs: z.string().optional(),
+      subtitleEn: z.string().optional(),
+      imageUrl: z.string().url(),
+      linkUrl: z.string().url().optional().or(z.literal("")),
+      linkTextEs: z.string().optional(),
+      linkTextEn: z.string().optional(),
+      isActive: z.boolean().default(true),
+      startsAt: z.string().optional(),
+      endsAt: z.string().optional(),
+      sortOrder: z.number().default(0),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.banner.create({
+        data: {
+          ...input,
+          linkUrl: input.linkUrl || null,
+          startsAt: input.startsAt ? new Date(input.startsAt) : null,
+          endsAt: input.endsAt ? new Date(input.endsAt) : null,
+        },
+      });
+    }),
+
+  bannerUpdate: adminOrMarketing
+    .input(z.object({
+      id: z.string(),
+      titleEs: z.string().min(1).optional(),
+      titleEn: z.string().min(1).optional(),
+      subtitleEs: z.string().optional(),
+      subtitleEn: z.string().optional(),
+      imageUrl: z.string().url().optional(),
+      linkUrl: z.string().url().optional().or(z.literal("")),
+      linkTextEs: z.string().optional(),
+      linkTextEn: z.string().optional(),
+      isActive: z.boolean().optional(),
+      startsAt: z.string().optional().nullable(),
+      endsAt: z.string().optional().nullable(),
+      sortOrder: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input;
+      return ctx.db.banner.update({
+        where: { id },
+        data: {
+          ...data,
+          linkUrl: data.linkUrl || null,
+          startsAt: data.startsAt ? new Date(data.startsAt) : data.startsAt === null ? null : undefined,
+          endsAt: data.endsAt ? new Date(data.endsAt) : data.endsAt === null ? null : undefined,
+        },
+      });
+    }),
+
+  bannerDelete: adminOrMarketing
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.banner.delete({ where: { id: input.id } });
+    }),
+
+  // ===== DESCUENTO GLOBAL =====
+  globalDiscountList: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.db.globalDiscount.findMany({ orderBy: { createdAt: "desc" } });
+  }),
+
+  globalDiscountCreate: adminOrMarketing
+    .input(z.object({
+      name: z.string().min(1),
+      percent: z.number().min(1).max(99),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.globalDiscount.create({
+        data: { name: input.name, percent: input.percent, isActive: false },
+      });
+    }),
+
+  globalDiscountActivate: adminOrMarketing
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      // Desactiva todos, activa solo el seleccionado
+      await ctx.db.globalDiscount.updateMany({ data: { isActive: false } });
+      return ctx.db.globalDiscount.update({
+        where: { id: input.id },
+        data: { isActive: true },
+      });
+    }),
+
+  globalDiscountDeactivate: adminOrMarketing
+    .mutation(async ({ ctx }) => {
+      await ctx.db.globalDiscount.updateMany({ data: { isActive: false } });
+      return { success: true };
+    }),
+
+  globalDiscountDelete: adminOrMarketing
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.globalDiscount.delete({ where: { id: input.id } });
+    }),
 });

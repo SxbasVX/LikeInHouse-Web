@@ -6,6 +6,7 @@ import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useScrollAnimation, useStaggerAnimation } from "@/hooks/use-scroll-animation";
+import { trpc } from "@/lib/trpc";
 
 interface Tour {
   id: string;
@@ -44,6 +45,8 @@ export function FeaturedToursSection({ tours, title, subtitle }: FeaturedToursSe
   const header = useScrollAnimation({ threshold: 0.2 });
   const grid = useStaggerAnimation({ threshold: 0.1 });
   const viewAll = useScrollAnimation({ threshold: 0.3 });
+  const { data: globalDiscount } = trpc.public.activeGlobalDiscount.useQuery();
+  const globalPct = globalDiscount ? Number(globalDiscount.percent) : 0;
 
   if (tours.length === 0) return null;
 
@@ -127,12 +130,23 @@ export function FeaturedToursSection({ tours, title, subtitle }: FeaturedToursSe
                       {tt("informational")}
                     </span>
                   ) : price ? (
-                    <p className="text-lg font-bold text-brand-darkRed">
-                      ${price.toFixed(0)}{" "}
-                      <span className="text-[13px] font-light text-gray-500">
-                        / {tt("per_person")}
-                      </span>
-                    </p>
+                    <div>
+                      {globalPct > 0 ? (
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-lg font-bold text-brand-orange">
+                            ${(price * (1 - globalPct / 100)).toFixed(0)}
+                            <span className="text-[12px] font-light text-gray-400 ml-1">/ {tt("per_person")}</span>
+                          </p>
+                          <span className="text-[13px] text-gray-400 line-through">${price.toFixed(0)}</span>
+                          <span className="text-[11px] font-bold text-brand-orange bg-brand-orange/10 px-1.5 py-0.5 rounded-full">-{globalPct}%</span>
+                        </div>
+                      ) : (
+                        <p className="text-lg font-bold text-brand-darkRed">
+                          ${price.toFixed(0)}{" "}
+                          <span className="text-[13px] font-light text-gray-500">/ {tt("per_person")}</span>
+                        </p>
+                      )}
+                    </div>
                   ) : <span />}
 
                   <Button
