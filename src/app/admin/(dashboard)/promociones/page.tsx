@@ -154,7 +154,7 @@ function BannersTab() {
               <ImageUpload
                 value={form.imageUrl}
                 onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
-                folder="banners"
+                onRemove={() => setForm((f) => ({ ...f, imageUrl: "" }))}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
