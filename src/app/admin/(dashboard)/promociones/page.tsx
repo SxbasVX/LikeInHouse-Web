@@ -16,10 +16,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
-import { ImageUpload } from "@/components/ui/image-upload";
+import { CldUploadWidget } from "next-cloudinary";
 import {
   Plus, Trash2, Pencil, CheckCircle2, XCircle, Tag, Image as ImageIcon, Percent,
-  Power, PowerOff,
+  Power, PowerOff, Upload,
 } from "lucide-react";
 
 // ─── BANNERS ─────────────────────────────────────────────────────────────────
@@ -149,13 +149,39 @@ function BannersTab() {
             <DialogTitle>{editing ? "Editar banner" : "Nuevo banner"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div>
+            <div className="space-y-2">
               <Label>Imagen del banner *</Label>
-              <ImageUpload
-                value={form.imageUrl}
-                onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
-                onRemove={() => setForm((f) => ({ ...f, imageUrl: "" }))}
-              />
+              <div className="flex gap-2">
+                <Input
+                  placeholder="URL de imagen (pega una URL o sube)"
+                  value={form.imageUrl}
+                  onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
+                  className="flex-1"
+                />
+                <CldUploadWidget
+                  uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "like_in_house"}
+                  options={{ maxFiles: 1, sources: ["local", "url", "camera"], folder: "banners" }}
+                  onSuccess={(result: any) => setForm((f) => ({ ...f, imageUrl: result.info.secure_url }))}
+                >
+                  {({ open }) => (
+                    <Button type="button" variant="outline" onClick={() => open()}>
+                      <Upload className="h-4 w-4 mr-1" /> Subir
+                    </Button>
+                  )}
+                </CldUploadWidget>
+              </div>
+              {form.imageUrl && (
+                <div className="relative rounded-lg overflow-hidden border bg-muted" style={{ height: 120 }}>
+                  <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
+                    className="absolute top-2 right-2 rounded-full bg-black/50 text-white px-2 py-0.5 text-xs hover:bg-black/70"
+                  >
+                    Quitar
+                  </button>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
