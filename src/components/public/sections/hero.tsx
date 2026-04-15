@@ -8,7 +8,7 @@ import Image from "next/image";
 
 const DEFAULT_HERO_BG = "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=1920&q=80";
 
-const QUICK_SEARCHES = ["Machu Picchu", "Camino Inca", "Valle Sagrado", "Montaña de Colores", "Choquequirao", "Cusco"];
+const QUICK_SEARCHES = ["Machu Picchu", "Valle Sagrado", "Tumbes", "Ruta del Sol", "Montaña de Colores", "Turismo comunitario"];
 
 interface HeroProps {
   title?: string;
