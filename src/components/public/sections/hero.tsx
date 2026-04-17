@@ -62,7 +62,10 @@ export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
       <div className="relative z-20 flex-1 flex flex-col items-center justify-center text-center px-4 w-full pt-28 pb-32 lg:pt-36 lg:pb-40 pointer-events-none">
 
         {/* Badge */}
-        <div className="animate-slide-down inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-2 backdrop-blur-md mb-8">
+        <div
+          className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-2 backdrop-blur-md mb-8"
+          style={{ opacity: 0, animation: "hero-reveal 0.7s cubic-bezier(0.16,1,0.3,1) 200ms forwards" }}
+        >
           <span className="h-2 w-2 rounded-full bg-brand-orange animate-pulse" />
           <span className="text-sm font-semibold tracking-wide uppercase text-white">
             {t("hero_badge")}
@@ -71,34 +74,40 @@ export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
 
         {/* Title */}
         <h1
-          className="animate-slide-up font-heading font-bold leading-[1.1] tracking-tight mb-6 max-w-5xl"
+          className="font-heading font-bold leading-[1.1] tracking-tight mb-6 max-w-5xl overflow-hidden"
           style={{
-            animationDelay: "100ms",
-            animationFillMode: "both",
             fontSize: "clamp(2.8rem, 8vw, 6.5rem)",
             textShadow: "0 2px 12px rgba(0,0,0,0.4)",
           }}
         >
-          {/* "Tu próxima historia" — toda la línea en itálica naranja */}
-          <span className="font-serif italic font-normal text-brand-orange block">
+          {/* "Tu próxima historia" — itálica naranja */}
+          <span
+            className="font-serif italic font-normal text-brand-orange block"
+            style={{ opacity: 0, animation: "hero-title 0.85s cubic-bezier(0.16,1,0.3,1) 380ms forwards" }}
+          >
             {t("hero_title_1")} {t("hero_title_2")}
           </span>
-          {/* "comienza en Perú" — blanco, peso fuerte */}
-          <span className="text-white block">{t("hero_title_3")}</span>
+          {/* "comienza en Perú" — blanco */}
+          <span
+            className="text-white block"
+            style={{ opacity: 0, animation: "hero-title 0.85s cubic-bezier(0.16,1,0.3,1) 530ms forwards" }}
+          >
+            {t("hero_title_3")}
+          </span>
         </h1>
 
         {/* Subtítulo cálido */}
         <p
-          className="animate-slide-up text-white/80 text-lg lg:text-xl font-light max-w-xl mb-10 leading-relaxed"
-          style={{ animationDelay: "200ms", animationFillMode: "both" }}
+          className="text-white/80 text-lg lg:text-xl font-light max-w-xl mb-10 leading-relaxed"
+          style={{ opacity: 0, animation: "hero-reveal 0.7s cubic-bezier(0.16,1,0.3,1) 700ms forwards" }}
         >
           {t("hero_subtitle", { fallback: "Viajes pensados para familias, amigos y aventureros que quieren vivir el Perú de verdad." })}
         </p>
 
         {/* Search bar */}
         <div
-          className="animate-slide-up pointer-events-auto w-full max-w-3xl"
-          style={{ animationDelay: "300ms", animationFillMode: "both" }}
+          className="pointer-events-auto w-full max-w-3xl"
+          style={{ opacity: 0, animation: "hero-reveal 0.7s cubic-bezier(0.16,1,0.3,1) 880ms forwards" }}
         >
           <form
             onSubmit={handleSearch}
@@ -124,7 +133,10 @@ export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
           </form>
 
           {/* Quick search */}
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
+          <div
+            className="flex flex-wrap justify-center gap-2 mt-4"
+            style={{ opacity: 0, animation: "hero-fade 0.6s ease-out 1100ms forwards" }}
+          >
             {QUICK_SEARCHES.map((term) => (
               <button
                 key={term}
