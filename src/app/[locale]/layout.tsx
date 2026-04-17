@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { Navbar } from "@/components/public/navbar";
 import { Footer } from "@/components/public/footer";
 import { WhatsAppButton } from "@/components/public/whatsapp-button";
-import { PageIntro } from "@/components/public/page-intro";
 import { Analytics } from "@/components/public/analytics";
 import { TrafficTracker } from "@/components/public/traffic-tracker";
 import "@/app/globals.css";
@@ -52,7 +51,6 @@ export default async function LocaleLayout({
               <main className="flex-1 pt-20">{children}</main>
               <Footer />
             </div>
-            <PageIntro />
             <WhatsAppButton />
             <TrafficTracker />
             <Toaster />
