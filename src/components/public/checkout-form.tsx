@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getTrafficData } from "@/hooks/use-traffic-tracking";
 import { Link } from "@/i18n/routing";
 import { DownloadPDFButton } from "@/components/pdf/download-button";
+import { waUrl } from "@/lib/whatsapp";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 type Currency = "USD" | "PEN";
@@ -436,7 +437,7 @@ export function CheckoutForm({
                     />
                     <Button asChild className="h-12">
                         <a
-                            href={`https://api.whatsapp.com/send/?phone=51913406888&text=${encodeURIComponent(`Hola, confirmé mi reserva del tour ${tour.nameEs}. Código: ${referenceCode}`)}&type=phone_number&app_absent=0`}
+                            href={waUrl(`Hola, confirmé mi reserva del tour ${tour.nameEs}. Código: ${referenceCode}`)}
                             target="_blank" rel="noopener noreferrer"
                         >WhatsApp</a>
                     </Button>

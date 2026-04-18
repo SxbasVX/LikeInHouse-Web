@@ -257,6 +257,11 @@
     "per_person": "per person",
     "continue_browsing": "Continue browsing"
   },
+  "errors": {
+    "not_found_title": "Page not found",
+    "not_found_desc": "The page you are looking for does not exist or has been moved.",
+    "not_found_back": "Back to home"
+  },
   "footer": {
     "description": "LikeInHouse: specialized in authentic Peru experiences.",
     "quick_links": "Quick Links",

@@ -257,6 +257,11 @@
     "per_person": "por persona",
     "continue_browsing": "Seguir explorando"
   },
+  "errors": {
+    "not_found_title": "Página no encontrada",
+    "not_found_desc": "La página que buscas no existe o fue movida.",
+    "not_found_back": "Volver al inicio"
+  },
   "footer": {
     "description": "LikeInHouse: especializada en experiencias auténticas en Perú.",
     "quick_links": "Enlaces Rápidos",

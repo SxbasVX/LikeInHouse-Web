@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { ArrowUpRight, CheckCircle2, MessageCircle } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
+import { waUrl } from "@/lib/whatsapp";
 
 const STEPS_PATH1 = ["htb_path1_s1", "htb_path1_s2", "htb_path1_s3"] as const;
 const STEPS_PATH2 = ["htb_path2_s1", "htb_path2_s2", "htb_path2_s3"] as const;
@@ -116,7 +117,7 @@ export function HowToBookSection() {
               </ul>
 
               <a
-                href="https://api.whatsapp.com/send/?phone=51913406888&type=phone_number&app_absent=0"
+                href={waUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-between self-start rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white pl-5 pr-1.5 py-1.5 text-sm font-bold transition-all hover:-translate-y-0.5 group/btn"
