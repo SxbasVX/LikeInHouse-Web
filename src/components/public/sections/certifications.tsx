@@ -1,7 +1,6 @@
 "use client";
 
 import { useLocale } from "next-intl";
-import Image from "next/image";
 import { Link } from "@/i18n/routing";
 import { trpc } from "@/lib/trpc";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
@@ -68,12 +67,12 @@ export function CertificationsSection() {
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-5 flex-1">
             {items.map((item, i) => {
               const img = (
-                <Image
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={item.url}
                   alt={item.name}
-                  width={120}
-                  height={60}
-                  className="h-10 sm:h-12 w-auto object-contain opacity-85 group-hover:opacity-100 transition-all duration-300"
+                  loading="lazy"
+                  className="h-10 sm:h-12 w-auto max-w-[140px] object-contain opacity-85 group-hover:opacity-100 transition-all duration-300"
                 />
               );
               const wrap = (children: React.ReactNode) => (

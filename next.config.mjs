@@ -56,7 +56,7 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://www.paypal.com https://www.sandbox.paypal.com https://*.paypal.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://va.vercel-scripts.com https://widget.cloudinary.com https://upload-widget.cloudinary.com",
               "worker-src 'self' blob:",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://www.paypalobjects.com https://www.google-analytics.com https://www.googletagmanager.com https://www.facebook.com https://upload-widget.cloudinary.com",
+              "img-src 'self' data: blob: https:",
               "font-src 'self' https://fonts.gstatic.com",
               "connect-src 'self' https://www.paypal.com https://www.sandbox.paypal.com https://*.paypal.com https://api-m.sandbox.paypal.com https://api-m.paypal.com https://*.sentry.io https://*.ingest.sentry.io https://www.google-analytics.com https://analytics.google.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://api.cloudinary.com",
               "frame-src 'self' https://www.paypal.com https://www.sandbox.paypal.com https://*.paypal.com https://widget.cloudinary.com https://upload-widget.cloudinary.com https://www.google.com",
