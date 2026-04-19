@@ -3,7 +3,6 @@
 import { useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { trpc } from "@/lib/trpc";
-import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 import { Award } from "lucide-react";
 
 const CERT_NAMES = [
@@ -17,7 +16,6 @@ const CERT_NAMES = [
 export function CertificationsSection() {
   const locale = useLocale();
   const isEs = locale === "es";
-  const section = useScrollAnimation({ threshold: 0.2 });
 
   const { data: settings } = trpc.public.settings.useQuery(undefined, { staleTime: 30 * 1000 });
   const getSetting = (key: string) => {
@@ -37,10 +35,7 @@ export function CertificationsSection() {
 
   return (
     <section className="bg-brand-teal/[0.04] border-y border-brand-teal/10 py-12 lg:py-14">
-      <div
-        ref={section.ref}
-        className={`${section.isVisible ? "scroll-visible" : "scroll-hidden"} mx-auto max-w-6xl px-4 sm:px-6 lg:px-8`}
-      >
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
           {/* Lado izquierdo — texto */}
           <div className="flex items-center gap-4 shrink-0">
