@@ -56,6 +56,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Pencil, Save, Plus, ChevronLeft, ChevronRight, XCircle, CheckCircle, Trash2, StarOff, Star, EyeOff, Eye, MoreHorizontal } from "lucide-react";
 import { ImageUpload } from "@/components/ui/image-upload";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 
 const TiptapEditor = dynamic(() => import("@/components/ui/tiptap-editor").then(m => ({ default: m.TiptapEditor })), { ssr: false });
@@ -1224,16 +1225,14 @@ const PREDEFINED_SETTINGS = [
   { key: "codigoEsnnaUrl", label: "Código ESNNA (URL)", placeholder: "https://..." },
   { key: "politicasCancelacionUrl", label: "Políticas de Cancelación (URL)", placeholder: "/politicas-cancelacion" },
   { key: "proteccionDatosUrl", label: "Protección de Datos (URL)", placeholder: "/proteccion-datos" },
-  { key: "footerLogo1Url", label: "Footer Logo 1 - Imagen", placeholder: "https://res.cloudinary.com/..." },
-  { key: "footerLogo1Link", label: "Footer Logo 1 - Link", placeholder: "https://..." },
-  { key: "footerLogo2Url", label: "Footer Logo 2 - Imagen", placeholder: "https://res.cloudinary.com/..." },
-  { key: "footerLogo2Link", label: "Footer Logo 2 - Link", placeholder: "https://..." },
-  { key: "footerLogo3Url", label: "Footer Logo 3 - Imagen", placeholder: "https://res.cloudinary.com/..." },
-  { key: "footerLogo3Link", label: "Footer Logo 3 - Link", placeholder: "https://..." },
-  { key: "footerLogo4Url", label: "Footer Logo 4 - Imagen", placeholder: "https://res.cloudinary.com/..." },
-  { key: "footerLogo4Link", label: "Footer Logo 4 - Link", placeholder: "https://..." },
-  { key: "footerLogo5Url", label: "Footer Logo 5 - Imagen", placeholder: "https://res.cloudinary.com/..." },
-  { key: "footerLogo5Link", label: "Footer Logo 5 - Link", placeholder: "https://..." },
+] as const;
+
+const CERTIFICATIONS = [
+  { slot: 1, name: "Mincetur",        description: "Ministerio de Comercio Exterior y Turismo" },
+  { slot: 2, name: "PromPerú",        description: "Comisión de Promoción del Perú" },
+  { slot: 3, name: "Y tú qué planes?", description: "Marca turística del Perú" },
+  { slot: 4, name: "Gercetur Cusco",  description: "Gerencia Regional de Comercio Exterior y Turismo" },
+  { slot: 5, name: "Dircetur Tumbes", description: "Dirección Regional de Comercio Exterior y Turismo" },
 ] as const;
 
 // ===== Settings =====
@@ -1335,6 +1334,13 @@ function SettingsSection() {
           })}
         </CardContent>
       </Card>
+
+      {/* Certificaciones / Avales */}
+      <CertificationsSettings
+        getSettingValue={getSettingValue}
+        onSave={handleQuickSave}
+        isPending={upsertSetting.isPending}
+      />
 
       {/* Custom Settings */}
       <Card>
@@ -1444,6 +1450,110 @@ function SettingsSection() {
           </form>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// Certificaciones / Avales — grid de 5 cards con ImageUpload + Link
+function CertificationsSettings({
+  getSettingValue, onSave, isPending,
+}: {
+  getSettingValue: (key: string) => string;
+  onSave: (key: string, value: string) => void;
+  isPending: boolean;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Certificaciones y Avales</CardTitle>
+        <CardDescription>
+          Logos de instituciones que aparecen en la sección "Certificaciones" de la web.
+          Sube el logo y opcionalmente agrega un link (se abrirá en nueva pestaña).
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {CERTIFICATIONS.map((cert) => (
+            <CertificationCard
+              key={cert.slot}
+              cert={cert}
+              imageUrl={getSettingValue(`footerLogo${cert.slot}Url`)}
+              linkUrl={getSettingValue(`footerLogo${cert.slot}Link`)}
+              onSave={onSave}
+              isPending={isPending}
+            />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CertificationCard({
+  cert, imageUrl, linkUrl, onSave, isPending,
+}: {
+  cert: { slot: number; name: string; description: string };
+  imageUrl: string;
+  linkUrl: string;
+  onSave: (key: string, value: string) => void;
+  isPending: boolean;
+}) {
+  const [link, setLink] = useState(linkUrl);
+  const [linkDirty, setLinkDirty] = useState(false);
+
+  const imageKey = `footerLogo${cert.slot}Url`;
+  const linkKey = `footerLogo${cert.slot}Link`;
+
+  const handleImageChange = (url: string) => onSave(imageKey, url);
+  const handleImageRemove = () => onSave(imageKey, "");
+
+  const handleLinkSave = () => {
+    onSave(linkKey, link);
+    setLinkDirty(false);
+  };
+
+  return (
+    <div className="rounded-lg border bg-card p-4 space-y-3">
+      <div>
+        <p className="font-semibold text-sm">{cert.name}</p>
+        <p className="text-xs text-muted-foreground">{cert.description}</p>
+      </div>
+
+      {/* Preview + upload */}
+      {imageUrl ? (
+        <div className="relative w-full h-24 rounded-md border bg-white flex items-center justify-center overflow-hidden">
+          <Image src={imageUrl} alt={cert.name} fill className="object-contain p-2" sizes="200px" />
+          <Button
+            type="button"
+            onClick={handleImageRemove}
+            variant="destructive"
+            size="sm"
+            className="absolute top-1 right-1 h-7 w-7 p-0"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      ) : (
+        <ImageUpload value="" onChange={(url) => handleImageChange(url)} onRemove={handleImageRemove} />
+      )}
+
+      {/* Link */}
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium">Link (opcional)</Label>
+        <div className="flex gap-1.5">
+          <Input
+            value={link}
+            onChange={(e) => { setLink(e.target.value); setLinkDirty(e.target.value !== linkUrl); }}
+            placeholder="https://..."
+            className="h-9 text-sm"
+          />
+          {linkDirty && (
+            <Button size="sm" onClick={handleLinkSave} disabled={isPending} className="shrink-0 h-9">
+              <Save className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

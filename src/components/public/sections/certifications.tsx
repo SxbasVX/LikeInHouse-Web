@@ -18,10 +18,19 @@ export function CertificationsSection() {
     return (settings as Record<string, string>)[key] || "";
   };
 
+  const CERT_NAMES = [
+    "Mincetur",
+    "PromPerú",
+    "Y tú qué planes?",
+    "Gercetur Cusco",
+    "Dircetur Tumbes",
+  ];
+
   const items = [1, 2, 3, 4, 5]
     .map((i) => ({
       url: getSetting(`footerLogo${i}Url`),
       link: getSetting(`footerLogo${i}Link`),
+      name: CERT_NAMES[i - 1],
     }))
     .filter((item) => item.url);
 
@@ -58,20 +67,20 @@ export function CertificationsSection() {
               const img = (
                 <Image
                   src={item.url}
-                  alt={`${isEs ? "Certificación" : "Certification"} ${i + 1}`}
+                  alt={item.name}
                   width={100}
                   height={50}
                   className="h-10 sm:h-12 w-auto object-contain grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all duration-300"
                 />
               );
-              if (!item.link) return <div key={i}>{img}</div>;
+              if (!item.link) return <div key={i} title={item.name}>{img}</div>;
               const isExternal = item.link.startsWith("http");
               return isExternal ? (
-                <a key={i} href={item.link} target="_blank" rel="noopener noreferrer">
+                <a key={i} href={item.link} target="_blank" rel="noopener noreferrer" title={item.name}>
                   {img}
                 </a>
               ) : (
-                <Link key={i} href={item.link as any}>
+                <Link key={i} href={item.link as any} title={item.name}>
                   {img}
                 </Link>
               );
