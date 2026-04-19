@@ -56,7 +56,7 @@ export function CertificationsSection() {
           <div className="hidden md:block w-px h-12 bg-brand-teal/15" />
 
           {/* Lado derecho — logos */}
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 sm:gap-8 flex-1">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-5 flex-1">
             {items.map((item, i) => {
               const img = (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -64,18 +64,23 @@ export function CertificationsSection() {
                   src={item.url}
                   alt={item.name}
                   loading="lazy"
-                  className="h-10 sm:h-12 w-auto max-w-[140px] object-contain grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all duration-300"
+                  className="h-12 sm:h-14 w-auto max-w-[160px] object-contain opacity-90 group-hover:opacity-100 transition-all duration-300"
                 />
               );
-              if (!item.link) return <div key={i} title={item.name}>{img}</div>;
+              const wrap = (children: React.ReactNode) => (
+                <div className="group flex items-center justify-center h-20 px-5 rounded-xl bg-gray-100/60 hover:bg-gray-200/70 ring-1 ring-gray-200 hover:ring-gray-300 transition-all duration-300">
+                  {children}
+                </div>
+              );
+              if (!item.link) return <div key={i} title={item.name}>{wrap(img)}</div>;
               const isExternal = item.link.startsWith("http");
               return isExternal ? (
                 <a key={i} href={item.link} target="_blank" rel="noopener noreferrer" title={item.name}>
-                  {img}
+                  {wrap(img)}
                 </a>
               ) : (
                 <Link key={i} href={item.link as any} title={item.name}>
-                  {img}
+                  {wrap(img)}
                 </Link>
               );
             })}
