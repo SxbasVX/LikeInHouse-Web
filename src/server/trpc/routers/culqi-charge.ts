@@ -162,8 +162,37 @@ export const culqiChargeRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Pasarela de pago no configurada" });
       }
 
-      const expirationDate = Math.floor(Date.now() / 1000) + 24 * 60 * 60; // 24h
-      const orderNumber = `${reservation.referenceCode}-${Date.now()}`;
+      // Culqi exige: expiration_date entre now+10min y now+9d; tomamos +24h
+      const expirationDate = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
+      // order_number: único por merchant, alfanumérico + guiones. Max 50 chars.
+      const orderNumber = `${reservation.referenceCode}-${Date.now()}`.slice(0, 50);
+
+      // phone_number Culqi: sólo dígitos, 7-15 caracteres
+      const rawPhone = (reservation.client.phone || "").replace(/\D/g, "");
+      const phoneNumber = rawPhone.length >= 7 ? rawPhone.slice(-15) : "999999999";
+
+      // first/last name: Culqi suele exigir 2-50 caracteres alfabéticos
+      const firstName = (reservation.client.firstName || "Cliente").slice(0, 50);
+      const lastName = (reservation.client.lastName || "Web").slice(0, 50);
+
+      const payload = {
+        amount,
+        currency_code: "PEN",
+        description: `Reserva ${reservation.referenceCode} - Like In House`.slice(0, 80),
+        order_number: orderNumber,
+        client_details: {
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          phone_number: phoneNumber,
+        },
+        expiration_date: expirationDate,
+        confirm: false,
+        metadata: {
+          reservation_id: reservationId,
+          reference_code: reservation.referenceCode,
+        },
+      };
 
       const res = await fetch("https://api.culqi.com/v2/orders", {
         method: "POST",
@@ -171,31 +200,20 @@ export const culqiChargeRouter = router({
           Authorization: `Bearer ${secretKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          amount,
-          currency_code: "PEN",
-          description: `Reserva ${reservation.referenceCode} - Like In House`,
-          order_number: orderNumber,
-          client_details: {
-            first_name: reservation.client.firstName,
-            last_name: reservation.client.lastName,
-            email,
-            phone_number: reservation.client.phone || "999999999",
-          },
-          expiration_date: expirationDate,
-          confirm: false,
-          metadata: {
-            reservation_id: reservationId,
-            reference_code: reservation.referenceCode,
-          },
-        }),
+        body: JSON.stringify(payload),
       });
 
       const order = await res.json();
       if (!res.ok || order.object === "error") {
+        console.error("[Culqi Orders] Request failed:", {
+          status: res.status,
+          payload: { ...payload, client_details: { ...payload.client_details, email: "***" } },
+          response: order,
+        });
         const msg =
           order.user_message ||
           order.merchant_message ||
+          (order.errors && order.errors[0]?.message) ||
           "Error al crear la orden de pago";
         throw new TRPCError({ code: "BAD_REQUEST", message: msg });
       }
