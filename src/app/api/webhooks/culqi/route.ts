@@ -55,8 +55,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
         }
 
-        // Culqi dispara 'charge.creation.succeeded' cuando una tarjeta pasa
-        if (body.object !== "event" || body.type !== "charge.creation.succeeded") {
+        if (body.object !== "event") {
             return NextResponse.json({ received: true });
         }
 
@@ -66,6 +65,16 @@ export async function POST(req: NextRequest) {
         } catch {
             console.error("[Culqi Webhook] Invalid body.data JSON");
             return NextResponse.json({ error: "Invalid payload data" }, { status: 400 });
+        }
+
+        // order.status.changed → métodos alternativos (billetera, cuotealo, bancaMovil, agente)
+        if (body.type === "order.status.changed") {
+            return await handleOrderEvent(data);
+        }
+
+        // charge.creation.succeeded → tarjeta
+        if (body.type !== "charge.creation.succeeded") {
+            return NextResponse.json({ received: true });
         }
 
         const chargeId = data.id;
@@ -166,4 +175,93 @@ export async function POST(req: NextRequest) {
         });
         return NextResponse.json({ error: "Server Error" }, { status: 500 });
     }
+}
+
+/**
+ * Maneja eventos de Orden Culqi (métodos alternativos: billetera, cuotealo, bancaMovil, agente).
+ * Solo procesa si la orden está en estado "paid"; verifica server-to-server contra Culqi.
+ */
+async function handleOrderEvent(data: any): Promise<NextResponse> {
+    const orderId = data.id;
+    if (!orderId || !/^[a-zA-Z0-9_-]+$/.test(orderId)) {
+        return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });
+    }
+
+    const verifyRes = await fetch(`https://api.culqi.com/v2/orders/${orderId}`, {
+        headers: {
+            Authorization: `Bearer ${process.env.CULQI_SECRET_KEY}`,
+            "Content-Type": "application/json",
+        },
+    });
+    if (!verifyRes.ok) {
+        return NextResponse.json({ error: "Invalid Order ID" }, { status: 400 });
+    }
+
+    const order = await verifyRes.json();
+    if (order.object !== "order") {
+        return NextResponse.json({ error: "Invalid order object" }, { status: 400 });
+    }
+
+    // Solo procesar cuando la orden fue efectivamente pagada
+    if (order.state !== "paid") {
+        return NextResponse.json({ received: true, state: order.state });
+    }
+
+    const referenceCode = order.metadata?.reference_code;
+    if (!referenceCode) {
+        return NextResponse.json({ error: "Missing reference_code in order metadata" }, { status: 400 });
+    }
+
+    const verifiedAmount = order.amount / 100;
+
+    await db.$transaction(async (tx) => {
+        const existingPayment = await tx.payment.findFirst({
+            where: { culqiChargeId: orderId },
+        });
+        if (existingPayment) return;
+
+        const reservation = await tx.reservation.findUnique({
+            where: { referenceCode },
+            include: { tour: true, client: true },
+        });
+        if (!reservation || reservation.status === "PAID") return;
+
+        const expectedAmount = Number(reservation.totalAmount);
+        if (verifiedAmount < expectedAmount - 0.01) {
+            console.error(`[Culqi Order] Amount mismatch: verified=${verifiedAmount}, expected=${expectedAmount}, ref=${referenceCode}`);
+            return;
+        }
+
+        await tx.reservation.update({
+            where: { id: reservation.id },
+            data: { status: "PAID" },
+        });
+
+        await tx.payment.create({
+            data: {
+                reservationId: reservation.id,
+                amount: verifiedAmount,
+                currency: "PEN",
+                method: "CULQI_CARD",
+                status: "COMPLETED",
+                culqiChargeId: orderId,
+                gatewayResponse: order as any,
+                processedAt: new Date(),
+            },
+        });
+
+        sendWhatsAppAlert(
+            `🏦 *Pago Recibido vía Culqi (Orden)*\nRef: ${referenceCode}\nMonto: PEN ${verifiedAmount}\nOrden: ${orderId}`
+        ).catch(console.error);
+
+        const clientPhone = reservation.client?.phone;
+        if (clientPhone) {
+            sendWhatsAppToClient(
+                clientPhone,
+                `¡Hola ${reservation.client?.firstName}! Confirmamos la recepción exitosa de tu pago por PEN ${verifiedAmount}.\n\nReserva: ${referenceCode}\nTour: ${reservation.tour?.nameEs}\n\n¡Gracias por tu compra en Like In House!`
+            ).catch(console.error);
+        }
+    }, { isolationLevel: "Serializable" });
+
+    return NextResponse.json({ received: true });
 }

@@ -123,4 +123,83 @@ export const culqiChargeRouter = router({
 
       return { success: true, chargeId: charge.id as string };
     }),
+
+  /**
+   * Crea una Orden en Culqi (/v2/orders) necesaria para métodos alternativos:
+   * Billeteras móviles, Banca móvil, Agentes/Bodegas, Cuotéalo BCP.
+   * Tarjeta y Yape NO requieren orden.
+   *
+   * Solo soporta PEN: Culqi Orders API no admite USD.
+   * La orden expira en 24h. El webhook order.status.changed confirmará el pago.
+   */
+  createOrder: publicProcedure
+    .input(
+      z.object({
+        reservationId: z.string(),
+        amount: z.number().int().positive(), // centavos PEN
+        email: z.string().email(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { reservationId, amount, email } = input;
+
+      const reservation = await ctx.db.reservation.findUnique({
+        where: { id: reservationId },
+        select: {
+          id: true,
+          referenceCode: true,
+          status: true,
+          client: { select: { firstName: true, lastName: true, phone: true } },
+        },
+      });
+      if (!reservation) throw new TRPCError({ code: "NOT_FOUND", message: "Reserva no encontrada" });
+      if (reservation.status === "PAID" || reservation.status === "CONFIRMED") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Esta reserva ya fue pagada" });
+      }
+
+      const secretKey = process.env.CULQI_SECRET_KEY;
+      if (!secretKey) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Pasarela de pago no configurada" });
+      }
+
+      const expirationDate = Math.floor(Date.now() / 1000) + 24 * 60 * 60; // 24h
+      const orderNumber = `${reservation.referenceCode}-${Date.now()}`;
+
+      const res = await fetch("https://api.culqi.com/v2/orders", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount,
+          currency_code: "PEN",
+          description: `Reserva ${reservation.referenceCode} - Like In House`,
+          order_number: orderNumber,
+          client_details: {
+            first_name: reservation.client.firstName,
+            last_name: reservation.client.lastName,
+            email,
+            phone_number: reservation.client.phone || "999999999",
+          },
+          expiration_date: expirationDate,
+          confirm: false,
+          metadata: {
+            reservation_id: reservationId,
+            reference_code: reservation.referenceCode,
+          },
+        }),
+      });
+
+      const order = await res.json();
+      if (!res.ok || order.object === "error") {
+        const msg =
+          order.user_message ||
+          order.merchant_message ||
+          "Error al crear la orden de pago";
+        throw new TRPCError({ code: "BAD_REQUEST", message: msg });
+      }
+
+      return { orderId: order.id as string };
+    }),
 });

@@ -263,6 +263,8 @@ export function CheckoutForm({
         },
     });
 
+    const createOrderMut = trpc.culqiCharge.createOrder.useMutation();
+
     const createPaypalOrder = trpc.paypal.createOrder.useMutation();
     const capturePaypalOrder = trpc.paypal.captureOrder.useMutation({
         onSuccess: () => { setIsProcessing(false); setStep("success"); },
@@ -335,7 +337,7 @@ export function CheckoutForm({
     }, [culqiEnabled, culqiReady]);
 
     // ── Abrir Culqi Checkout Custom ──────────────────────────────────────────
-    function openCulqi() {
+    async function openCulqi() {
         if (!window.CulqiCheckout) {
             toast({ variant: "destructive", title: "Error", description: "Pasarela no cargada aún" });
             return;
@@ -343,12 +345,34 @@ export function CheckoutForm({
         amountRef.current = Math.round(grandTotal * 100);
         emailRef.current  = watch("email");
 
+        // Métodos alternativos (billetera, bancaMovil, agente, cuotealo) sólo
+        // funcionan en PEN y requieren crear una Orden Culqi previa.
+        let orderId: string | undefined;
+        if (currency === "PEN") {
+            setIsProcessing(true);
+            try {
+                const order = await createOrderMut.mutateAsync({
+                    reservationId: reservationId!,
+                    amount: amountRef.current,
+                    email: emailRef.current,
+                });
+                orderId = order.orderId;
+            } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : "No se pudo crear la orden";
+                toast({ variant: "destructive", title: "Error", description: msg });
+                setIsProcessing(false);
+                return;
+            }
+            setIsProcessing(false);
+        }
+
         const publicKey = process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY || "";
         const config: CulqiCheckoutConfig = {
             settings: {
                 title: "Like In House",
                 currency,
                 amount: amountRef.current,
+                ...(orderId ? { order: orderId } : {}),
             },
             client: {
                 email: emailRef.current,
@@ -359,11 +383,11 @@ export function CheckoutForm({
                 modal: true,
                 paymentMethods: {
                     tarjeta: true,
-                    yape: true,
-                    billetera: true,
-                    bancaMovil: true,
-                    agente: true,
-                    cuotealo: true,
+                    yape: currency === "PEN",
+                    billetera: !!orderId,
+                    bancaMovil: !!orderId,
+                    agente: !!orderId,
+                    cuotealo: !!orderId,
                 },
                 paymentMethodsSort: ["tarjeta", "yape", "billetera", "bancaMovil", "agente", "cuotealo"],
             },
@@ -386,6 +410,7 @@ export function CheckoutForm({
 
         instance.culqi = function () {
             if (instance.token) {
+                // Tarjeta: cargar vía createCharge server-side
                 setIsProcessing(true);
                 createCharge.mutate({
                     reservationId: reservationId!,
@@ -395,6 +420,18 @@ export function CheckoutForm({
                     email: emailRef.current,
                 });
                 instance.close();
+            } else if (instance.order) {
+                // Método alternativo (billetera / cuotealo / bancaMovil / agente):
+                // Culqi procesa el cobro async. Webhook order.status.changed
+                // marcará la reserva como PAID cuando se complete el pago.
+                toast({
+                    title: isEs ? "Orden generada" : "Order generated",
+                    description: isEs
+                        ? "Recibirás un correo con las instrucciones de pago. Tu reserva se confirmará al completar el pago."
+                        : "You'll receive an email with payment instructions. Your booking will be confirmed upon payment.",
+                });
+                instance.close();
+                setStep("success");
             } else if (instance.error) {
                 toast({
                     variant: "destructive",
