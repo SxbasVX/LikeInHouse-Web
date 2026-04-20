@@ -68,7 +68,8 @@ declare global {
     interface Window {
         Culqi?: {
             publicKey: string;
-            settings: (o: { title: string; currency: string; amount: number; order: string }) => void;
+            settings: (o: { title: string; currency: string; amount: number; description?: string; order?: string }) => void;
+            options?: (o: Record<string, unknown>) => void;
             open: () => void;
             token?: { id: string };
             error?: { user_message: string };
@@ -327,7 +328,27 @@ export function CheckoutForm({
         amountRef.current = Math.round(grandTotal * 100);
         emailRef.current  = watch("email");
         window.Culqi.publicKey = process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY || "";
-        window.Culqi.settings({ title: "Like In House", currency, amount: amountRef.current, order: referenceCode });
+        window.Culqi.settings({
+            title: "Like In House",
+            currency,
+            amount: amountRef.current,
+            description: `Reserva ${referenceCode}`,
+        });
+        if (typeof window.Culqi.options === "function") {
+            window.Culqi.options({
+                lang: isEs ? "es" : "en",
+                installments: false,
+                paymentMethods: {
+                    tarjeta: true,
+                    yape: currency === "PEN",
+                    bancaMovil: false,
+                    agente: false,
+                    billetera: false,
+                    cuotealo: false,
+                },
+                style: { logo: `${window.location.origin}/Logo.svg` },
+            });
+        }
         window.Culqi.open();
     }
 
