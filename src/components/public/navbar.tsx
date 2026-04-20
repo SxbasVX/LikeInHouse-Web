@@ -162,8 +162,8 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
             {airbnbUrl && (
-              <a href={airbnbUrl} target="_blank" rel="noopener noreferrer" className="h-10 lg:h-11 rounded-full bg-white/10 hover:bg-[#FF5A5F] text-white border border-white/20 hover:border-[#FF5A5F] px-4 text-[14px] font-semibold transition-all ml-1 inline-flex items-center gap-2">
-                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.7 17.4c-.3.6-.8 1-1.4 1.2-.2.1-.4.1-.6.1-.4 0-.7-.1-1-.3-.4-.2-.8-.6-1.3-1-.5-.5-1.1-1.2-1.7-2-.9-1.2-1.5-2.3-1.7-3.2-.3-1.1-.1-2 .4-2.6.4-.5 1-.7 1.6-.7.2 0 .3 0 .5.1.4.1.7.4 1 .9l.8 1.2c.2.3.3.5.4.8.1.3.1.5 0 .7-.1.3-.3.5-.5.8l-.2.2c-.1.1-.1.2-.1.3 0 .1.1.2.1.3.3.5.7 1 1.2 1.5.5.5 1 .8 1.5 1 .1.1.2.1.3.1s.2 0 .3-.1l.2-.2c.3-.3.5-.5.8-.6.2-.1.4-.1.7 0 .3.1.5.2.8.4l1.3.9c.4.3.7.6.8 1 .2.4.1.9-.1 1.3z"/></svg>
+              <a href={airbnbUrl} target="_blank" rel="noopener noreferrer" className="h-10 lg:h-11 rounded-full bg-white/10 hover:bg-[#FF385C] text-white border border-white/20 hover:border-[#FF385C] px-4 text-[14px] font-semibold transition-all ml-1 inline-flex items-center gap-2">
+                <svg viewBox="0 0 448 512" className="h-4 w-4 fill-current"><path d="M224 373.12c-25.24-31.67-40.08-59.43-45-83.18-22.55-88 112.61-88 90.06 0-5.45 24.25-20.29 52-45 83.18zm138.15 73.23c-42.06 18.31-83.67-10.88-119.3-50.47 103.9-130.07 46.11-200-18.85-200-54.92 0-85.16 46.51-73.28 100.5 6.93 29.19 25.23 62.39 54.43 99.5-32.53 36.05-60.55 52.69-85.15 54.92-50 7.43-89.11-41.06-71.3-91.09 15.1-39.16 111.72-231.18 115.87-241.56 15.75-30.07 25.56-57.4 59.38-57.4 32.34 0 43.4 25.94 60.37 59.87 36 70.62 89.35 177.48 114.84 239.09 13.17 33.07-1.37 71.29-37.01 86.64zm47-136.21c-66.29-144.29-100.75-219.55-115.54-250.24-5.31-12.5-10.31-24.31-15.31-37.5-5-13.5-15.77-41.58-41.16-46.3-10.51-1.66-21.28 1.62-30.17 8.04-2.35 1.55-4.15 3.75-4.59 6.47-1.77 10.24 4.14 16.07 7.52 27.36l-126.06 317.92c-4.76 12-27.66 71.22-27.66 71.22-3.86 7.06-6.23 14.69-7 22.5-1.11 18.36 5.27 36.38 17.73 49.88 13.5 13.86 32.5 20.36 51.67 17.91 28.18-3.25 62.5-22.21 96.79-58.21 35.9 40.78 74.1 59.87 111.84 55.8 20.09-1.97 38.77-11.33 53-26.55 13.5-15.5 19.5-37.5 17.5-60-.06-3.58-.5-7.14-1.31-10.61z"/></svg>
                 Airbnb
               </a>
             )}
@@ -240,8 +240,8 @@ export function Navbar() {
             </DropdownMenuContent>
           </DropdownMenu>
           {airbnbUrl && (
-            <a href={airbnbUrl} target="_blank" rel="noopener noreferrer" className="h-10 lg:h-11 rounded-full bg-gray-100 hover:bg-[#FF5A5F] text-gray-700 hover:text-white border border-gray-200 hover:border-[#FF5A5F] px-4 text-[14px] font-semibold transition-all ml-1 inline-flex items-center gap-2">
-              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.7 17.4c-.3.6-.8 1-1.4 1.2-.2.1-.4.1-.6.1-.4 0-.7-.1-1-.3-.4-.2-.8-.6-1.3-1-.5-.5-1.1-1.2-1.7-2-.9-1.2-1.5-2.3-1.7-3.2-.3-1.1-.1-2 .4-2.6.4-.5 1-.7 1.6-.7.2 0 .3 0 .5.1.4.1.7.4 1 .9l.8 1.2c.2.3.3.5.4.8.1.3.1.5 0 .7-.1.3-.3.5-.5.8l-.2.2c-.1.1-.1.2-.1.3 0 .1.1.2.1.3.3.5.7 1 1.2 1.5.5.5 1 .8 1.5 1 .1.1.2.1.3.1s.2 0 .3-.1l.2-.2c.3-.3.5-.5.8-.6.2-.1.4-.1.7 0 .3.1.5.2.8.4l1.3.9c.4.3.7.6.8 1 .2.4.1.9-.1 1.3z"/></svg>
+            <a href={airbnbUrl} target="_blank" rel="noopener noreferrer" className="h-10 lg:h-11 rounded-full bg-gray-100 hover:bg-[#FF385C] text-gray-700 hover:text-white border border-gray-200 hover:border-[#FF385C] px-4 text-[14px] font-semibold transition-all ml-1 inline-flex items-center gap-2">
+              <svg viewBox="0 0 448 512" className="h-4 w-4 fill-current"><path d="M224 373.12c-25.24-31.67-40.08-59.43-45-83.18-22.55-88 112.61-88 90.06 0-5.45 24.25-20.29 52-45 83.18zm138.15 73.23c-42.06 18.31-83.67-10.88-119.3-50.47 103.9-130.07 46.11-200-18.85-200-54.92 0-85.16 46.51-73.28 100.5 6.93 29.19 25.23 62.39 54.43 99.5-32.53 36.05-60.55 52.69-85.15 54.92-50 7.43-89.11-41.06-71.3-91.09 15.1-39.16 111.72-231.18 115.87-241.56 15.75-30.07 25.56-57.4 59.38-57.4 32.34 0 43.4 25.94 60.37 59.87 36 70.62 89.35 177.48 114.84 239.09 13.17 33.07-1.37 71.29-37.01 86.64zm47-136.21c-66.29-144.29-100.75-219.55-115.54-250.24-5.31-12.5-10.31-24.31-15.31-37.5-5-13.5-15.77-41.58-41.16-46.3-10.51-1.66-21.28 1.62-30.17 8.04-2.35 1.55-4.15 3.75-4.59 6.47-1.77 10.24 4.14 16.07 7.52 27.36l-126.06 317.92c-4.76 12-27.66 71.22-27.66 71.22-3.86 7.06-6.23 14.69-7 22.5-1.11 18.36 5.27 36.38 17.73 49.88 13.5 13.86 32.5 20.36 51.67 17.91 28.18-3.25 62.5-22.21 96.79-58.21 35.9 40.78 74.1 59.87 111.84 55.8 20.09-1.97 38.77-11.33 53-26.55 13.5-15.5 19.5-37.5 17.5-60-.06-3.58-.5-7.14-1.31-10.61z"/></svg>
               Airbnb
             </a>
           )}
@@ -323,8 +323,8 @@ function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMo
 
       {airbnbUrl && (
         <a href={airbnbUrl} target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)} className="flex justify-between items-center group mt-6">
-          <span className="text-2xl font-medium text-[#FF5A5F] group-hover:text-[#e04e52] transition-colors">Airbnb</span>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FF5A5F]/10 text-[#FF5A5F] group-hover:bg-[#FF5A5F] group-hover:text-white transition-colors">
+          <span className="text-2xl font-medium text-[#FF385C] group-hover:text-[#E31C5F] transition-colors">Airbnb</span>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FF385C]/10 text-[#FF385C] group-hover:bg-[#FF385C] group-hover:text-white transition-colors">
             <ArrowUpRight className="h-5 w-5" />
           </div>
         </a>

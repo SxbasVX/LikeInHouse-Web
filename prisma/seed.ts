@@ -1,7 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { LIKE_IN_HOUSE_FAQS } from "./faqs-data";
 
 const prisma = new PrismaClient();
+
 
 async function main() {
   // Production guard: prevent accidental data wipe
@@ -256,51 +258,10 @@ async function main() {
   // 3. FAQs
   // ============================================================
   await prisma.fAQ.createMany({
-    data: [
-      {
-        questionEs: "¿Cual es la mejor epoca para visitar Machu Picchu?",
-        questionEn: "What is the best time to visit Machu Picchu?",
-        answerEs: "La temporada seca (mayo a octubre) es ideal para visitar Machu Picchu, con cielos despejados y menos lluvia. Sin embargo, Machu Picchu es hermoso todo el año. La temporada de lluvias (noviembre a abril) tiene menos turistas y precios mas bajos.",
-        answerEn: "The dry season (May to October) is ideal for visiting Machu Picchu, with clear skies and less rain. However, Machu Picchu is beautiful year-round. The rainy season (November to April) has fewer tourists and lower prices.",
-        category: "Destinos",
-        sortOrder: 0,
-      },
-      {
-        questionEs: "¿Necesito vacunas para viajar a Peru?",
-        questionEn: "Do I need vaccines to travel to Peru?",
-        answerEs: "No se requieren vacunas obligatorias para ingresar a Peru. Sin embargo, se recomienda la vacuna contra la fiebre amarilla si planea visitar la selva amazonica. Consulte con su medico sobre vacunas contra hepatitis A/B y tetanos.",
-        answerEn: "No mandatory vaccines are required to enter Peru. However, yellow fever vaccine is recommended if you plan to visit the Amazon jungle. Consult your doctor about hepatitis A/B and tetanus vaccines.",
-        category: "Salud",
-        sortOrder: 1,
-      },
-      {
-        questionEs: "¿Como es el mal de altura y como prevenirlo?",
-        questionEn: "What is altitude sickness and how to prevent it?",
-        answerEs: "El mal de altura (soroche) puede afectar a visitantes en Cusco (3,400 m). Recomendamos: descansar el primer dia, beber mucho liquido, comer ligero, tomar mate de coca y evitar el alcohol. Si los sintomas persisten, tenemos oxigeno disponible.",
-        answerEn: "Altitude sickness (soroche) can affect visitors in Cusco (3,400m). We recommend: resting on the first day, drinking plenty of fluids, eating light, drinking coca tea and avoiding alcohol. If symptoms persist, we have oxygen available.",
-        category: "Salud",
-        sortOrder: 2,
-      },
-      {
-        questionEs: "¿Que formas de pago aceptan?",
-        questionEn: "What payment methods do you accept?",
-        answerEs: "Aceptamos tarjetas de credito/debito (Visa, Mastercard) a traves de Culqi, pagos con Yape, PayPal para pagos internacionales en dolares, transferencia bancaria y efectivo en nuestras oficinas. Puede pagar una sena del 30% para reservar y el saldo antes del viaje.",
-        answerEn: "We accept credit/debit cards (Visa, Mastercard) through Culqi, Yape payments, PayPal for international payments in dollars, bank transfer and cash at our offices. You can pay a 30% deposit to book and the balance before the trip.",
-        category: "Pagos",
-        sortOrder: 3,
-      },
-      {
-        questionEs: "¿Cual es la politica de cancelacion?",
-        questionEn: "What is the cancellation policy?",
-        answerEs: "Cancelacion gratuita hasta 15 dias antes de la fecha de salida (reembolso completo menos gastos bancarios). Entre 14 y 7 dias: reembolso del 50%. Menos de 7 dias: no hay reembolso. En caso de fuerza mayor, reprogramamos sin costo adicional.",
-        answerEn: "Free cancellation up to 15 days before departure date (full refund minus bank fees). Between 14 and 7 days: 50% refund. Less than 7 days: no refund. In case of force majeure, we reschedule at no additional cost.",
-        category: "Politicas",
-        sortOrder: 4,
-      },
-    ],
+    data: LIKE_IN_HOUSE_FAQS,
   });
 
-  console.log("  5 FAQs creadas");
+  console.log(`  ${LIKE_IN_HOUSE_FAQS.length} FAQs creadas`);
 
   // ============================================================
   // 4. TESTIMONIOS
