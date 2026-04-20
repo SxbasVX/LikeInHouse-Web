@@ -74,6 +74,7 @@ declare global {
             token?: { id: string };
             error?: { user_message: string };
         };
+        culqi?: unknown;
         culqiAction?: () => void;
     }
 }
@@ -328,6 +329,8 @@ export function CheckoutForm({
         amountRef.current = Math.round(grandTotal * 100);
         emailRef.current  = watch("email");
         window.Culqi.publicKey = process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY || "";
+        // Culqi v4 internamente referencia `window.culqi` (lowercase)
+        if (!window.culqi) window.culqi = window.Culqi;
         window.Culqi.settings({
             title: "Like In House",
             currency,
