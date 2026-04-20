@@ -92,6 +92,7 @@ interface CulqiCheckoutConfig {
 declare global {
     interface Window {
         CulqiCheckout?: new (publicKey: string, config: CulqiCheckoutConfig) => CulqiInstance;
+        Culqi3DS?: { publicKey: string };
     }
 }
 
@@ -542,12 +543,23 @@ export function CheckoutForm({
     return (
         <>
             {culqiEnabled && (
-                <Script
-                    src="https://js.culqi.com/checkout-js"
-                    strategy="afterInteractive"
-                    onReady={() => setCulqiReady(true)}
-                    onLoad={() => setCulqiReady(true)}
-                />
+                <>
+                    <Script
+                        src="https://3ds.culqi.com"
+                        strategy="afterInteractive"
+                        onLoad={() => {
+                            if (window.Culqi3DS) {
+                                window.Culqi3DS.publicKey = process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY || "";
+                            }
+                        }}
+                    />
+                    <Script
+                        src="https://js.culqi.com/checkout-js"
+                        strategy="afterInteractive"
+                        onReady={() => setCulqiReady(true)}
+                        onLoad={() => setCulqiReady(true)}
+                    />
+                </>
             )}
             <Script
                 src={`https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "sb"}&currency=USD&intent=capture`}
