@@ -297,6 +297,13 @@ export function CheckoutForm({
         }
     }, [culqiEnabled, paymentMethod, currency]);
 
+    // Culqi solo acepta PEN: al elegir tarjeta fuerza moneda a PEN
+    useEffect(() => {
+        if (paymentMethod === "card" && currency !== "PEN") {
+            setCurrency("PEN");
+        }
+    }, [paymentMethod, currency]);
+
     // ── Culqi callback ────────────────────────────────────────────────────────
     useEffect(() => {
         window.culqiAction = function () {
