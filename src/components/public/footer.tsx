@@ -64,14 +64,14 @@ export function Footer() {
 
   // Links legales desde settings (externos o internos)
   const legalSettingsLinks = [
-    { key: "libroReclamacionesUrl", label: isEs ? "Libro de Reclamaciones" : "Complaints Book", icon: BookOpen },
     { key: "codigoEsnnaUrl", label: isEs ? "Código ESNNA" : "ESNNA Code", icon: Shield },
     { key: "politicasCancelacionUrl", label: isEs ? "Políticas de Cancelación" : "Cancellation Policy", icon: FileText },
     { key: "proteccionDatosUrl", label: isEs ? "Protección de Datos" : "Data Protection", icon: ShieldCheck },
   ];
 
-  // Links estáticos T&C y Privacidad (siempre disponibles)
+  // Links estáticos siempre disponibles
   const staticLegalLinks = [
+    { href: "/libro-reclamaciones", label: isEs ? "Libro de Reclamaciones" : "Complaint Book", icon: BookOpen },
     { href: "/terminos", label: isEs ? "Términos y Condiciones" : "Terms & Conditions", icon: ScrollText },
     { href: "/privacidad", label: isEs ? "Política de Privacidad" : "Privacy Policy", icon: Lock },
   ];

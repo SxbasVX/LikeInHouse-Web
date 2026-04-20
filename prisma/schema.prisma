@@ -781,3 +781,70 @@ model GlobalDiscount {
 
   @@index([isActive])
 }
+
+// ============================================================
+// LIBRO DE RECLAMACIONES (D.S. 011-2011-PCM + D.S. 058-2021-PCM)
+// Conforme a INDECOPI (Peru): campos obligatorios del consumidor,
+// bien/servicio, reclamo/queja, pedido y respuesta del proveedor.
+// ============================================================
+
+enum ComplaintType {
+  RECLAMO  // Disconformidad con el servicio
+  QUEJA    // Malestar o descontento con la atencion
+}
+
+enum ComplaintItemType {
+  PRODUCTO
+  SERVICIO
+}
+
+enum ComplaintStatus {
+  PENDIENTE    // Recibido, sin respuesta
+  EN_PROCESO   // En revision
+  RESUELTO     // Respondido al consumidor
+  RECHAZADO    // No procede
+}
+
+model ComplaintBook {
+  id              String            @id @default(cuid())
+  code            String            @unique // LR-2026-00001
+
+  // Datos del consumidor
+  consumerName    String
+  consumerDocType String            // DNI, CE, PASAPORTE, RUC
+  consumerDocNum  String
+  consumerAddress String
+  consumerPhone   String?
+  consumerEmail   String
+  isMinor         Boolean           @default(false)
+  guardianName    String?
+  guardianDocNum  String?
+
+  // Datos del bien / servicio reclamado
+  itemType        ComplaintItemType
+  itemDescription String            @db.Text
+  amountClaimed   Decimal?          @db.Decimal(10, 2)
+  currency        String            @default("PEN") // PEN o USD
+
+  // Detalle
+  type            ComplaintType
+  detail          String            @db.Text
+  request         String            @db.Text // Pedido del consumidor
+
+  // Respuesta del proveedor (max 30 dias calendario)
+  status          ComplaintStatus   @default(PENDIENTE)
+  response        String?           @db.Text
+  respondedAt     DateTime?
+  respondedBy     String?           // userId
+
+  // Meta
+  ipAddress       String?
+  userAgent       String?           @db.Text
+  locale          String            @default("es") // es | en
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([status, createdAt])
+  @@index([code])
+  @@index([consumerEmail])
+}

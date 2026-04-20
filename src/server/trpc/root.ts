@@ -13,6 +13,7 @@ import { paypalRouter } from "./routers/paypal";
 import { paymentLinkRouter } from "./routers/paymentLink";
 import { documentRouter } from "./routers/document";
 import { culqiChargeRouter } from "./routers/culqi-charge";
+import { complaintRouter } from "./routers/complaint";
 
 export const appRouter = router({
   auth: authRouter,
@@ -29,6 +30,7 @@ export const appRouter = router({
   public: publicRouter,
   docs: documentRouter,
   culqiCharge: culqiChargeRouter,
+  complaint: complaintRouter,
 });
 
 export type AppRouter = typeof appRouter;
