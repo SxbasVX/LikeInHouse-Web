@@ -299,6 +299,23 @@ export function CheckoutForm({
         }
     }, [culqiEnabled, paymentMethod, currency]);
 
+    // Fallback: si el Script no dispara onLoad (cache, SPA navigation, etc.),
+    // detecta window.Culqi por polling durante los primeros 5s
+    useEffect(() => {
+        if (!culqiEnabled || culqiReady) return;
+        const interval = window.setInterval(() => {
+            if (window.Culqi) {
+                setCulqiReady(true);
+                window.clearInterval(interval);
+            }
+        }, 200);
+        const timeout = window.setTimeout(() => window.clearInterval(interval), 10000);
+        return () => {
+            window.clearInterval(interval);
+            window.clearTimeout(timeout);
+        };
+    }, [culqiEnabled, culqiReady]);
+
     // ── Culqi callback ────────────────────────────────────────────────────────
     useEffect(() => {
         window.culqiAction = function () {
@@ -492,7 +509,12 @@ export function CheckoutForm({
     return (
         <>
             {culqiEnabled && (
-                <Script src="https://checkout.culqi.com/js/v4" strategy="lazyOnload" onLoad={() => setCulqiReady(true)} />
+                <Script
+                    src="https://checkout.culqi.com/js/v4"
+                    strategy="afterInteractive"
+                    onReady={() => setCulqiReady(true)}
+                    onLoad={() => setCulqiReady(true)}
+                />
             )}
             <Script
                 src={`https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "sb"}&currency=USD&intent=capture`}
