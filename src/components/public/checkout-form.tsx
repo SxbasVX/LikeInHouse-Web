@@ -63,18 +63,35 @@ const checkoutSchema = z.object({
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 type CheckoutStep = "details" | "payment" | "success";
 
-// Culqi global
+// Culqi Checkout Custom (js.culqi.com/checkout-js)
+interface CulqiInstance {
+    open: () => void;
+    close: () => void;
+    token?: { id: string };
+    order?: unknown;
+    error?: { user_message: string };
+    culqi: () => void;
+}
+interface CulqiCheckoutConfig {
+    settings: { title: string; currency: string; amount: number; order?: string };
+    client?: { email?: string };
+    options?: {
+        lang?: string;
+        installments?: boolean;
+        modal?: boolean;
+        container?: string;
+        paymentMethods?: Record<string, boolean>;
+        paymentMethodsSort?: string[];
+    };
+    appearance?: {
+        theme?: string;
+        menuType?: "sidebar" | "sliderTop" | "select";
+        defaultStyle?: Record<string, string>;
+    };
+}
 declare global {
     interface Window {
-        Culqi?: {
-            publicKey: string;
-            settings: (o: { title: string; currency: string; amount: number; description?: string; order?: string }) => void;
-            options?: (o: Record<string, unknown>) => void;
-            open: () => void;
-            token?: { id: string };
-            error?: { user_message: string };
-        };
-        culqiAction?: () => void;
+        CulqiCheckout?: new (publicKey: string, config: CulqiCheckoutConfig) => CulqiInstance;
     }
 }
 
@@ -223,6 +240,7 @@ export function CheckoutForm({
     // ── Refs para Culqi ──────────────────────────────────────────────────────
     const emailRef  = useRef("");
     const amountRef = useRef(0);
+    const culqiInstanceRef = useRef<CulqiInstance | null>(null);
 
     // ── tRPC mutations ────────────────────────────────────────────────────────
     const createReservation = trpc.reservation.createGuestReservation.useMutation({
@@ -299,11 +317,11 @@ export function CheckoutForm({
     }, [culqiEnabled, paymentMethod, currency]);
 
     // Fallback: si el Script no dispara onLoad (cache, SPA navigation, etc.),
-    // detecta window.Culqi por polling durante los primeros 5s
+    // detecta window.CulqiCheckout por polling durante los primeros 10s
     useEffect(() => {
         if (!culqiEnabled || culqiReady) return;
         const interval = window.setInterval(() => {
-            if (window.Culqi) {
+            if (window.CulqiCheckout) {
                 setCulqiReady(true);
                 window.clearInterval(interval);
             }
@@ -315,46 +333,29 @@ export function CheckoutForm({
         };
     }, [culqiEnabled, culqiReady]);
 
-    // ── Culqi callback ────────────────────────────────────────────────────────
-    useEffect(() => {
-        window.culqiAction = function () {
-            const c = window.Culqi;
-            if (!c) return;
-            if (c.token) {
-                setIsProcessing(true);
-                createCharge.mutate({
-                    reservationId: reservationId!,
-                    token: c.token.id,
-                    currency,
-                    amount: amountRef.current,
-                    email: emailRef.current,
-                });
-            } else if (c.error) {
-                toast({ variant: "destructive", title: isEs ? "Error de pago" : "Payment error", description: c.error.user_message });
-            }
-        };
-        return () => { window.culqiAction = undefined; };
-    }, [reservationId, currency, createCharge, isEs, toast]);
-
-    // ── Abrir Culqi ──────────────────────────────────────────────────────────
+    // ── Abrir Culqi Checkout Custom ──────────────────────────────────────────
     function openCulqi() {
-        if (!window.Culqi) {
+        if (!window.CulqiCheckout) {
             toast({ variant: "destructive", title: "Error", description: "Pasarela no cargada aún" });
             return;
         }
         amountRef.current = Math.round(grandTotal * 100);
         emailRef.current  = watch("email");
-        window.Culqi.publicKey = process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY || "";
-        window.Culqi.settings({
-            title: "Like In House",
-            currency,
-            amount: amountRef.current,
-            description: `Reserva ${referenceCode}`,
-        });
-        if (typeof window.Culqi.options === "function") {
-            window.Culqi.options({
+
+        const publicKey = process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY || "";
+        const config: CulqiCheckoutConfig = {
+            settings: {
+                title: "Like In House",
+                currency,
+                amount: amountRef.current,
+            },
+            client: {
+                email: emailRef.current,
+            },
+            options: {
                 lang: isEs ? "es" : "en",
                 installments: false,
+                modal: true,
                 paymentMethods: {
                     tarjeta: true,
                     yape: currency === "PEN",
@@ -363,10 +364,45 @@ export function CheckoutForm({
                     billetera: false,
                     cuotealo: false,
                 },
-                style: { logo: `${window.location.origin}/Logo.svg` },
-            });
-        }
-        window.Culqi.open();
+            },
+            appearance: {
+                theme: "default",
+                menuType: "sidebar",
+                defaultStyle: {
+                    bannerColor: "#e8411d",
+                    buttonBackground: "#e8411d",
+                    menuColor: "#e8411d",
+                    linksColor: "#e8411d",
+                    buttonTextColor: "#ffffff",
+                    priceColor: "#e8411d",
+                },
+            },
+        };
+
+        const instance = new window.CulqiCheckout(publicKey, config);
+        culqiInstanceRef.current = instance;
+
+        instance.culqi = function () {
+            if (instance.token) {
+                setIsProcessing(true);
+                createCharge.mutate({
+                    reservationId: reservationId!,
+                    token: instance.token.id,
+                    currency,
+                    amount: amountRef.current,
+                    email: emailRef.current,
+                });
+                instance.close();
+            } else if (instance.error) {
+                toast({
+                    variant: "destructive",
+                    title: isEs ? "Error de pago" : "Payment error",
+                    description: instance.error.user_message,
+                });
+            }
+        };
+
+        instance.open();
     }
 
     // ── Submit paso 1 ────────────────────────────────────────────────────────
@@ -507,7 +543,7 @@ export function CheckoutForm({
         <>
             {culqiEnabled && (
                 <Script
-                    src="https://checkout.culqi.com/js/v4"
+                    src="https://js.culqi.com/checkout-js"
                     strategy="afterInteractive"
                     onReady={() => setCulqiReady(true)}
                     onLoad={() => setCulqiReady(true)}
