@@ -355,16 +355,17 @@ export function CheckoutForm({
             },
             options: {
                 lang: isEs ? "es" : "en",
-                installments: false,
+                installments: true,
                 modal: true,
                 paymentMethods: {
                     tarjeta: true,
-                    yape: currency === "PEN",
-                    bancaMovil: false,
-                    agente: false,
-                    billetera: false,
-                    cuotealo: false,
+                    yape: true,
+                    billetera: true,
+                    bancaMovil: true,
+                    agente: true,
+                    cuotealo: true,
                 },
+                paymentMethodsSort: ["tarjeta", "yape", "billetera", "bancaMovil", "agente", "cuotealo"],
             },
             appearance: {
                 theme: "default",
