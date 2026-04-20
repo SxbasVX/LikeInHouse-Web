@@ -134,7 +134,14 @@ export function CheckoutForm({
     const [culqiReady, setCulqiReady] = useState(false);
     const [paypalReady, setPaypalReady] = useState(false);
     const [paypalRendered, setPaypalRendered] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal">("card");
+    // ── Settings públicos (pasarelas activas) ────────────────────────────────
+    const { data: publicSettings } = trpc.public.settings.useQuery(undefined, { staleTime: 60 * 1000 });
+    const culqiEnabled = (() => {
+        const v = (publicSettings as Record<string, unknown> | undefined)?.culqiEnabled;
+        return v === "true" || v === true || v === "1" || v === 1;
+    })();
+
+    const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal">(culqiEnabled ? "card" : "paypal");
     const [isProcessing, setIsProcessing] = useState(false);
     const paypalContainerRef = useRef<HTMLDivElement>(null);
 
@@ -281,6 +288,14 @@ export function CheckoutForm({
     useEffect(() => {
         if (paymentMethod !== "paypal") setPaypalRendered(false);
     }, [paymentMethod]);
+
+    // Si Culqi esta desactivado, forza PayPal (admin podria haberlo apagado)
+    useEffect(() => {
+        if (!culqiEnabled && paymentMethod === "card") {
+            setPaymentMethod("paypal");
+            if (currency !== "USD") setCurrency("USD");
+        }
+    }, [culqiEnabled, paymentMethod, currency]);
 
     // ── Culqi callback ────────────────────────────────────────────────────────
     useEffect(() => {
@@ -452,7 +467,9 @@ export function CheckoutForm({
     // ── Layout principal ──────────────────────────────────────────────────────
     return (
         <>
-            <Script src="https://checkout.culqi.com/js/v4" strategy="lazyOnload" onLoad={() => setCulqiReady(true)} />
+            {culqiEnabled && (
+                <Script src="https://checkout.culqi.com/js/v4" strategy="lazyOnload" onLoad={() => setCulqiReady(true)} />
+            )}
             <Script
                 src={`https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "sb"}&currency=USD&intent=capture`}
                 strategy="lazyOnload"
@@ -742,19 +759,21 @@ export function CheckoutForm({
                                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                                             {isEs ? "Método de pago" : "Payment method"}
                                         </p>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setPaymentMethod("card")}
-                                                className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 text-sm font-medium transition-all ${
-                                                    paymentMethod === "card"
-                                                        ? "border-brand-orange bg-brand-orange/5 text-brand-orange"
-                                                        : "border-border hover:border-brand-orange/40"
-                                                }`}
-                                            >
-                                                <CreditCard className="h-4 w-4" />
-                                                {isEs ? "Tarjeta / Yape" : "Card / Yape"}
-                                            </button>
+                                        <div className={culqiEnabled ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
+                                            {culqiEnabled && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPaymentMethod("card")}
+                                                    className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 text-sm font-medium transition-all ${
+                                                        paymentMethod === "card"
+                                                            ? "border-brand-orange bg-brand-orange/5 text-brand-orange"
+                                                            : "border-border hover:border-brand-orange/40"
+                                                    }`}
+                                                >
+                                                    <CreditCard className="h-4 w-4" />
+                                                    {isEs ? "Tarjeta / Yape" : "Card / Yape"}
+                                                </button>
+                                            )}
                                             <button
                                                 type="button"
                                                 onClick={() => { setPaymentMethod("paypal"); if (currency !== "USD") setCurrency("USD"); }}

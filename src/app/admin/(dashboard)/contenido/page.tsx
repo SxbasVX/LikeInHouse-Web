@@ -58,6 +58,8 @@ import { Pencil, Save, Plus, ChevronLeft, ChevronRight, XCircle, CheckCircle, Tr
 import { ImageUpload } from "@/components/ui/image-upload";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import { Switch } from "@/components/ui/switch";
+import { AlertCircle, CreditCard } from "lucide-react";
 
 const TiptapEditor = dynamic(() => import("@/components/ui/tiptap-editor").then(m => ({ default: m.TiptapEditor })), { ssr: false });
 
@@ -1335,6 +1337,13 @@ function SettingsSection() {
         </CardContent>
       </Card>
 
+      {/* Pasarelas de Pago */}
+      <PaymentGatewaysSettings
+        getSettingValue={getSettingValue}
+        onSave={handleQuickSave}
+        isPending={upsertSetting.isPending}
+      />
+
       {/* Certificaciones / Avales */}
       <CertificationsSettings
         getSettingValue={getSettingValue}
@@ -1451,6 +1460,71 @@ function SettingsSection() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// Pasarelas de Pago — toggle para activar Culqi (requiere env vars)
+function PaymentGatewaysSettings({
+  getSettingValue, onSave, isPending,
+}: {
+  getSettingValue: (key: string) => string;
+  onSave: (key: string, value: string) => void;
+  isPending: boolean;
+}) {
+  const raw = getSettingValue("culqiEnabled");
+  const enabled = raw === "true" || raw === "1";
+
+  const handleToggle = (checked: boolean) => {
+    onSave("culqiEnabled", checked ? "true" : "false");
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Pasarelas de Pago</CardTitle>
+        <CardDescription>Activa o desactiva los métodos de pago disponibles en el checkout</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+          <div className="flex items-start gap-3 flex-1">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-orange/10 shrink-0">
+              <CreditCard className="h-5 w-5 text-brand-orange" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <p className="font-semibold">Culqi (Tarjeta · Yape)</p>
+                {enabled ? (
+                  <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-500">Activo</Badge>
+                ) : (
+                  <Badge variant="secondary">Desactivado</Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Acepta pagos en soles (PEN) con tarjetas Visa, Mastercard, Amex, Diners y Yape.
+              </p>
+              {!enabled && (
+                <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 p-2 mt-2">
+                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-900">
+                    Antes de activar: configura <code className="px-1 rounded bg-amber-100 font-mono text-[11px]">CULQI_SECRET_KEY</code>,{" "}
+                    <code className="px-1 rounded bg-amber-100 font-mono text-[11px]">NEXT_PUBLIC_CULQI_PUBLIC_KEY</code> y{" "}
+                    <code className="px-1 rounded bg-amber-100 font-mono text-[11px]">CULQI_WEBHOOK_SECRET</code> en las variables de entorno (Vercel).
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          <Switch
+            checked={enabled}
+            onCheckedChange={handleToggle}
+            disabled={isPending}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          PayPal siempre está activo. Si Culqi está desactivado, los clientes solo verán PayPal como opción de pago.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
