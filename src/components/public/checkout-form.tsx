@@ -346,7 +346,9 @@ export function CheckoutForm({
         emailRef.current  = watch("email");
 
         // Métodos alternativos (billetera, bancaMovil, agente, cuotealo) sólo
-        // funcionan en PEN y requieren crear una Orden Culqi previa.
+        // funcionan en PEN y requieren crear una Orden Culqi previa. Si la
+        // creación falla (cuenta test/merchant sin Orders API activo),
+        // degradamos a tarjeta+Yape sin bloquear el flujo.
         let orderId: string | undefined;
         if (currency === "PEN") {
             setIsProcessing(true);
@@ -358,10 +360,7 @@ export function CheckoutForm({
                 });
                 orderId = order.orderId;
             } catch (e: unknown) {
-                const msg = e instanceof Error ? e.message : "No se pudo crear la orden";
-                toast({ variant: "destructive", title: "Error", description: msg });
-                setIsProcessing(false);
-                return;
+                console.warn("[Culqi] createOrder falló, continuando solo con tarjeta+Yape:", e);
             }
             setIsProcessing(false);
         }
