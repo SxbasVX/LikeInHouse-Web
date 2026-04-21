@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileUpload } from "@/components/ui/file-upload";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, ExternalLink } from "lucide-react";
 import Link from "next/link";
@@ -169,14 +170,16 @@ export function DocumentForm({ documentId, initialData }: DocumentFormProps) {
             <CardContent className="space-y-4">
               {type === "PDF" ? (
                 <div className="space-y-1.5">
-                  <Label>URL del PDF (Cloudinary) *</Label>
-                  <Input
-                    {...register("pdfUrl")}
-                    placeholder="https://res.cloudinary.com/tu-cuenta/raw/upload/..."
-                    type="url"
+                  <Label>Archivo PDF *</Label>
+                  <FileUpload
+                    value={watch("pdfUrl") || ""}
+                    onChange={(url) => setValue("pdfUrl", url, { shouldValidate: true })}
+                    onRemove={() => setValue("pdfUrl", null, { shouldValidate: true })}
+                    disabled={isPending}
+                    accept={["pdf"]}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Sube el PDF a Cloudinary y pega aquí la URL. Asegúrate de usar el tipo de recurso <code>raw</code>.
+                    Sube el PDF directamente a Cloudinary. Se guardará con tipo <code>raw</code> automáticamente.
                   </p>
                   {errors.pdfUrl && <p className="text-sm text-destructive">{errors.pdfUrl.message}</p>}
                 </div>
