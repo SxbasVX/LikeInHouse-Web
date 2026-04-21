@@ -1,7 +1,7 @@
 "use client";
 
 import { Link } from "@/i18n/routing";
-import { ArrowLeft, FileText, Globe, Download } from "lucide-react";
+import { ArrowLeft, FileText, Globe } from "lucide-react";
 
 interface DocViewerProps {
   doc: {
@@ -44,17 +44,6 @@ export function DocViewer({ doc, locale }: DocViewerProps) {
               <h1 className="font-semibold text-gray-900 truncate">{title}</h1>
             </div>
           </div>
-          {doc.type === "PDF" && doc.pdfUrl && (
-            <a
-              href={`/api/docs/${doc.slug}/pdf?download=1`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 flex items-center gap-1.5 text-sm font-medium text-brand-orange hover:text-brand-darkRed transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              {isEs ? "Descargar" : "Download"}
-            </a>
-          )}
         </div>
       </div>
 
