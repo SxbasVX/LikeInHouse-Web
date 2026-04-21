@@ -46,8 +46,7 @@ export function DocViewer({ doc, locale }: DocViewerProps) {
           </div>
           {doc.type === "PDF" && doc.pdfUrl && (
             <a
-              href={doc.pdfUrl}
-              download
+              href={`/api/docs/${doc.slug}/pdf?download=1`}
               target="_blank"
               rel="noopener noreferrer"
               className="shrink-0 flex items-center gap-1.5 text-sm font-medium text-brand-orange hover:text-brand-darkRed transition-colors"
@@ -65,7 +64,7 @@ export function DocViewer({ doc, locale }: DocViewerProps) {
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
             <div className="rounded-xl overflow-hidden shadow-lg bg-white" style={{ height: "calc(100vh - 160px)" }}>
               <iframe
-                src={`${doc.pdfUrl}#toolbar=1&navpanes=0&scrollbar=1`}
+                src={`/api/docs/${doc.slug}/pdf#toolbar=1&navpanes=0&scrollbar=1`}
                 className="w-full h-full border-0"
                 title={title}
               />
