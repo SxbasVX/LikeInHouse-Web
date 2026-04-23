@@ -59,7 +59,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Switch } from "@/components/ui/switch";
-import { AlertCircle, CreditCard } from "lucide-react";
+import { AlertCircle, CreditCard, Bell } from "lucide-react";
 
 const TiptapEditor = dynamic(() => import("@/components/ui/tiptap-editor").then(m => ({ default: m.TiptapEditor })), { ssr: false });
 
@@ -1344,6 +1344,13 @@ function SettingsSection() {
         isPending={upsertSetting.isPending}
       />
 
+      {/* Notificaciones WhatsApp a Dueños */}
+      <OwnerNotificationsSettings
+        getSettingValue={getSettingValue}
+        onSave={handleQuickSave}
+        isPending={upsertSetting.isPending}
+      />
+
       {/* Certificaciones / Avales */}
       <CertificationsSettings
         getSettingValue={getSettingValue}
@@ -1523,6 +1530,89 @@ function PaymentGatewaysSettings({
         <p className="text-xs text-muted-foreground">
           PayPal siempre está activo. Si Culqi está desactivado, los clientes solo verán PayPal como opción de pago.
         </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Notificaciones WhatsApp a Dueños — lista editable de números que reciben todas las alertas
+function OwnerNotificationsSettings({
+  getSettingValue, onSave, isPending,
+}: {
+  getSettingValue: (key: string) => string;
+  onSave: (key: string, value: string) => void;
+  isPending: boolean;
+}) {
+  const SETTING_KEY = "owner.whatsapp_phones";
+  const raw = getSettingValue(SETTING_KEY);
+
+  // Parsear el valor guardado: acepta JSON array o CSV
+  const parseStored = (v: string): string[] => {
+    if (!v) return [];
+    try {
+      const p = JSON.parse(v);
+      if (Array.isArray(p)) return p.map(String);
+    } catch { /* no es JSON */ }
+    return v.split(/[,\s\n]+/).filter(Boolean);
+  };
+
+  const [draft, setDraft] = useState<string>(() => parseStored(raw).join("\n"));
+  const [lastSavedRaw, setLastSavedRaw] = useState<string>(raw);
+
+  // Si el valor remoto cambia (ej: tras refetch), sincronizar draft una sola vez
+  if (raw !== lastSavedRaw && draft === parseStored(lastSavedRaw).join("\n")) {
+    setDraft(parseStored(raw).join("\n"));
+    setLastSavedRaw(raw);
+  }
+
+  const parsed = draft
+    .split(/[,\s\n]+/)
+    .map((s) => s.replace(/\D/g, ""))
+    .filter(Boolean);
+  const valid = parsed.filter((p) => p.length >= 8);
+  const invalid = parsed.filter((p) => p.length < 8);
+
+  const handleSave = () => {
+    // Guardar como CSV (el server acepta ambos formatos)
+    onSave(SETTING_KEY, valid.join(","));
+    setLastSavedRaw(valid.join(","));
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Bell className="h-5 w-5 text-brand-orange" />
+          Notificaciones WhatsApp (Dueños)
+        </CardTitle>
+        <CardDescription>
+          Números que reciben todas las alertas: nuevas reservas, pagos confirmados y el resumen diario de 8:00 am con las reservas próximas.
+          Un número por línea, formato internacional sin <code>+</code> (ej: <code>51987654321</code>).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder={"51987654321\n51912345678"}
+          rows={4}
+          className="font-mono text-sm"
+        />
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground">
+            {valid.length > 0 ? (
+              <span className="text-emerald-600">✓ {valid.length} número{valid.length > 1 ? "s" : ""} válido{valid.length > 1 ? "s" : ""}</span>
+            ) : (
+              <span className="text-amber-600">Sin números: se usará el número de emergencia del .env</span>
+            )}
+            {invalid.length > 0 && (
+              <span className="text-destructive ml-2">· {invalid.length} inválido{invalid.length > 1 ? "s" : ""} (mínimo 8 dígitos)</span>
+            )}
+          </div>
+          <Button onClick={handleSave} disabled={isPending} size="sm">
+            <Save className="mr-2 h-4 w-4" /> Guardar
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
