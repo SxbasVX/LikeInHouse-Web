@@ -186,10 +186,14 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
                             data={{
                                 referenceCode,
                                 serviceName: isEs ? link.titleEs : (link.titleEn || link.titleEs),
+                                serviceDescription: isEs ? link.descriptionEs : (link.descriptionEn || link.descriptionEs),
+                                serviceIncludes: isEs
+                                    ? (link.includesEs || [])
+                                    : (link.includesEn?.length ? link.includesEn : (link.includesEs || [])),
                                 clientName: link.clientName,
                                 clientEmail: link.clientEmail,
                                 amountPaid: Number(amountToPay) + Number(link.amountPaid),
-                                totalAmount: link.totalAmount,
+                                totalAmount: Number(link.totalAmount),
                                 currency: link.currency,
                                 dateStr: link.departureDate ? format(new Date(link.departureDate), "dd MMM yyyy", { locale: isEs ? es : undefined }) : "",
                                 adults: link.adults,

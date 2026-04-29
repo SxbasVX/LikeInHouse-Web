@@ -347,16 +347,18 @@ export default function CotizacionesPage() {
                                 data={{
                                   referenceCode: quotation.referenceCode,
                                   serviceName: "Cotización de Viaje",
+                                  serviceDescription: (quotation as any).notes || null,
                                   clientName: `${quotation.client.firstName} ${quotation.client.lastName}`,
                                   clientEmail: quotation.client.email,
+                                  clientPhone: (quotation.client as any).phone || null,
                                   amountPaid: 0,
                                   totalAmount: Number(quotation.totalAmount),
                                   currency: quotation.currency,
-                                  dateStr: quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString("es-PE") : "Por definir",
-                                  adults: 1,
+                                  dateStr: quotation.validUntil ? `Válida hasta ${new Date(quotation.validUntil).toLocaleDateString("es-PE")}` : "Por definir",
+                                  adults: 0,
                                   children: 0,
                                   isEs: true,
-                                  type: "RESERVATION"
+                                  type: "PAYMENT_LINK"
                                 }}
                               />
                             </div>

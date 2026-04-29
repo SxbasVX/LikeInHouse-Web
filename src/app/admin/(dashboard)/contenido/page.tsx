@@ -1216,8 +1216,11 @@ function ContactMessagesSection() {
 // Predefined settings with friendly labels
 const PREDEFINED_SETTINGS = [
   { key: "phone", label: "Teléfono", placeholder: "+51 84 123 456" },
-  { key: "contactEmail", label: "Email de contacto", placeholder: "info@likeinhouse.com" },
-  { key: "address", label: "Dirección", placeholder: "Av. El Sol 456, Cusco, Perú" },
+  { key: "contactEmail", label: "Email de contacto", placeholder: "info@likeinhouseperu.com" },
+  { key: "address", label: "Dirección", placeholder: "Bellavista B-9-A, Cusco, Perú" },
+  { key: "companyLegalName", label: "Razón Social (legal)", placeholder: "Like In House Peru S.A.C." },
+  { key: "companyRuc", label: "RUC", placeholder: "20612345678" },
+  { key: "companyWeb", label: "Web (sin https://)", placeholder: "likeinhouseperu.com" },
   { key: "airbnbUrl", label: "Link de Airbnb", placeholder: "https://www.airbnb.com/rooms/..." },
   { key: "facebookUrl", label: "Facebook", placeholder: "https://facebook.com/..." },
   { key: "instagramUrl", label: "Instagram", placeholder: "https://instagram.com/..." },

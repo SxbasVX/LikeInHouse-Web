@@ -123,8 +123,26 @@ export const reservationRouter = router({
           take: limit,
           orderBy: { createdAt: "desc" },
           include: {
-            client: { select: { firstName: true, lastName: true, email: true } },
-            tour: { select: { nameEs: true, slug: true, shortDescEs: true } },
+            client: { select: { firstName: true, lastName: true, email: true, phone: true } },
+            tour: {
+              select: {
+                nameEs: true,
+                nameEn: true,
+                slug: true,
+                shortDescEs: true,
+                shortDescEn: true,
+                destination: true,
+                durationDays: true,
+                durationNights: true,
+                durationHours: true,
+                images: { where: { isPrimary: true }, take: 1, select: { url: true } },
+                includes: {
+                  where: { type: "INCLUDE" },
+                  orderBy: { sortOrder: "asc" },
+                  select: { textEs: true, textEn: true },
+                },
+              },
+            },
             departure: { select: { departureDate: true } },
             assignedUser: { select: { name: true } },
             _count: { select: { payments: true } },

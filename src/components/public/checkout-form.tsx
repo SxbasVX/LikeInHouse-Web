@@ -42,6 +42,12 @@ interface TourData {
     id: string;
     nameEs: string;
     nameEn: string;
+    shortDescEs?: string | null;
+    shortDescEn?: string | null;
+    destination?: string | null;
+    durationDays?: number | null;
+    durationNights?: number | null;
+    durationHours?: number | null;
     slug: string;
     bookingMode: "CALENDAR" | "DEPARTURES" | "BOTH";
     pricing: {
@@ -51,6 +57,7 @@ interface TourData {
     } | null;
     departures: { id: string; departureDate: string; maxCapacity: number; bookedCount: number }[];
     image: string;
+    includes?: { textEs: string; textEn: string }[];
 }
 
 const checkoutSchema = z.object({
@@ -548,8 +555,19 @@ export function CheckoutForm({
                         data={{
                             referenceCode,
                             serviceName:  isEs ? tour.nameEs : tour.nameEn,
+                            serviceDescription: isEs ? tour.shortDescEs : tour.shortDescEn,
+                            serviceImageUrl: tour.image || null,
+                            serviceDestination: tour.destination || null,
+                            serviceDurationLabel:
+                                tour.durationDays && tour.durationDays > 0
+                                    ? `${tour.durationDays}D / ${tour.durationNights ?? Math.max(0, tour.durationDays - 1)}N`
+                                    : tour.durationHours && tour.durationHours > 0
+                                        ? `${tour.durationHours}h`
+                                        : null,
+                            serviceIncludes: (tour.includes || []).map((i) => isEs ? i.textEs : i.textEn),
                             clientName:   `${watch("firstName")} ${watch("lastName")}`,
                             clientEmail:  watch("email"),
+                            clientPhone:  watch("phone") || null,
                             amountPaid:   grandTotal,
                             totalAmount:  grandTotal,
                             currency,

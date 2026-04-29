@@ -4,12 +4,21 @@ import { useTranslations, useLocale } from "next-intl";
 import { Phone, Mail, Clock, ArrowUpRight, MessageCircle } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 import { waUrl } from "@/lib/whatsapp";
+import { trpc } from "@/lib/trpc";
 
 export function ContactContent() {
   const t = useTranslations("contact");
   const tc = useTranslations("common");
   const locale = useLocale();
   const isEs = locale === "es";
+
+  const { data: settings } = trpc.public.settings.useQuery(undefined, { staleTime: 10 * 60 * 1000 });
+  const getSetting = (key: string, fallback: string = "") => {
+    if (!settings) return fallback;
+    return (settings as Record<string, string>)[key] || fallback;
+  };
+  const phone = getSetting("phone", "+51 913 406 888");
+  const email = getSetting("contactEmail", "info@likeinhouseperu.com");
 
   const heroAnim = useScrollAnimation({ threshold: 0.1 });
   const cardsAnim = useScrollAnimation({ threshold: 0.1 });
@@ -93,7 +102,7 @@ export function ContactContent() {
                   <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
                     {tc("phone")}
                   </p>
-                  <p className="text-base font-semibold text-gray-800">+51 984 123 456</p>
+                  <p className="text-base font-semibold text-gray-800">{phone}</p>
                   <p className="text-xs text-gray-400 mt-1">
                     {isEs ? "Llamadas y WhatsApp" : "Calls & WhatsApp"}
                   </p>
@@ -109,8 +118,8 @@ export function ContactContent() {
                   <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
                     {tc("email")}
                   </p>
-                  <a href="mailto:info@likeinhouse.com" className="text-base font-semibold text-gray-800 hover:text-brand-teal transition-colors">
-                    info@likeinhouse.com
+                  <a href={`mailto:${email}`} className="text-base font-semibold text-gray-800 hover:text-brand-teal transition-colors break-all">
+                    {email}
                   </a>
                   <p className="text-xs text-gray-400 mt-1">
                     {isEs ? "Cotizaciones y consultas" : "Quotes & inquiries"}

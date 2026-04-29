@@ -4,52 +4,54 @@ import { Document, Page, Text, View, StyleSheet, Image as PdfImage } from "@reac
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
-// ─── Paleta de marca ─────────────────────────────────────────────────────────
+// ─── Paleta de marca (alineada con el sitio) ─────────────────────────────────
 const c = {
   orange:      "#e8411d",
+  orangeSoft:  "#fdece6",
   darkRed:     "#1C0D0C",
   teal:        "#2a6f6f",
   tealLight:   "#f0f7f7",
+  tealSoft:    "#e0eded",
   cream:       "#f5efe7",
   creamLight:  "#faf7f2",
   white:       "#ffffff",
   text:        "#1a1a1a",
+  textSoft:    "#3a3a3a",
   muted:       "#6b7280",
+  mutedSoft:   "#9ca3af",
   border:      "#e5ddd3",
   borderLight: "#f0ebe4",
+  success:     "#10b981",
+  warning:     "#d97706",
 };
 
 const S = StyleSheet.create({
   page: {
     backgroundColor: c.white,
     fontFamily: "Helvetica",
-    position: "relative",
+    paddingBottom: 90, // espacio reservado para footer
   },
 
-  // ── Barra superior ──────────────────────────────────────────────────────────
+  // ── Barra superior naranja ──────────────────────────────────────────────────
   topBar: {
-    height: 8,
+    height: 6,
     backgroundColor: c.orange,
   },
 
-  // ── Header ──────────────────────────────────────────────────────────────────
+  // ── Header (logo + badge comprobante) ───────────────────────────────────────
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 44,
-    paddingTop: 28,
-    paddingBottom: 22,
+    paddingHorizontal: 40,
+    paddingTop: 26,
+    paddingBottom: 18,
   },
-
-  // Logo imagen
   logoImg: {
     width: 64,
     height: 64,
     objectFit: "contain",
   },
-
-  // Badge del comprobante
   badge: {
     alignItems: "flex-end",
     backgroundColor: c.creamLight,
@@ -57,9 +59,10 @@ const S = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderLeft: `3 solid ${c.orange}`,
+    minWidth: 180,
   },
   badgeLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: c.muted,
     letterSpacing: 2,
     textTransform: "uppercase",
@@ -72,37 +75,37 @@ const S = StyleSheet.create({
     letterSpacing: 0.5,
   },
   badgeDate: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: c.muted,
     marginTop: 3,
   },
 
-  // ── Divider ─────────────────────────────────────────────────────────────────
   divider: {
+    height: 1,
+    backgroundColor: c.borderLight,
+    marginHorizontal: 40,
+  },
+  dividerStrong: {
     height: 1.5,
     backgroundColor: c.orange,
-    marginHorizontal: 44,
-    opacity: 0.6,
+    marginHorizontal: 40,
+    opacity: 0.55,
   },
 
-  // ── Cuerpo ──────────────────────────────────────────────────────────────────
   body: {
-    paddingHorizontal: 44,
-    paddingTop: 28,
+    paddingHorizontal: 40,
+    paddingTop: 22,
   },
 
-  // ── Fila de 2 columnas ──────────────────────────────────────────────────────
+  // ── Sección 1: Cliente + Estado ─────────────────────────────────────────────
   twoCol: {
     flexDirection: "row",
-    gap: 16,
-    marginBottom: 28,
+    gap: 14,
+    marginBottom: 20,
   },
-  col: { flex: 1 },
-
-  // Tarjeta de info
   card: {
     borderRadius: 10,
-    padding: 18,
+    padding: 16,
     flex: 1,
   },
   cardOrange: {
@@ -114,161 +117,329 @@ const S = StyleSheet.create({
     borderLeft: `4 solid ${c.teal}`,
   },
   cardTitle: {
-    fontSize: 7.5,
+    fontSize: 7,
     fontFamily: "Helvetica-Bold",
     color: c.muted,
     letterSpacing: 2,
     textTransform: "uppercase",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   cardRow: {
     flexDirection: "row",
-    marginBottom: 7,
+    marginBottom: 6,
     alignItems: "flex-start",
   },
   cardLabel: {
-    width: 72,
-    fontSize: 8.5,
+    width: 64,
+    fontSize: 8,
     color: c.muted,
   },
   cardValue: {
     flex: 1,
-    fontSize: 9.5,
+    fontSize: 9,
     fontFamily: "Helvetica-Bold",
     color: c.text,
   },
 
-  // ── Servicio ─────────────────────────────────────────────────────────────────
+  // Estado pill
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    alignSelf: "flex-start",
+    marginTop: 2,
+  },
+  statusPillPaid: {
+    backgroundColor: "#dcfce7",
+  },
+  statusPillPending: {
+    backgroundColor: "#fef3c7",
+  },
+  statusPillText: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    letterSpacing: 0.5,
+  },
+
+  // ── Sección 2: Encabezado de servicio ──────────────────────────────────────
   sectionLabel: {
     fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
     color: c.orange,
     letterSpacing: 2.5,
     textTransform: "uppercase",
-    marginBottom: 10,
+    marginBottom: 8,
+    marginTop: 4,
   },
-  serviceBox: {
+
+  serviceHero: {
+    flexDirection: "row",
     backgroundColor: c.cream,
     borderRadius: 12,
-    padding: 22,
-    marginBottom: 20,
+    overflow: "hidden",
+    marginBottom: 14,
+  },
+  serviceImg: {
+    width: 130,
+    height: "100%",
+    objectFit: "cover",
+  },
+  serviceBody: {
+    flex: 1,
+    padding: 18,
+    justifyContent: "center",
   },
   serviceName: {
     fontSize: 17,
     fontFamily: "Helvetica-Bold",
     color: c.darkRed,
-    marginBottom: 16,
+    marginBottom: 6,
+    lineHeight: 1.15,
   },
+  serviceDesc: {
+    fontSize: 8.5,
+    color: c.textSoft,
+    lineHeight: 1.4,
+    marginBottom: 10,
+  },
+
+  // Pills de meta info
   pillsRow: {
     flexDirection: "row",
-    gap: 12,
+    flexWrap: "wrap",
+    gap: 8,
   },
   pill: {
     backgroundColor: c.white,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderRadius: 16,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    flexDirection: "row",
     alignItems: "center",
+    gap: 5,
+  },
+  pillIcon: {
+    fontSize: 8,
+    color: c.orange,
   },
   pillLabel: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: c.muted,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     textTransform: "uppercase",
-    marginBottom: 3,
+    marginRight: 4,
   },
   pillValue: {
-    fontSize: 11,
+    fontSize: 9,
     fontFamily: "Helvetica-Bold",
     color: c.darkRed,
   },
 
-  // ── Resumen de pago ──────────────────────────────────────────────────────────
-  paymentBox: {
+  // ── ¿Qué incluye? ──────────────────────────────────────────────────────────
+  includesBox: {
     backgroundColor: c.creamLight,
-    borderRadius: 12,
-    padding: 22,
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 18,
     border: `1 solid ${c.borderLight}`,
-    marginBottom: 28,
+  },
+  includesTitle: {
+    fontSize: 9.5,
+    fontFamily: "Helvetica-Bold",
+    color: c.darkRed,
+    marginBottom: 8,
+  },
+  includesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  includesItem: {
+    width: "50%",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    paddingRight: 10,
+    marginBottom: 5,
+  },
+  includesCheck: {
+    fontSize: 9,
+    color: c.teal,
+    fontFamily: "Helvetica-Bold",
+  },
+  includesText: {
+    flex: 1,
+    fontSize: 8.5,
+    color: c.textSoft,
+    lineHeight: 1.3,
+  },
+
+  // ── Resumen de pago ────────────────────────────────────────────────────────
+  paymentBox: {
+    backgroundColor: c.white,
+    borderRadius: 12,
+    padding: 18,
+    border: `1 solid ${c.border}`,
+    marginBottom: 16,
   },
   paymentRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  paymentLabel: { fontSize: 9.5, color: c.muted },
-  paymentValue: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: c.text },
+  paymentLabel: { fontSize: 9, color: c.muted },
+  paymentValue: { fontSize: 9, fontFamily: "Helvetica-Bold", color: c.text },
   paymentDivider: {
     height: 1,
-    backgroundColor: c.border,
+    backgroundColor: c.borderLight,
     marginVertical: 10,
   },
+  totalBlock: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: c.cream,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 4,
+  },
   totalLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: "Helvetica-Bold",
     color: c.darkRed,
   },
   totalValue: {
-    fontSize: 20,
+    fontSize: 19,
     fontFamily: "Helvetica-Bold",
     color: c.orange,
   },
-  pendingLabel: { fontSize: 8.5, color: c.muted },
-  pendingValue: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: c.teal },
-
-  // ── Nota de confirmación ─────────────────────────────────────────────────────
-  noteBox: {
+  pendingRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     backgroundColor: "#fffbf0",
     borderRadius: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 8,
     border: `1 solid #f5e4a0`,
-    marginBottom: 20,
+  },
+  pendingLabel: { fontSize: 8.5, color: c.warning, fontFamily: "Helvetica-Bold" },
+  pendingValue: { fontSize: 11, fontFamily: "Helvetica-Bold", color: c.warning },
+
+  // ── Nota ───────────────────────────────────────────────────────────────────
+  noteBox: {
+    backgroundColor: c.tealLight,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    border: `1 solid ${c.tealSoft}`,
+    marginBottom: 12,
+    flexDirection: "row",
+    gap: 10,
+  },
+  noteIcon: {
+    fontSize: 14,
+    color: c.teal,
+    fontFamily: "Helvetica-Bold",
   },
   noteText: {
+    flex: 1,
     fontSize: 8,
-    color: "#7c6a00",
+    color: c.textSoft,
     lineHeight: 1.5,
   },
 
-  // ── Footer ──────────────────────────────────────────────────────────────────
+  // ── Footer (ancla absoluta abajo) ──────────────────────────────────────────
   footer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
   },
-  footerContent: {
+  footerInner: {
+    backgroundColor: c.darkRed,
+    paddingHorizontal: 40,
+    paddingTop: 16,
+    paddingBottom: 14,
+  },
+  footerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 44,
-    paddingVertical: 14,
-    backgroundColor: c.darkRed,
+    alignItems: "flex-start",
   },
   footerCompany: {
-    fontSize: 9,
+    fontSize: 10,
     fontFamily: "Helvetica-Bold",
     color: c.white,
+    marginBottom: 3,
   },
   footerSub: {
     fontSize: 7,
-    color: "rgba(255,255,255,0.5)",
-    marginTop: 2,
+    color: "rgba(255,255,255,0.55)",
+    lineHeight: 1.4,
+    maxWidth: 240,
   },
-  footerRight: { alignItems: "flex-end" },
-  footerWeb: { fontSize: 8, fontFamily: "Helvetica-Bold", color: c.orange },
-  footerEmail: { fontSize: 7, color: "rgba(255,255,255,0.5)", marginTop: 2 },
-  footerBar: { height: 5, backgroundColor: c.orange },
+  footerContacts: {
+    alignItems: "flex-end",
+    gap: 3,
+  },
+  footerContactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  footerLabel: {
+    fontSize: 7,
+    color: "rgba(255,255,255,0.45)",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  footerValue: {
+    fontSize: 8,
+    color: c.white,
+    fontFamily: "Helvetica-Bold",
+  },
+  footerWeb: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    color: c.orange,
+  },
+  footerLegal: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTop: "1 solid rgba(255,255,255,0.1)",
+    fontSize: 6.5,
+    color: "rgba(255,255,255,0.35)",
+    textAlign: "center",
+  },
+  footerBar: { height: 4, backgroundColor: c.orange },
 });
 
 // ─── Props ────────────────────────────────────────────────────────────────────
-interface VoucherProps {
+export interface VoucherCompany {
+  name?: string;          // "Like In House" / razón social legal
+  legalName?: string;     // "Like In House Peru S.A.C."
+  ruc?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  web?: string;           // dominio mostrado
+}
+
+export interface VoucherProps {
   referenceCode: string;
   serviceName: string;
+  serviceDescription?: string | null;
+  serviceImageUrl?: string | null;
+  serviceDestination?: string | null;
+  serviceDurationLabel?: string | null;   // "4D / 3N" o "4h"
+  serviceIncludes?: string[];             // hasta 8 items
   clientName: string;
   clientEmail?: string;
+  clientPhone?: string | null;
   amountPaid: number;
   totalAmount: number;
   currency: string;
@@ -277,32 +448,38 @@ interface VoucherProps {
   children?: number;
   isEs: boolean;
   type: "RESERVATION" | "PAYMENT_LINK";
+  company?: VoucherCompany;
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 export function VoucherPDF({ data }: { data: VoucherProps }) {
   const { isEs } = data;
   const currSym = data.currency === "PEN" ? "S/" : "$";
-  const isPaid  = data.amountPaid >= data.totalAmount;
+  const isPaid  = data.amountPaid >= data.totalAmount - 0.01;
   const pending = Math.max(0, data.totalAmount - data.amountPaid);
   const totalPax = (data.adults || 0) + (data.children || 0);
+  const includes = (data.serviceIncludes || []).filter(Boolean).slice(0, 8);
+
+  // Datos de empresa con fallbacks razonables
+  const co: VoucherCompany = {
+    name: "Like In House",
+    legalName: "Like In House Peru S.A.C.",
+    web: "likeinhouseperu.com",
+    ...(data.company || {}),
+  };
 
   return (
     <Document>
       <Page size="A4" style={S.page}>
+        {/* Barra superior */}
+        <View style={S.topBar} fixed />
 
-        {/* Barra naranja superior */}
-        <View style={S.topBar} />
-
-        {/* Header: logo + badge */}
+        {/* Header */}
         <View style={S.header}>
-          {/* Logo imagen */}
           <PdfImage
-            src={`${process.env.NEXT_PUBLIC_BASE_URL || "https://likeinhouse.com"}/Logo-Cuadrado.png`}
+            src={`${process.env.NEXT_PUBLIC_BASE_URL || "https://likeinhouseperu.com"}/Logo-Cuadrado.png`}
             style={S.logoImg}
           />
-
-          {/* Badge comprobante */}
           <View style={S.badge}>
             <Text style={S.badgeLabel}>{isEs ? "Comprobante" : "Voucher"}</Text>
             <Text style={S.badgeCode}>{data.referenceCode}</Text>
@@ -314,17 +491,13 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
           </View>
         </View>
 
-        <View style={S.divider} />
+        <View style={S.dividerStrong} />
 
-        {/* Cuerpo */}
         <View style={S.body}>
-
-          {/* Tarjetas cliente + estado */}
+          {/* Cliente + Estado */}
           <View style={S.twoCol}>
             <View style={[S.card, S.cardOrange]}>
-              <Text style={S.cardTitle}>
-                {isEs ? "Datos del Cliente" : "Client Details"}
-              </Text>
+              <Text style={S.cardTitle}>{isEs ? "Datos del Cliente" : "Client Details"}</Text>
               <View style={S.cardRow}>
                 <Text style={S.cardLabel}>{isEs ? "Nombre:" : "Name:"}</Text>
                 <Text style={S.cardValue}>{data.clientName}</Text>
@@ -335,12 +508,16 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
                   <Text style={S.cardValue}>{data.clientEmail}</Text>
                 </View>
               )}
+              {data.clientPhone && (
+                <View style={S.cardRow}>
+                  <Text style={S.cardLabel}>{isEs ? "Teléfono:" : "Phone:"}</Text>
+                  <Text style={S.cardValue}>{data.clientPhone}</Text>
+                </View>
+              )}
             </View>
 
             <View style={[S.card, S.cardTeal]}>
-              <Text style={S.cardTitle}>
-                {isEs ? "Estado" : "Status"}
-              </Text>
+              <Text style={S.cardTitle}>{isEs ? "Estado del Pago" : "Payment Status"}</Text>
               <View style={S.cardRow}>
                 <Text style={S.cardLabel}>{isEs ? "Tipo:" : "Type:"}</Text>
                 <Text style={S.cardValue}>
@@ -353,57 +530,87 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
                 <Text style={S.cardLabel}>{isEs ? "Moneda:" : "Currency:"}</Text>
                 <Text style={S.cardValue}>{data.currency || "USD"}</Text>
               </View>
-              <View style={S.cardRow}>
-                <Text style={S.cardLabel}>{isEs ? "Estado:" : "Status:"}</Text>
-                <Text style={[S.cardValue, { color: isPaid ? c.teal : c.orange }]}>
+              <View
+                style={[
+                  S.statusPill,
+                  isPaid ? S.statusPillPaid : S.statusPillPending,
+                ]}
+              >
+                <Text
+                  style={[
+                    S.statusPillText,
+                    { color: isPaid ? "#15803d" : "#a16207" },
+                  ]}
+                >
                   {isPaid
-                    ? (isEs ? "✓ Confirmado" : "✓ Confirmed")
-                    : (isEs ? "Pendiente de pago" : "Pending payment")}
+                    ? (isEs ? "✓  CONFIRMADO" : "✓  CONFIRMED")
+                    : (isEs ? "⏱  PENDIENTE" : "⏱  PENDING")}
                 </Text>
               </View>
             </View>
           </View>
 
-          {/* Servicio */}
+          {/* Servicio contratado */}
           <Text style={S.sectionLabel}>
-            {isEs ? "● Servicio Contratado" : "● Contracted Service"}
+            {isEs ? "Servicio Contratado" : "Contracted Service"}
           </Text>
-          <View style={S.serviceBox}>
-            <Text style={S.serviceName}>{data.serviceName}</Text>
-            <View style={S.pillsRow}>
-              {data.dateStr ? (
+          <View style={S.serviceHero}>
+            {data.serviceImageUrl ? (
+              <PdfImage src={data.serviceImageUrl} style={S.serviceImg} />
+            ) : null}
+            <View style={S.serviceBody}>
+              <Text style={S.serviceName}>{data.serviceName}</Text>
+              {data.serviceDescription ? (
+                <Text style={S.serviceDesc}>{data.serviceDescription}</Text>
+              ) : null}
+
+              <View style={S.pillsRow}>
                 <View style={S.pill}>
                   <Text style={S.pillLabel}>{isEs ? "Fecha" : "Date"}</Text>
-                  <Text style={S.pillValue}>{data.dateStr}</Text>
+                  <Text style={S.pillValue}>{data.dateStr || (isEs ? "A coordinar" : "TBD")}</Text>
                 </View>
-              ) : (
-                <View style={S.pill}>
-                  <Text style={S.pillLabel}>{isEs ? "Fecha" : "Date"}</Text>
-                  <Text style={S.pillValue}>{isEs ? "A coordinar" : "To be set"}</Text>
-                </View>
-              )}
-              {(data.adults || 0) > 0 && (
-                <View style={S.pill}>
-                  <Text style={S.pillLabel}>{isEs ? "Adultos" : "Adults"}</Text>
-                  <Text style={S.pillValue}>{data.adults}</Text>
-                </View>
-              )}
-              {(data.children || 0) > 0 && (
-                <View style={S.pill}>
-                  <Text style={S.pillLabel}>{isEs ? "Niños" : "Children"}</Text>
-                  <Text style={S.pillValue}>{data.children}</Text>
-                </View>
-              )}
-              <View style={S.pill}>
-                <Text style={S.pillLabel}>{isEs ? "Pasajeros" : "Passengers"}</Text>
-                <Text style={S.pillValue}>{totalPax || (data.adults || 1)}</Text>
+                {totalPax > 0 && (
+                  <View style={S.pill}>
+                    <Text style={S.pillLabel}>{isEs ? "Pasajeros" : "Passengers"}</Text>
+                    <Text style={S.pillValue}>{totalPax}</Text>
+                  </View>
+                )}
+                {data.serviceDurationLabel && (
+                  <View style={S.pill}>
+                    <Text style={S.pillLabel}>{isEs ? "Duración" : "Duration"}</Text>
+                    <Text style={S.pillValue}>{data.serviceDurationLabel}</Text>
+                  </View>
+                )}
+                {data.serviceDestination && (
+                  <View style={S.pill}>
+                    <Text style={S.pillLabel}>{isEs ? "Destino" : "Destination"}</Text>
+                    <Text style={S.pillValue}>{data.serviceDestination}</Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>
 
+          {/* Qué incluye */}
+          {includes.length > 0 && (
+            <View style={S.includesBox}>
+              <Text style={S.includesTitle}>
+                {isEs ? "✓  Qué incluye tu experiencia" : "✓  What your experience includes"}
+              </Text>
+              <View style={S.includesGrid}>
+                {includes.map((item, i) => (
+                  <View key={i} style={S.includesItem}>
+                    <Text style={S.includesCheck}>✓</Text>
+                    <Text style={S.includesText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
           {/* Resumen de pago */}
           <Text style={S.sectionLabel}>
-            {isEs ? "● Resumen de Pago" : "● Payment Summary"}
+            {isEs ? "Resumen de Pago" : "Payment Summary"}
           </Text>
           <View style={S.paymentBox}>
             <View style={S.paymentRow}>
@@ -413,14 +620,20 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
 
             <View style={S.paymentDivider} />
 
-            <View style={S.paymentRow}>
-              <Text style={S.totalLabel}>{isEs ? "Total Pagado" : "Total Paid"}</Text>
+            <View style={S.totalBlock}>
+              <Text style={S.totalLabel}>
+                {isPaid
+                  ? (isEs ? "Total Pagado" : "Total Paid")
+                  : (isEs ? "Pagado a Cuenta" : "Paid So Far")}
+              </Text>
               <Text style={S.totalValue}>{currSym} {data.amountPaid.toFixed(2)}</Text>
             </View>
 
             {pending > 0.01 && (
-              <View style={[S.paymentRow, { marginTop: 4, marginBottom: 0 }]}>
-                <Text style={S.pendingLabel}>{isEs ? "Saldo Pendiente" : "Pending Balance"}</Text>
+              <View style={S.pendingRow}>
+                <Text style={S.pendingLabel}>
+                  {isEs ? "Saldo Pendiente" : "Pending Balance"}
+                </Text>
                 <Text style={S.pendingValue}>{currSym} {pending.toFixed(2)}</Text>
               </View>
             )}
@@ -428,31 +641,43 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
 
           {/* Nota */}
           <View style={S.noteBox}>
+            <Text style={S.noteIcon}>i</Text>
             <Text style={S.noteText}>
               {isEs
-                ? "Este comprobante es generado electrónicamente. Preséntalo al inicio de tu tour. Para consultas, escríbenos por WhatsApp."
-                : "This voucher is electronically generated. Present it at the start of your tour. For inquiries, contact us via WhatsApp."}
+                ? `Este comprobante es generado electrónicamente y tiene validez como constancia de tu reserva. Preséntalo al inicio de tu tour. Para cualquier consulta, escríbenos por WhatsApp${co.phone ? ` al ${co.phone}` : ""}.`
+                : `This voucher is electronically generated and serves as proof of your reservation. Present it at the start of your tour. For any inquiry, contact us via WhatsApp${co.phone ? ` at ${co.phone}` : ""}.`}
             </Text>
           </View>
         </View>
 
-        {/* Footer */}
-        <View style={S.footer}>
-          <View style={S.footerContent}>
-            <View>
-              <Text style={S.footerCompany}>LikeInHouse Travel Agency</Text>
-              <Text style={S.footerSub}>
-                {isEs ? "Agencia de viajes y turismo · Perú" : "Travel & tourism agency · Peru"}
-              </Text>
+        {/* Footer fijo abajo */}
+        <View style={S.footer} fixed>
+          <View style={S.footerInner}>
+            <View style={S.footerRow}>
+              <View>
+                <Text style={S.footerCompany}>{co.legalName || co.name}</Text>
+                <Text style={S.footerSub}>
+                  {isEs ? "Agencia de viajes y turismo · Perú" : "Travel & tourism agency · Peru"}
+                  {co.ruc ? ` · RUC ${co.ruc}` : ""}
+                  {co.address ? `\n${co.address}` : ""}
+                </Text>
+              </View>
+
+              <View style={S.footerContacts}>
+                {co.web && <Text style={S.footerWeb}>{co.web}</Text>}
+                {co.email && <Text style={S.footerValue}>{co.email}</Text>}
+                {co.phone && <Text style={S.footerValue}>{co.phone}</Text>}
+              </View>
             </View>
-            <View style={S.footerRight}>
-              <Text style={S.footerWeb}>www.likeinhouse.com</Text>
-              <Text style={S.footerEmail}>+51 913 406 888</Text>
-            </View>
+
+            <Text style={S.footerLegal}>
+              {isEs
+                ? `© ${new Date().getFullYear()} ${co.name || "Like In House"}. Todos los derechos reservados.`
+                : `© ${new Date().getFullYear()} ${co.name || "Like In House"}. All rights reserved.`}
+            </Text>
           </View>
           <View style={S.footerBar} />
         </View>
-
       </Page>
     </Document>
   );

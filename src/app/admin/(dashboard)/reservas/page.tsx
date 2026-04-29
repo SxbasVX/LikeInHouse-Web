@@ -258,9 +258,19 @@ export default function ReservasPage() {
                           data={{
                             referenceCode: reservation.referenceCode,
                             serviceName: reservation.tour?.nameEs || "Servicio",
-                            serviceDescription: (reservation.tour as any)?.shortDescEs || "",
+                            serviceDescription: reservation.tour?.shortDescEs || null,
+                            serviceImageUrl: (reservation.tour as any)?.images?.[0]?.url || null,
+                            serviceDestination: (reservation.tour as any)?.destination || null,
+                            serviceDurationLabel:
+                              (reservation.tour as any)?.durationDays && (reservation.tour as any).durationDays > 0
+                                ? `${(reservation.tour as any).durationDays}D / ${(reservation.tour as any).durationNights ?? Math.max(0, (reservation.tour as any).durationDays - 1)}N`
+                                : (reservation.tour as any)?.durationHours
+                                  ? `${(reservation.tour as any).durationHours}h`
+                                  : null,
+                            serviceIncludes: ((reservation.tour as any)?.includes || []).map((i: { textEs: string }) => i.textEs),
                             clientName: `${reservation.client.firstName} ${reservation.client.lastName}`,
                             clientEmail: reservation.client.email,
+                            clientPhone: (reservation.client as any).phone || null,
                             amountPaid: ["PAID", "COMPLETED"].includes(reservation.status) ? Number(reservation.totalAmount) : 0,
                             totalAmount: Number(reservation.totalAmount),
                             currency: reservation.currency,

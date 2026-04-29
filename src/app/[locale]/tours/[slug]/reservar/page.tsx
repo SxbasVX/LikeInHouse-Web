@@ -46,6 +46,7 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
                 where: { isPrimary: true },
                 take: 1,
             },
+            includes: { orderBy: { sortOrder: "asc" } },
         },
     });
 
@@ -58,6 +59,12 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
         id: tour.id,
         nameEs: tour.nameEs,
         nameEn: tour.nameEn,
+        shortDescEs: tour.shortDescEs,
+        shortDescEn: tour.shortDescEn,
+        destination: tour.destination,
+        durationDays: tour.durationDays,
+        durationNights: tour.durationNights,
+        durationHours: tour.durationHours,
         slug: tour.slug,
         bookingMode: tour.bookingMode as "CALENDAR" | "DEPARTURES" | "BOTH",
         pricing: tour.pricing ? {
@@ -80,6 +87,9 @@ export default async function CheckoutPage({ params, searchParams }: CheckoutPag
             bookedCount: d.bookedCount,
         })),
         image: tour.images[0]?.url || "",
+        includes: tour.includes
+            .filter((i) => i.type === "INCLUDE")
+            .map((i) => ({ textEs: i.textEs, textEn: i.textEn })),
     };
 
     return (
