@@ -468,13 +468,15 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
     ...(data.company || {}),
   };
 
-  // Resolver URL del logo: en cliente preferir el origin actual (siempre responde),
-  // en SSR caer a la env var o al dominio de produccion.
-  const logoBase =
+  // Resolver URL del logo. Aceptamos generar desde cualquier host (panel.* o
+  // dominio principal) ya que ambos sirven /public con el mismo build.
+  const stripInternalSubdomain = (origin: string) =>
+    origin.replace(/^(https?:\/\/)(panel|admin|app|dashboard|staging|dev)\./i, "$1");
+  const rawOrigin =
     (typeof window !== "undefined" && window.location?.origin) ||
     process.env.NEXT_PUBLIC_BASE_URL ||
     "https://likeinhouseperu.com";
-  const logoUrl = `${logoBase.replace(/\/$/, "")}/Logo-Cuadrado.png`;
+  const logoUrl = `${stripInternalSubdomain(rawOrigin).replace(/\/$/, "")}/Logo-Cuadrado.png`;
 
   return (
     <Document>

@@ -25,6 +25,21 @@ export default function PDFDownloadInner({ data, isEs, className, variant = "gho
     try {
       setLoading(true);
       const s = (settings || {}) as Record<string, string>;
+      // Resolver la web publica que aparece en el footer.
+      // NUNCA debe mostrar subdominios internos (panel.*, admin.*) porque el
+      // voucher es de cara al cliente; usamos el dominio raiz publico.
+      const stripInternalSubdomain = (host: string) =>
+        host.replace(/^(panel|admin|app|dashboard|staging|dev)\./i, "");
+      const publicWeb =
+        s.companyWeb ||
+        (process.env.NEXT_PUBLIC_BASE_URL
+          ? stripInternalSubdomain(
+              process.env.NEXT_PUBLIC_BASE_URL.replace(/^https?:\/\//, "").replace(/\/$/, "")
+            )
+          : typeof window !== "undefined"
+            ? stripInternalSubdomain(window.location.host)
+            : "likeinhouseperu.com");
+
       const enriched: VoucherProps = {
         ...data,
         company: {
@@ -34,13 +49,7 @@ export default function PDFDownloadInner({ data, isEs, className, variant = "gho
           address: s.address || undefined,
           phone: s.phone || data.company?.phone,
           email: s.contactEmail || data.company?.email,
-          web:
-            s.companyWeb ||
-            (typeof window !== "undefined"
-              ? window.location.host
-              : (process.env.NEXT_PUBLIC_BASE_URL || "likeinhouseperu.com")
-                  .replace(/^https?:\/\//, "")
-                  .replace(/\/$/, "")),
+          web: publicWeb,
           ...(data.company || {}),
         },
       };
