@@ -29,16 +29,18 @@ export default function PDFDownloadInner({ data, isEs, className, variant = "gho
         ...data,
         company: {
           name: "Like In House",
-          legalName: s.companyLegalName || "Like In House Peru S.A.C.",
+          legalName: s.companyLegalName || "Like In House Peru S.R.L.",
           ruc: s.companyRuc || undefined,
           address: s.address || undefined,
           phone: s.phone || data.company?.phone,
           email: s.contactEmail || data.company?.email,
           web:
             s.companyWeb ||
-            (process.env.NEXT_PUBLIC_BASE_URL
-              ? process.env.NEXT_PUBLIC_BASE_URL.replace(/^https?:\/\//, "").replace(/\/$/, "")
-              : "likeinhouseperu.com"),
+            (typeof window !== "undefined"
+              ? window.location.host
+              : (process.env.NEXT_PUBLIC_BASE_URL || "likeinhouseperu.com")
+                  .replace(/^https?:\/\//, "")
+                  .replace(/\/$/, "")),
           ...(data.company || {}),
         },
       };

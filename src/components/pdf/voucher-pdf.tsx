@@ -463,10 +463,18 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
   // Datos de empresa con fallbacks razonables
   const co: VoucherCompany = {
     name: "Like In House",
-    legalName: "Like In House Peru S.A.C.",
+    legalName: "Like In House Peru S.R.L.",
     web: "likeinhouseperu.com",
     ...(data.company || {}),
   };
+
+  // Resolver URL del logo: en cliente preferir el origin actual (siempre responde),
+  // en SSR caer a la env var o al dominio de produccion.
+  const logoBase =
+    (typeof window !== "undefined" && window.location?.origin) ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    "https://likeinhouseperu.com";
+  const logoUrl = `${logoBase.replace(/\/$/, "")}/Logo-Cuadrado.png`;
 
   return (
     <Document>
@@ -476,10 +484,7 @@ export function VoucherPDF({ data }: { data: VoucherProps }) {
 
         {/* Header */}
         <View style={S.header}>
-          <PdfImage
-            src={`${process.env.NEXT_PUBLIC_BASE_URL || "https://likeinhouseperu.com"}/Logo-Cuadrado.png`}
-            style={S.logoImg}
-          />
+          <PdfImage src={logoUrl} style={S.logoImg} />
           <View style={S.badge}>
             <Text style={S.badgeLabel}>{isEs ? "Comprobante" : "Voucher"}</Text>
             <Text style={S.badgeCode}>{data.referenceCode}</Text>
