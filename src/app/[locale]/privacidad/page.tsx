@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Link } from "@/i18n/routing";
 import { ArrowLeft } from "lucide-react";
+import { buildMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -9,12 +10,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const isEs = locale === "es";
-  return {
-    title: isEs ? "Política de Privacidad | Like In House" : "Privacy Policy | Like In House",
+  return buildMetadata({
+    locale,
+    title: isEs ? "Política de Privacidad" : "Privacy Policy",
     description: isEs
-      ? "Conoce cómo Like In House trata y protege tus datos personales."
-      : "Learn how Like In House handles and protects your personal data.",
-  };
+      ? "Conoce cómo Like In House trata y protege tus datos personales conforme a la Ley N° 29733."
+      : "Learn how Like In House handles and protects your personal data under Law N° 29733.",
+    pathByLocale: "/privacidad",
+  });
 }
 
 export default async function PrivacidadPage({

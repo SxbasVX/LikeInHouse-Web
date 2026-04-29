@@ -2,27 +2,26 @@ import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { getServerCaller } from "@/lib/trpc-server";
 import { FAQList } from "@/components/public/faq-list";
+import { buildMetadata, safeJsonLd } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "meta" });
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://likeinhouse.com";
-  return {
+  return buildMetadata({
+    locale,
     title: t("faq_title"),
     description: t("faq_description"),
-    alternates: { canonical: `${baseUrl}/${locale}/faq` },
-    openGraph: {
-      title: t("faq_title"),
-      description: t("faq_description"),
-      url: `${baseUrl}/${locale}/faq`,
-      siteName: "Like In House",
-      type: "website",
-      locale: locale === "es" ? "es_PE" : "en_US",
-    },
-  };
+    pathByLocale: "/faq",
+  });
 }
 
-export default async function FAQPage() {
+export default async function FAQPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const isEs = locale === "es";
   const [caller, t] = await Promise.all([
     getServerCaller(),
     getTranslations("faq"),
@@ -30,8 +29,27 @@ export default async function FAQPage() {
 
   const faqs = await caller.public.faqs();
 
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f: { questionEs: string; questionEn: string; answerEs: string; answerEn: string }) => ({
+      "@type": "Question",
+      name: isEs ? f.questionEs : f.questionEn,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: isEs ? f.answerEs : f.answerEn,
+      },
+    })),
+  };
+
   return (
     <div className="page-transition">
+      {faqs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
+        />
+      )}
       {/* Header */}
       <section className="bg-white border-b border-gray-100 pt-16 pb-10">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center">

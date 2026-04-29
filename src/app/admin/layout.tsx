@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "../globals.css";
 import { TRPCProvider } from "@/lib/trpc-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { getBaseUrl } from "@/lib/seo";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -12,8 +13,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getBaseUrl()),
   title: "Panel Admin | LikeInHouse",
   description: "Panel de administracion",
+  robots: { index: false, follow: false, nocache: true },
 };
 
 export default function AdminLayout({

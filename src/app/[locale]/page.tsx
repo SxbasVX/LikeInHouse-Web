@@ -9,24 +9,21 @@ import { FAQSection } from "@/components/public/sections/faq";
 import { CertificationsSection } from "@/components/public/sections/certifications";
 import { HowToBookSection } from "@/components/public/sections/how-to-book";
 import { PromoBannersSection } from "@/components/public/sections/promo-banners";
+import { buildMetadata } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "meta" });
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://likeinhouse.com";
-  return {
+  return buildMetadata({
+    locale,
     title: t("home_title"),
     description: t("home_description"),
-    alternates: { canonical: `${baseUrl}/${locale}` },
-    openGraph: {
-      title: t("home_title"),
-      description: t("home_description"),
-      url: `${baseUrl}/${locale}`,
-      siteName: "Like In House",
-      type: "website",
-      locale: locale === "es" ? "es_PE" : "en_US",
-    },
-  };
+    pathByLocale: "",
+    keywords:
+      locale === "es"
+        ? ["tours Perú", "Machu Picchu", "Cusco", "Valle Sagrado", "Lago Titicaca", "agencia de viajes Perú", "turismo responsable"]
+        : ["Peru tours", "Machu Picchu", "Cusco", "Sacred Valley", "Lake Titicaca", "Peru travel agency", "responsible tourism"],
+  });
 }
 
 export default async function HomePage() {

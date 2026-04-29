@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Link } from "@/i18n/routing";
 import { ArrowLeft } from "lucide-react";
+import { buildMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -9,12 +10,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const isEs = locale === "es";
-  return {
-    title: isEs ? "Términos y Condiciones | Like In House" : "Terms and Conditions | Like In House",
+  return buildMetadata({
+    locale,
+    title: isEs ? "Términos y Condiciones" : "Terms and Conditions",
     description: isEs
-      ? "Conoce los términos y condiciones del servicio de Like In House, agencia de turismo en Perú."
-      : "Read the terms and conditions of Like In House, a Peru tourism agency.",
-  };
+      ? "Términos y condiciones del servicio de Like In House, agencia de turismo en Perú. Reservas, pagos y políticas de cancelación."
+      : "Terms and conditions of Like In House, a Peru tourism agency. Bookings, payments and cancellation policies.",
+    pathByLocale: "/terminos",
+  });
 }
 
 export default async function TerminosPage({

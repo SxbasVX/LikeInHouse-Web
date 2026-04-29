@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Link } from "@/i18n/routing";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import { ComplaintForm } from "@/components/public/complaint-form";
+import { buildMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -10,15 +11,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const isEs = locale === "es";
-  return {
-    title: isEs
-      ? "Libro de Reclamaciones | Like In House"
-      : "Complaint Book | Like In House",
+  return buildMetadata({
+    locale,
+    title: isEs ? "Libro de Reclamaciones" : "Complaint Book",
     description: isEs
-      ? "Registra tu reclamo o queja conforme al Código de Protección y Defensa del Consumidor (Ley 29571) del Perú."
-      : "Register your complaint or grievance pursuant to Peru's Consumer Protection Code (Law 29571).",
-    robots: { index: true, follow: true },
-  };
+      ? "Registra tu reclamo o queja conforme al Código de Protección y Defensa del Consumidor (Ley N° 29571) del Perú."
+      : "Register your complaint or grievance pursuant to Peru's Consumer Protection Code (Law N° 29571).",
+    pathByLocale: "/libro-reclamaciones",
+  });
 }
 
 export default async function LibroReclamacionesPage({

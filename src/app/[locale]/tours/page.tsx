@@ -2,24 +2,21 @@ import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { getServerCaller } from "@/lib/trpc-server";
 import { ToursCatalog } from "@/components/public/tours-catalog";
+import { buildMetadata } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "meta" });
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://likeinhouse.com";
-  return {
+  return buildMetadata({
+    locale,
     title: t("tours_title"),
     description: t("tours_description"),
-    alternates: { canonical: `${baseUrl}/${locale}/tours` },
-    openGraph: {
-      title: t("tours_title"),
-      description: t("tours_description"),
-      url: `${baseUrl}/${locale}/tours`,
-      siteName: "Like In House",
-      type: "website",
-      locale: locale === "es" ? "es_PE" : "en_US",
-    },
-  };
+    pathByLocale: "/tours",
+    keywords:
+      locale === "es"
+        ? ["tours Perú", "catálogo tours", "Cusco tours", "Machu Picchu tour", "Valle Sagrado", "paquetes turísticos Perú"]
+        : ["Peru tours", "tour catalog", "Cusco tours", "Machu Picchu tour", "Sacred Valley", "Peru tour packages"],
+  });
 }
 
 export default async function ToursPage() {

@@ -2,24 +2,21 @@ import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { getServerCaller } from "@/lib/trpc-server";
 import { BlogList } from "@/components/public/blog-list";
+import { buildMetadata } from "@/lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "meta" });
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://likeinhouse.com";
-  return {
+  return buildMetadata({
+    locale,
     title: t("blog_title"),
     description: t("blog_description"),
-    alternates: { canonical: `${baseUrl}/${locale}/blog` },
-    openGraph: {
-      title: t("blog_title"),
-      description: t("blog_description"),
-      url: `${baseUrl}/${locale}/blog`,
-      siteName: "Like In House",
-      type: "website",
-      locale: locale === "es" ? "es_PE" : "en_US",
-    },
-  };
+    pathByLocale: "/blog",
+    keywords:
+      locale === "es"
+        ? ["blog Perú", "consejos viaje Perú", "tips turismo", "guía viajes Perú"]
+        : ["Peru blog", "Peru travel tips", "tourism tips", "Peru travel guide"],
+  });
 }
 
 export default async function BlogPage() {
