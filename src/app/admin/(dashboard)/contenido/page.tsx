@@ -59,7 +59,8 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Switch } from "@/components/ui/switch";
-import { AlertCircle, CreditCard, Bell } from "lucide-react";
+import { AlertCircle, CreditCard, Bell, Home as HomeIcon } from "lucide-react";
+import { parseAirbnbListings, type AirbnbListing } from "@/lib/airbnb";
 
 const TiptapEditor = dynamic(() => import("@/components/ui/tiptap-editor").then(m => ({ default: m.TiptapEditor })), { ssr: false });
 
@@ -1221,7 +1222,6 @@ const PREDEFINED_SETTINGS = [
   { key: "companyLegalName", label: "Razón Social (legal)", placeholder: "Like In House Peru S.A.C." },
   { key: "companyRuc", label: "RUC", placeholder: "20612345678" },
   { key: "companyWeb", label: "Web (sin https://)", placeholder: "likeinhouseperu.com" },
-  { key: "airbnbUrl", label: "Link de Airbnb", placeholder: "https://www.airbnb.com/rooms/..." },
   { key: "facebookUrl", label: "Facebook", placeholder: "https://facebook.com/..." },
   { key: "instagramUrl", label: "Instagram", placeholder: "https://instagram.com/..." },
   { key: "tiktokUrl", label: "TikTok", placeholder: "https://tiktok.com/@..." },
@@ -1350,6 +1350,13 @@ function SettingsSection() {
       {/* Notificaciones WhatsApp a Dueños */}
       <OwnerNotificationsSettings
         getSettingValue={getSettingValue}
+        onSave={handleQuickSave}
+        isPending={upsertSetting.isPending}
+      />
+
+      {/* Alojamientos en Airbnb */}
+      <AirbnbListingsSettings
+        settings={settings || []}
         onSave={handleQuickSave}
         isPending={upsertSetting.isPending}
       />
@@ -1611,6 +1618,120 @@ function OwnerNotificationsSettings({
             {invalid.length > 0 && (
               <span className="text-destructive ml-2">· {invalid.length} inválido{invalid.length > 1 ? "s" : ""} (mínimo 8 dígitos)</span>
             )}
+          </div>
+          <Button onClick={handleSave} disabled={isPending} size="sm">
+            <Save className="mr-2 h-4 w-4" /> Guardar
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Alojamientos Airbnb — lista editable de listings (label + url)
+function AirbnbListingsSettings({
+  settings, onSave, isPending,
+}: {
+  settings: Setting[];
+  onSave: (key: string, value: string) => void;
+  isPending: boolean;
+}) {
+  const SETTING_KEY = "airbnbListings";
+
+  // Construir el mapa key->value desde el array para reusar el parser publico
+  const settingsMap = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const initial = parseAirbnbListings(settingsMap);
+
+  const [draft, setDraft] = useState<AirbnbListing[]>(() =>
+    initial.length > 0 ? initial : [{ label: "", url: "" }]
+  );
+  const [lastSaved, setLastSaved] = useState<string>(JSON.stringify(initial));
+
+  // Re-sync si remoto cambia (ej. tras refetch) y no hay edicion en curso
+  const remoteJson = JSON.stringify(initial);
+  if (remoteJson !== lastSaved && JSON.stringify(draft) === lastSaved) {
+    setDraft(initial.length > 0 ? initial : [{ label: "", url: "" }]);
+    setLastSaved(remoteJson);
+  }
+
+  const updateRow = (i: number, patch: Partial<AirbnbListing>) => {
+    setDraft((d) => d.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
+  };
+  const addRow = () => setDraft((d) => [...d, { label: "", url: "" }]);
+  const removeRow = (i: number) => setDraft((d) => d.filter((_, idx) => idx !== i));
+
+  const valid = draft.filter(
+    (r) => r.label.trim().length > 0 && /^https?:\/\/.+/i.test(r.url.trim())
+  );
+
+  const handleSave = () => {
+    const cleaned = valid.map((r) => ({ label: r.label.trim().slice(0, 80), url: r.url.trim() }));
+    // Guardamos como JSON string; el upsert intenta JSON.parse antes de almacenar.
+    onSave(SETTING_KEY, JSON.stringify(cleaned));
+    setLastSaved(JSON.stringify(cleaned));
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <HomeIcon className="h-5 w-5 text-[#FF385C]" />
+          Alojamientos en Airbnb
+        </CardTitle>
+        <CardDescription>
+          Cada listing aparece en el botón &quot;Airbnb&quot; del navbar. Si hay <strong>uno</strong> es link directo;
+          si hay <strong>dos o más</strong> se abre un menú para que el visitante elija. El nombre se muestra al usuario
+          (ej. &quot;Casa Cusco&quot;, &quot;Departamento Lima&quot;).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-2">
+          {draft.map((row, i) => {
+            const urlOk = !row.url.trim() || /^https?:\/\/.+/i.test(row.url.trim());
+            return (
+              <div key={i} className="flex items-start gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-2 flex-1">
+                  <Input
+                    placeholder="Casa Cusco"
+                    value={row.label}
+                    onChange={(e) => updateRow(i, { label: e.target.value })}
+                    maxLength={80}
+                  />
+                  <Input
+                    placeholder="https://www.airbnb.com/rooms/..."
+                    value={row.url}
+                    onChange={(e) => updateRow(i, { url: e.target.value })}
+                    className={!urlOk ? "border-destructive" : ""}
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeRow(i)}
+                  disabled={draft.length === 1}
+                  title="Eliminar"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={addRow}>
+              <Plus className="mr-2 h-4 w-4" /> Agregar otro
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {valid.length === 0 ? (
+                <span className="text-amber-600">Sin alojamientos visibles</span>
+              ) : (
+                <span className="text-emerald-600">
+                  ✓ {valid.length} alojamiento{valid.length > 1 ? "s" : ""} listo{valid.length > 1 ? "s" : ""}
+                </span>
+              )}
+            </span>
           </div>
           <Button onClick={handleSave} disabled={isPending} size="sm">
             <Save className="mr-2 h-4 w-4" /> Guardar

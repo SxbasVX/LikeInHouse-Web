@@ -17,6 +17,7 @@ import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import Image from "next/image";
+import { parseAirbnbListings, type AirbnbListing } from "@/lib/airbnb";
 
 const rightLinks = [
   { key: "about", href: "/nosotros" },
@@ -91,7 +92,7 @@ export function Navbar() {
     staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
-  const airbnbUrl = settings ? (settings as Record<string, string>)["airbnbUrl"] : undefined;
+  const airbnbListings = parseAirbnbListings(settings as Record<string, unknown> | null | undefined);
 
   const destinations = toursByDest ? Object.keys(toursByDest) : [];
 
@@ -161,12 +162,7 @@ export function Navbar() {
                 <DropdownMenuItem onClick={() => switchLocale("en")} className="rounded-lg cursor-pointer focus:bg-white/20">English</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            {airbnbUrl && (
-              <a href={airbnbUrl} target="_blank" rel="noopener noreferrer" className="h-10 lg:h-11 rounded-full bg-white/10 hover:bg-[#FF385C] text-white border border-white/20 hover:border-[#FF385C] px-4 text-[14px] font-semibold transition-all ml-1 inline-flex items-center gap-2">
-                <svg viewBox="0 0 448 512" className="h-4 w-4 fill-current"><path d="M224 373.12c-25.24-31.67-40.08-59.43-45-83.18-22.55-88 112.61-88 90.06 0-5.45 24.25-20.29 52-45 83.18zm138.15 73.23c-42.06 18.31-83.67-10.88-119.3-50.47 103.9-130.07 46.11-200-18.85-200-54.92 0-85.16 46.51-73.28 100.5 6.93 29.19 25.23 62.39 54.43 99.5-32.53 36.05-60.55 52.69-85.15 54.92-50 7.43-89.11-41.06-71.3-91.09 15.1-39.16 111.72-231.18 115.87-241.56 15.75-30.07 25.56-57.4 59.38-57.4 32.34 0 43.4 25.94 60.37 59.87 36 70.62 89.35 177.48 114.84 239.09 13.17 33.07-1.37 71.29-37.01 86.64zm47-136.21c-66.29-144.29-100.75-219.55-115.54-250.24-5.31-12.5-10.31-24.31-15.31-37.5-5-13.5-15.77-41.58-41.16-46.3-10.51-1.66-21.28 1.62-30.17 8.04-2.35 1.55-4.15 3.75-4.59 6.47-1.77 10.24 4.14 16.07 7.52 27.36l-126.06 317.92c-4.76 12-27.66 71.22-27.66 71.22-3.86 7.06-6.23 14.69-7 22.5-1.11 18.36 5.27 36.38 17.73 49.88 13.5 13.86 32.5 20.36 51.67 17.91 28.18-3.25 62.5-22.21 96.79-58.21 35.9 40.78 74.1 59.87 111.84 55.8 20.09-1.97 38.77-11.33 53-26.55 13.5-15.5 19.5-37.5 17.5-60-.06-3.58-.5-7.14-1.31-10.61z"/></svg>
-                Airbnb
-              </a>
-            )}
+            <AirbnbButton listings={airbnbListings} variant="dark" />
             <Button asChild className="h-10 lg:h-11 rounded-full bg-white/20 hover:bg-white text-white hover:text-brand-darkRed border border-white/30 pl-5 pr-1.5 text-[14px] font-semibold transition-all ml-1 group">
               <Link href="/tours" className="flex items-center gap-2.5">
                 {t("book", { fallback: "Reservar" })}
@@ -184,7 +180,7 @@ export function Navbar() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbUrl={airbnbUrl} />
+              <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbListings={airbnbListings} />
             </Sheet>
           </div>
         </div>
@@ -239,12 +235,7 @@ export function Navbar() {
               <DropdownMenuItem onClick={() => switchLocale("en")} className="rounded-lg cursor-pointer">English</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {airbnbUrl && (
-            <a href={airbnbUrl} target="_blank" rel="noopener noreferrer" className="h-10 lg:h-11 rounded-full bg-gray-100 hover:bg-[#FF385C] text-gray-700 hover:text-white border border-gray-200 hover:border-[#FF385C] px-4 text-[14px] font-semibold transition-all ml-1 inline-flex items-center gap-2">
-              <svg viewBox="0 0 448 512" className="h-4 w-4 fill-current"><path d="M224 373.12c-25.24-31.67-40.08-59.43-45-83.18-22.55-88 112.61-88 90.06 0-5.45 24.25-20.29 52-45 83.18zm138.15 73.23c-42.06 18.31-83.67-10.88-119.3-50.47 103.9-130.07 46.11-200-18.85-200-54.92 0-85.16 46.51-73.28 100.5 6.93 29.19 25.23 62.39 54.43 99.5-32.53 36.05-60.55 52.69-85.15 54.92-50 7.43-89.11-41.06-71.3-91.09 15.1-39.16 111.72-231.18 115.87-241.56 15.75-30.07 25.56-57.4 59.38-57.4 32.34 0 43.4 25.94 60.37 59.87 36 70.62 89.35 177.48 114.84 239.09 13.17 33.07-1.37 71.29-37.01 86.64zm47-136.21c-66.29-144.29-100.75-219.55-115.54-250.24-5.31-12.5-10.31-24.31-15.31-37.5-5-13.5-15.77-41.58-41.16-46.3-10.51-1.66-21.28 1.62-30.17 8.04-2.35 1.55-4.15 3.75-4.59 6.47-1.77 10.24 4.14 16.07 7.52 27.36l-126.06 317.92c-4.76 12-27.66 71.22-27.66 71.22-3.86 7.06-6.23 14.69-7 22.5-1.11 18.36 5.27 36.38 17.73 49.88 13.5 13.86 32.5 20.36 51.67 17.91 28.18-3.25 62.5-22.21 96.79-58.21 35.9 40.78 74.1 59.87 111.84 55.8 20.09-1.97 38.77-11.33 53-26.55 13.5-15.5 19.5-37.5 17.5-60-.06-3.58-.5-7.14-1.31-10.61z"/></svg>
-              Airbnb
-            </a>
-          )}
+          <AirbnbButton listings={airbnbListings} variant="light" />
           <Button asChild className="h-10 lg:h-11 rounded-full bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-1.5 text-[14px] font-semibold transition-all ml-1 group shadow-sm">
             <Link href="/tours" className="flex items-center gap-2.5">
               {t("book", { fallback: "Reservar" })}
@@ -268,7 +259,7 @@ export function Navbar() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbUrl={airbnbUrl} />
+            <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbListings={airbnbListings} />
           </Sheet>
         </div>
       </div>
@@ -277,12 +268,12 @@ export function Navbar() {
 }
 
 // ─── Shared Mobile Menu Content ───────────────────────────────────────────────
-function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMobileOpen, airbnbUrl }: {
+function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMobileOpen, airbnbListings }: {
   t: any; isEs: boolean; cartCount: number;
   switchLocale: (loc: "es" | "en") => void;
   intlRouter: any;
   setMobileOpen: (v: boolean) => void;
-  airbnbUrl?: string;
+  airbnbListings: AirbnbListing[];
 }) {
   return (
     <SheetContent side="left" className="w-[95vw] sm:w-[500px] p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] m-2 sm:m-4 h-[calc(100vh-16px)] sm:h-[calc(100vh-32px)] border-0 shadow-2xl overflow-y-auto flex flex-col bg-white">
@@ -321,13 +312,25 @@ function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMo
 
       <div className="flex-1" />
 
-      {airbnbUrl && (
-        <a href={airbnbUrl} target="_blank" rel="noopener noreferrer" onClick={() => setMobileOpen(false)} className="flex justify-between items-center group mt-6">
-          <span className="text-2xl font-medium text-[#FF385C] group-hover:text-[#E31C5F] transition-colors">Airbnb</span>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FF385C]/10 text-[#FF385C] group-hover:bg-[#FF385C] group-hover:text-white transition-colors">
-            <ArrowUpRight className="h-5 w-5" />
-          </div>
-        </a>
+      {airbnbListings.length > 0 && (
+        <div className="mt-6 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400">Airbnb</p>
+          {airbnbListings.map((l) => (
+            <a
+              key={l.url}
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileOpen(false)}
+              className="flex justify-between items-center group"
+            >
+              <span className="text-2xl font-medium text-[#FF385C] group-hover:text-[#E31C5F] transition-colors">{l.label}</span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FF385C]/10 text-[#FF385C] group-hover:bg-[#FF385C] group-hover:text-white transition-colors">
+                <ArrowUpRight className="h-5 w-5" />
+              </div>
+            </a>
+          ))}
+        </div>
       )}
 
       <div className="flex gap-3 mt-12 mb-4">
@@ -339,6 +342,65 @@ function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMo
         </Button>
       </div>
     </SheetContent>
+  );
+}
+
+// ─── Botón / Dropdown de Airbnb ───────────────────────────────────────────────
+function AirbnbIcon() {
+  return (
+    <svg viewBox="0 0 448 512" className="h-4 w-4 fill-current">
+      <path d="M224 373.12c-25.24-31.67-40.08-59.43-45-83.18-22.55-88 112.61-88 90.06 0-5.45 24.25-20.29 52-45 83.18zm138.15 73.23c-42.06 18.31-83.67-10.88-119.3-50.47 103.9-130.07 46.11-200-18.85-200-54.92 0-85.16 46.51-73.28 100.5 6.93 29.19 25.23 62.39 54.43 99.5-32.53 36.05-60.55 52.69-85.15 54.92-50 7.43-89.11-41.06-71.3-91.09 15.1-39.16 111.72-231.18 115.87-241.56 15.75-30.07 25.56-57.4 59.38-57.4 32.34 0 43.4 25.94 60.37 59.87 36 70.62 89.35 177.48 114.84 239.09 13.17 33.07-1.37 71.29-37.01 86.64zm47-136.21c-66.29-144.29-100.75-219.55-115.54-250.24-5.31-12.5-10.31-24.31-15.31-37.5-5-13.5-15.77-41.58-41.16-46.3-10.51-1.66-21.28 1.62-30.17 8.04-2.35 1.55-4.15 3.75-4.59 6.47-1.77 10.24 4.14 16.07 7.52 27.36l-126.06 317.92c-4.76 12-27.66 71.22-27.66 71.22-3.86 7.06-6.23 14.69-7 22.5-1.11 18.36 5.27 36.38 17.73 49.88 13.5 13.86 32.5 20.36 51.67 17.91 28.18-3.25 62.5-22.21 96.79-58.21 35.9 40.78 74.1 59.87 111.84 55.8 20.09-1.97 38.77-11.33 53-26.55 13.5-15.5 19.5-37.5 17.5-60-.06-3.58-.5-7.14-1.31-10.61z" />
+    </svg>
+  );
+}
+
+function AirbnbButton({ listings, variant }: { listings: AirbnbListing[]; variant: "dark" | "light" }) {
+  if (listings.length === 0) return null;
+
+  const baseDark = "h-10 lg:h-11 rounded-full bg-white/10 hover:bg-[#FF385C] text-white border border-white/20 hover:border-[#FF385C] px-4 text-[14px] font-semibold transition-all ml-1 inline-flex items-center gap-2";
+  const baseLight = "h-10 lg:h-11 rounded-full bg-gray-100 hover:bg-[#FF385C] text-gray-700 hover:text-white border border-gray-200 hover:border-[#FF385C] px-4 text-[14px] font-semibold transition-all ml-1 inline-flex items-center gap-2";
+  const cls = variant === "dark" ? baseDark : baseLight;
+
+  // 1 listing -> link directo (UX más rápido)
+  if (listings.length === 1) {
+    return (
+      <a href={listings[0].url} target="_blank" rel="noopener noreferrer" className={cls}>
+        <AirbnbIcon />
+        {listings[0].label || "Airbnb"}
+      </a>
+    );
+  }
+
+  // 2+ -> dropdown con los nombres
+  const menuClass =
+    variant === "dark"
+      ? "rounded-xl border-white/10 bg-black/85 backdrop-blur-xl text-white"
+      : "rounded-xl";
+  const itemClass =
+    variant === "dark"
+      ? "rounded-lg cursor-pointer focus:bg-white/20 gap-2"
+      : "rounded-lg cursor-pointer gap-2";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" className={cls}>
+          <AirbnbIcon />
+          Airbnb
+          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className={menuClass}>
+        {listings.map((l) => (
+          <DropdownMenuItem key={l.url} asChild className={itemClass}>
+            <a href={l.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 w-full">
+              <span className="text-[#FF385C]"><AirbnbIcon /></span>
+              <span>{l.label}</span>
+            </a>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
