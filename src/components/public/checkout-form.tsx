@@ -206,6 +206,13 @@ export function CheckoutForm({
     });
     const exchangeRate = rateData?.rate ?? RATE_FALLBACK;
 
+    // ── Descuento global activo (Black Friday, etc.) ─────────────────────────
+    const { data: globalDiscount } = trpc.public.activeGlobalDiscount.useQuery(undefined, {
+        staleTime: 5 * 60 * 1000,
+    });
+    const globalPct = globalDiscount ? Math.min(Number(globalDiscount.percent) || 0, 100) : 0;
+    const discountMultiplier = 1 - globalPct / 100;
+
     // ── Cálculo de totales ────────────────────────────────────────────────────
     const rate = currency === "PEN" ? exchangeRate : 1;
 
@@ -213,20 +220,18 @@ export function CheckoutForm({
         ? tiers.map((t) => ({
               tier: t,
               qty: quantities[t.id] ?? 0,
-              unitPrice: t.priceUsd * rate,
-              subtotal: (quantities[t.id] ?? 0) * t.priceUsd * rate,
+              unitPrice: t.priceUsd * discountMultiplier * rate,
+              subtotal: (quantities[t.id] ?? 0) * t.priceUsd * discountMultiplier * rate,
           })).filter((l) => l.qty > 0)
         : [];
 
-    const grandTotal = hasTiers
-        ? tiers.reduce((acc, t) => acc + (quantities[t.id] ?? 0) * t.priceUsd * rate, 0)
-        : (adultsFallback * (tour.pricing?.basePriceUsdAdult ?? 0) +
-           childrenFallback * (tour.pricing?.basePriceUsdChild ?? 0)) * rate;
-
-    const grandTotalUsd = hasTiers
+    const rawGrandTotalUsd = hasTiers
         ? tiers.reduce((acc, t) => acc + (quantities[t.id] ?? 0) * t.priceUsd, 0)
         : adultsFallback * (tour.pricing?.basePriceUsdAdult ?? 0) +
           childrenFallback * (tour.pricing?.basePriceUsdChild ?? 0);
+
+    const grandTotalUsd = Math.round(rawGrandTotalUsd * discountMultiplier * 100) / 100;
+    const grandTotal = Math.round(grandTotalUsd * rate * 100) / 100;
 
     const totalParticipants = hasTiers
         ? tiers.reduce((acc, t) => acc + (quantities[t.id] ?? 0), 0)

@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { getFinalPrice } from "@/lib/pricing";
 import { formatDuration } from "@/lib/utils";
+import { trpc } from "@/lib/trpc";
 
 interface TourCardProps {
   tour: {
@@ -56,6 +57,11 @@ export function TourCard({ tour }: TourCardProps) {
   const { toast } = useToast();
   const inCart = cartHydrated ? isInCart(tour.id) : false;
 
+  const { data: globalDiscount } = trpc.public.activeGlobalDiscount.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
+  const globalPct = globalDiscount ? Math.min(Number(globalDiscount.percent) || 0, 100) : 0;
+
   const name = isEs ? tour.nameEs : tour.nameEn;
   const desc = isEs ? tour.shortDescEs : tour.shortDescEn;
   const image = tour.images[0];
@@ -77,6 +83,7 @@ export function TourCard({ tour }: TourCardProps) {
       promoEndDate: tour.pricing.promoEndDate,
       promoLabelEs: tour.pricing.promoLabelEs,
       promoLabelEn: tour.pricing.promoLabelEn,
+      globalDiscountPercent: globalPct,
     });
 
     return {
@@ -84,9 +91,10 @@ export function TourCard({ tour }: TourCardProps) {
       finalPrice: result.finalPriceAdult,
       hasDiscount: result.discountPercent > 0,
       discountPercent: result.discountPercent,
+      discountType: result.discountType,
       promoLabel: isEs ? result.promoLabel.es : result.promoLabel.en,
     };
-  }, [tour.pricing, isEs]);
+  }, [tour.pricing, isEs, globalPct]);
 
   const diff = difficultyLabel[tour.difficulty];
 

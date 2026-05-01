@@ -8,6 +8,7 @@ import { serializeDecimals } from "@/server/lib/serialize";
 import { generateUniqueReservationRef } from "@/server/lib/references";
 import { calculateTotalWithDiscount } from "@/lib/pricing";
 import { sendBookingEmail } from "@/server/email/send-booking";
+import { getActiveGlobalDiscountPercent } from "@/server/lib/global-discount";
 
 // Valid status transitions
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -281,6 +282,7 @@ export const reservationRouter = router({
         const adultPrice = defaultTier ? Number(defaultTier.priceUsd) : Number(tour.pricing.basePriceUsdAdult);
         const childPrice = childTier ? Number(childTier.priceUsd) : Number(tour.pricing.basePriceUsdChild);
 
+        const globalPct = await getActiveGlobalDiscountPercent();
         const pricingData = {
           basePriceUsdAdult: adultPrice,
           basePriceUsdChild: childPrice,
@@ -289,6 +291,7 @@ export const reservationRouter = router({
           promoEndDate: tour.pricing.promoEndDate,
           groupDiscountPercent: tour.pricing.groupDiscountPercent ? Number(tour.pricing.groupDiscountPercent) : null,
           groupMinPersons: tour.pricing.groupMinPersons,
+          globalDiscountPercent: globalPct,
         };
         const { total: serverTotal } = calculateTotalWithDiscount(pricingData, input.adults, input.children);
 
@@ -385,16 +388,24 @@ export const reservationRouter = router({
 
       let serverTotalUsd: number;
 
+      // Descuento global activo (Black Friday, etc.) — aplica a todos los tours
+      const globalPct = await getActiveGlobalDiscountPercent();
+
       if (input.tierQuantities && input.tierQuantities.length > 0 && tour.pricing.tiers.length > 0) {
         // Multi-tier validation: compute USD total from each tier's price × quantity
-        serverTotalUsd = 0;
+        let rawTotal = 0;
         for (const { tierId, quantity } of input.tierQuantities) {
           const tier = tour.pricing.tiers.find((t) => t.id === tierId);
           if (!tier) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Tarifa de precio no encontrada" });
           }
-          serverTotalUsd += Number(tier.priceUsd) * quantity;
+          rawTotal += Number(tier.priceUsd) * quantity;
         }
+        // Para multi-tier no hay promo/grupo per-tier; solo aplica el descuento global
+        serverTotalUsd = globalPct > 0
+          ? Math.round(rawTotal * (1 - globalPct / 100) * 100) / 100
+          : Math.round(rawTotal * 100) / 100;
+
         // Validate against client USD total (allow 5 cents tolerance for rounding)
         const clientTotalUsd = input.totalAmountUsd ?? input.totalAmount;
         if (Math.abs(serverTotalUsd - clientTotalUsd) > 0.05) {
@@ -418,6 +429,7 @@ export const reservationRouter = router({
           promoEndDate: tour.pricing.promoEndDate,
           groupDiscountPercent: tour.pricing.groupDiscountPercent ? Number(tour.pricing.groupDiscountPercent) : null,
           groupMinPersons: tour.pricing.groupMinPersons,
+          globalDiscountPercent: globalPct,
         };
         const { total } = calculateTotalWithDiscount(pricingData, input.adults, input.children);
         serverTotalUsd = total;

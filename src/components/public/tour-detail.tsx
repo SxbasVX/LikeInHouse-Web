@@ -13,6 +13,7 @@ import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import { useToast } from "@/hooks/use-toast";
 import { formatDuration } from "@/lib/utils";
 import { TourConditions } from "@/components/public/tour-conditions";
+import { trpc } from "@/lib/trpc";
 
 interface TourImage {
   id: string;
@@ -110,7 +111,19 @@ export function TourDetail({ tour }: { tour: TourData }) {
   const desc = isEs ? tour.longDescEs : (tour.longDescEn || tour.longDescEs);
   // Prefer tiers over legacy fields
   const defaultTier = tour.pricing?.tiers?.find((t) => t.isDefault) || tour.pricing?.tiers?.[0];
-  const price = defaultTier ? Number(defaultTier.priceUsd) : (tour.pricing ? Number(tour.pricing.basePriceUsdAdult) : null);
+  const rawPrice = defaultTier ? Number(defaultTier.priceUsd) : (tour.pricing ? Number(tour.pricing.basePriceUsdAdult) : null);
+
+  // Descuento global activo (Black Friday, etc.) — aplica a todos los tours
+  const { data: globalDiscount } = trpc.public.activeGlobalDiscount.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
+  const globalPct = globalDiscount ? Math.min(Number(globalDiscount.percent) || 0, 100) : 0;
+  const price =
+    rawPrice != null && isFinite(rawPrice) && globalPct > 0
+      ? Math.round(rawPrice * (1 - globalPct / 100) * 100) / 100
+      : rawPrice;
+  const originalPrice = rawPrice;
+  const hasGlobalDiscount = globalPct > 0 && rawPrice != null && price !== rawPrice;
   const currency = "$";
 
   const included = tour.includes.filter((i) => i.type === "INCLUDED");
@@ -465,17 +478,30 @@ export function TourDetail({ tour }: { tour: TourData }) {
                   <div className="px-6 pt-6 pb-4">
                     {tour.tourType !== "INFORMATIONAL" && price ? (
                       <>
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">{t("from_price")}</p>
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">{t("from_price")}</p>
+                          {hasGlobalDiscount && (
+                            <span className="inline-flex items-center text-[11px] font-bold text-white bg-brand-orange px-2 py-0.5 rounded-full animate-pulse">
+                              -{globalPct}% OFF
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-baseline gap-1">
                           <span className="text-lg font-semibold text-gray-400 leading-none">{currency}</span>
                           <span className="font-heading text-5xl font-bold text-brand-orange leading-none">{price.toFixed(0)}</span>
                           <span className="text-sm text-gray-400 ml-1">/ {t("per_person")}</span>
                         </div>
+                        {hasGlobalDiscount && originalPrice != null && (
+                          <p className="text-sm text-gray-400 line-through mt-1">{currency}{originalPrice.toFixed(0)}</p>
+                        )}
                         {/* Tarifas por categoría */}
                         {tour.pricing?.tiers && tour.pricing.tiers.length > 1 && (
                           <div className="mt-3 flex flex-wrap gap-2">
                             {tour.pricing.tiers.map((tier) => {
-                              const tierPrice = Number(tier.priceUsd);
+                              const tierRaw = Number(tier.priceUsd);
+                              const tierFinal = globalPct > 0
+                                ? Math.round(tierRaw * (1 - globalPct / 100) * 100) / 100
+                                : tierRaw;
                               const tierLabel = isEs ? tier.labelEs : tier.labelEn;
                               return (
                                 <span
@@ -486,7 +512,10 @@ export function TourDetail({ tour }: { tour: TourData }) {
                                       : "bg-gray-100 text-gray-600"
                                   }`}
                                 >
-                                  {tierLabel} · {currency}{tierPrice.toFixed(0)}
+                                  {tierLabel} · {currency}{tierFinal.toFixed(0)}
+                                  {hasGlobalDiscount && (
+                                    <span className="text-[10px] line-through opacity-60 ml-1">{currency}{tierRaw.toFixed(0)}</span>
+                                  )}
                                 </span>
                               );
                             })}
