@@ -3,6 +3,7 @@ import { router, rateLimitedProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { RATE_LIMITS } from "@/server/lib/rate-limit";
 import { createAuditLog } from "@/server/lib/audit";
+import { sendBookingEmail } from "@/server/email/send-booking";
 
 const paypalLimited = rateLimitedProcedure(RATE_LIMITS.paypal);
 
@@ -276,6 +277,82 @@ export const paypalRouter = router({
                         referenceCode: reservation.referenceCode,
                     },
                 });
+
+                // Email confirmación de pago al cliente (fire-and-forget)
+                (async () => {
+                    try {
+                        const res = await ctx.db.reservation.findUnique({
+                            where: { id: input.reservationId },
+                            include: {
+                                client: { select: { firstName: true, lastName: true, email: true, phone: true } },
+                                tour: {
+                                    select: {
+                                        nameEs: true,
+                                        shortDescEs: true,
+                                        destination: true,
+                                        durationDays: true,
+                                        durationNights: true,
+                                        durationHours: true,
+                                        images: { where: { isPrimary: true }, take: 1, select: { url: true } },
+                                        includes: {
+                                            where: { type: "INCLUDE" },
+                                            orderBy: { sortOrder: "asc" },
+                                            select: { textEs: true },
+                                        },
+                                    },
+                                },
+                                departure: { select: { departureDate: true } },
+                            },
+                        });
+                        if (!res || !res.client?.email) return;
+
+                        // PaymentLink no tiene relacion Prisma; query aparte
+                        const link = res.paymentLinkId
+                            ? await ctx.db.paymentLink.findUnique({
+                                  where: { id: res.paymentLinkId },
+                                  select: { titleEs: true, descriptionEs: true, includesEs: true, totalAmount: true, amountPaid: true },
+                              })
+                            : null;
+
+                        const isPaymentLink = !!link;
+                        const totalAmount = link ? Number(link.totalAmount) : Number(res.totalAmount);
+                        const amountPaid = link ? Number(link.amountPaid) : capturedAmount;
+
+                        await sendBookingEmail({
+                            referenceCode: res.referenceCode,
+                            type: isPaymentLink ? "PAYMENT_LINK" : "RESERVATION",
+                            serviceName: link ? link.titleEs : (res.tour?.nameEs || "Servicio"),
+                            serviceDescription: link ? link.descriptionEs : (res.tour?.shortDescEs || null),
+                            serviceImageUrl: res.tour?.images[0]?.url || null,
+                            serviceDestination: res.tour?.destination || null,
+                            serviceDurationLabel: res.tour
+                                ? res.tour.durationDays && res.tour.durationDays > 0
+                                    ? `${res.tour.durationDays}D / ${res.tour.durationNights ?? Math.max(0, res.tour.durationDays - 1)}N`
+                                    : res.tour.durationHours && res.tour.durationHours > 0
+                                        ? `${res.tour.durationHours}h`
+                                        : null
+                                : null,
+                            serviceIncludes: link
+                                ? link.includesEs
+                                : (res.tour?.includes.map((i) => i.textEs) || []),
+                            clientName: `${res.client.firstName} ${res.client.lastName}`,
+                            clientEmail: res.client.email,
+                            clientPhone: res.client.phone || null,
+                            amountPaid,
+                            totalAmount,
+                            currency: res.currency,
+                            dateStr: res.departure?.departureDate
+                                ? res.departure.departureDate.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })
+                                : "",
+                            adults: res.adults,
+                            children: res.children,
+                            isPaid: amountPaid >= totalAmount - 0.01,
+                            isEs: true,
+                        });
+                    } catch (err) {
+                        console.error("[Email] PayPal capture booking email failed:", err);
+                    }
+                })();
 
                 return { success: true, referenceCode: reservation.referenceCode };
             }

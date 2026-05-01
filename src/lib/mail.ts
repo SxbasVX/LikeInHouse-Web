@@ -15,10 +15,21 @@ export const sendEmail = async ({
     to,
     subject,
     html,
+    text,
+    replyTo,
+    trustedHtml,
 }: {
     to: string;
     subject: string;
     html: string;
+    text?: string;
+    replyTo?: string;
+    /**
+     * Set to true ONLY when html is fully built by our own code (no user-supplied
+     * HTML). Skips sanitization so inline `style` attrs (needed for email clients)
+     * survive. NEVER set to true with HTML that interpolates raw user input.
+     */
+    trustedHtml?: boolean;
 }) => {
     const resend = getResend();
     if (!resend) {
@@ -26,15 +37,16 @@ export const sendEmail = async ({
         return { data: null, error: { message: "Email not configured" } };
     }
 
-    const from = process.env.EMAIL_FROM || "Cotizaciones Like In House <ventas@tudominio.com>";
+    const from = process.env.EMAIL_FROM || "Like In House <reservas@likeinhouseperu.com>";
 
-    // Sanitize HTML to prevent injection via user-supplied data
-    const safeHtml = sanitizeHtml(html);
+    const finalHtml = trustedHtml ? html : sanitizeHtml(html);
 
     return await resend.emails.send({
         from,
         to,
         subject,
-        html: safeHtml,
+        html: finalHtml,
+        ...(text ? { text } : {}),
+        ...(replyTo ? { replyTo } : {}),
     });
 };

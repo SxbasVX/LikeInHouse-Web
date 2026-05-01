@@ -7,6 +7,7 @@ import { sendWhatsAppAlert, sendWhatsAppToClient, sendBookingNotification } from
 import { serializeDecimals } from "@/server/lib/serialize";
 import { generateUniqueReservationRef } from "@/server/lib/references";
 import { calculateTotalWithDiscount } from "@/lib/pricing";
+import { sendBookingEmail } from "@/server/email/send-booking";
 
 // Valid status transitions
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -363,7 +364,15 @@ export const reservationRouter = router({
       // Validate tour exists and is bookable
       const tour = await ctx.db.tour.findUnique({
         where: { id: input.tourId },
-        include: { pricing: { include: { tiers: { orderBy: { sortOrder: "asc" } } } } },
+        include: {
+          pricing: { include: { tiers: { orderBy: { sortOrder: "asc" } } } },
+          images: { where: { isPrimary: true }, take: 1, select: { url: true } },
+          includes: {
+            where: { type: "INCLUDE" },
+            orderBy: { sortOrder: "asc" },
+            select: { textEs: true, textEn: true },
+          },
+        },
       });
 
       if (!tour || tour.status !== "PUBLISHED" || tour.tourType !== "BOOKABLE") {
@@ -514,6 +523,41 @@ export const reservationRouter = router({
           `¡Hola ${input.firstName}! 🎉 Hemos recibido tu solicitud de reserva en Like In House.\n\nTour: ${tour!.nameEs}\nReferencia: ${reservation.referenceCode}\nPasajeros: ${input.adults + input.children}\n\nRevisa tu correo para continuar con el pago.`
         ).catch(console.error);
       }
+
+      // Email de confirmación al cliente (fire-and-forget, nunca lanza)
+      const departureDateStr = input.departureId
+        ? await ctx.db.tourDeparture
+            .findUnique({ where: { id: input.departureId }, select: { departureDate: true } })
+            .then((d) => d?.departureDate ? d.departureDate.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" }) : "")
+            .catch(() => "")
+        : "";
+
+      sendBookingEmail({
+        referenceCode: reservation.referenceCode,
+        type: "RESERVATION",
+        serviceName: tour.nameEs,
+        serviceDescription: tour.shortDescEs,
+        serviceImageUrl: tour.images[0]?.url || null,
+        serviceDestination: tour.destination,
+        serviceDurationLabel:
+          tour.durationDays && tour.durationDays > 0
+            ? `${tour.durationDays}D / ${tour.durationNights ?? Math.max(0, tour.durationDays - 1)}N`
+            : tour.durationHours && tour.durationHours > 0
+              ? `${tour.durationHours}h`
+              : null,
+        serviceIncludes: tour.includes.map((i) => i.textEs),
+        clientName: `${input.firstName} ${input.lastName}`,
+        clientEmail: input.email,
+        clientPhone: input.phone || null,
+        amountPaid: 0,
+        totalAmount: Number(reservation.totalAmount),
+        currency: reservation.currency,
+        dateStr: departureDateStr,
+        adults: input.adults,
+        children: input.children,
+        isPaid: false,
+        isEs: true,
+      });
 
       return serializeDecimals(reservation);
     }),
