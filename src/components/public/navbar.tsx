@@ -115,12 +115,12 @@ export function Navbar() {
   // ─── HERO MODE ────────────────────────────────────────────────────────────
   if (heroMode) {
     return (
-      <header className="fixed top-0 left-0 right-0 z-50 w-full pointer-events-none py-4">
-        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
+      <header className="fixed top-0 left-0 right-0 z-50 w-full pointer-events-none py-3 sm:py-4">
+        <div className="mx-auto max-w-[1400px] px-3 sm:px-6 lg:px-8 flex items-center justify-between h-12 sm:h-14">
 
-          <Link href="/" className="pointer-events-auto hidden sm:flex items-center shrink-0 group relative z-20">
+          <Link href="/" className="pointer-events-auto flex items-center shrink-0 group relative z-20">
             <Image src="/Logo.svg" alt="Like In House Logo" width={200} height={51}
-              className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
+              className="w-28 sm:w-36 md:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
               priority
             />
           </Link>
@@ -173,10 +173,16 @@ export function Navbar() {
             </Button>
           </div>
 
-          <div className="pointer-events-auto flex lg:hidden items-center gap-2">
+          <div className="pointer-events-auto flex lg:hidden items-center gap-1.5">
+            <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white border border-white/30 hover:bg-white/10 relative">
+              <Link href="/carrito" aria-label="Carrito">
+                <ShoppingCart className="h-5 w-5" />
+                {safeCartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{safeCartCount}</span>}
+              </Link>
+            </Button>
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white border border-white/30 hover:bg-white/10">
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white border border-white/30 hover:bg-white/10" aria-label="Menú">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -191,11 +197,11 @@ export function Navbar() {
   // ─── SCROLLED MODE: barra blanca con animación de entrada ─────────────────
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white shadow-md animate-slide-down">
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      <div className="mx-auto max-w-[1400px] px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-4">
 
-        <Link href="/" className="hidden sm:flex items-center shrink-0 group">
+        <Link href="/" className="flex items-center shrink-0 group">
           <Image src="/Logo-Azul.svg" alt="Like In House Logo" width={200} height={51}
-            className="w-36 sm:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
+            className="w-28 sm:w-36 md:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
             priority
           />
         </Link>
@@ -246,8 +252,8 @@ export function Navbar() {
           </Button>
         </div>
 
-        <div className="flex lg:hidden items-center gap-2">
-          <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-600 hover:bg-gray-100 relative">
+        <div className="flex lg:hidden items-center gap-1.5">
+          <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-600 hover:bg-gray-100 relative" aria-label="Carrito">
             <Link href="/carrito">
               <ShoppingCart className="h-5 w-5" />
               {safeCartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{safeCartCount}</span>}
@@ -255,7 +261,7 @@ export function Navbar() {
           </Button>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-700 border border-gray-200 hover:bg-gray-100">
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-700 border border-gray-200 hover:bg-gray-100" aria-label="Menú">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>

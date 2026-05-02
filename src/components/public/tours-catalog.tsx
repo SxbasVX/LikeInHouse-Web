@@ -129,14 +129,14 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
               </Button>
             </form>
 
-            {/* Filters row */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+            {/* Filters row — compacto en mobile (1 fila con scroll horizontal), labels solo en desktop */}
+            <div className="flex sm:justify-center gap-2 sm:gap-3 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto sm:overflow-visible scrollbar-hide">
               {/* Destination */}
-              <div className="flex flex-col gap-1 w-full sm:w-auto">
-                <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 pl-4">{t("filter_destination")}</label>
+              <div className="flex flex-col gap-1 shrink-0 sm:w-auto">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 pl-4 hidden sm:block">{t("filter_destination")}</label>
                 <Select value={destination || "all"} onValueChange={(v) => { setDestination(v === "all" ? undefined : v); setPage(1); }}>
-                  <SelectTrigger className="h-12 w-full sm:w-48 rounded-full border-gray-200 bg-white shadow-sm text-sm focus:ring-brand-teal/30">
-                    <SelectValue placeholder={t("filter_all")} />
+                  <SelectTrigger className="h-10 sm:h-12 w-36 sm:w-48 rounded-full border-gray-200 bg-white shadow-sm text-xs sm:text-sm focus:ring-brand-teal/30">
+                    <SelectValue placeholder={t("filter_destination")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl">
                     <SelectItem value="all">{t("filter_all")}</SelectItem>
@@ -146,11 +146,11 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
               </div>
 
               {/* Category */}
-              <div className="flex flex-col gap-1 w-full sm:w-auto">
-                <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 pl-4">{t("filter_category")}</label>
+              <div className="flex flex-col gap-1 shrink-0 sm:w-auto">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 pl-4 hidden sm:block">{t("filter_category")}</label>
                 <Select value={category || "all"} onValueChange={(v) => { setCategory(v === "all" ? undefined : v); setPage(1); }}>
-                  <SelectTrigger className="h-12 w-full sm:w-48 rounded-full border-gray-200 bg-white shadow-sm text-sm focus:ring-brand-teal/30">
-                    <SelectValue placeholder={t("filter_all")} />
+                  <SelectTrigger className="h-10 sm:h-12 w-32 sm:w-48 rounded-full border-gray-200 bg-white shadow-sm text-xs sm:text-sm focus:ring-brand-teal/30">
+                    <SelectValue placeholder={t("filter_category")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl">
                     <SelectItem value="all">{t("filter_all")}</SelectItem>
@@ -160,11 +160,11 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
               </div>
 
               {/* Sort */}
-              <div className="flex flex-col gap-1 w-full sm:w-auto">
-                <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 pl-4">{t("sort_by")}</label>
+              <div className="flex flex-col gap-1 shrink-0 sm:w-auto">
+                <label className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 pl-4 hidden sm:block">{t("sort_by")}</label>
                 <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
-                  <SelectTrigger className="h-12 w-full sm:w-48 rounded-full border-gray-200 bg-white shadow-sm text-sm focus:ring-brand-teal/30">
-                    <SelectValue placeholder={t("sort_newest")} />
+                  <SelectTrigger className="h-10 sm:h-12 w-32 sm:w-48 rounded-full border-gray-200 bg-white shadow-sm text-xs sm:text-sm focus:ring-brand-teal/30">
+                    <SelectValue placeholder={t("sort_by")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl">
                     <SelectItem value="newest">{t("sort_newest")}</SelectItem>
@@ -176,11 +176,11 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
               </div>
 
               {activeFilterCount > 0 && (
-                <div className="flex flex-col gap-1 w-full sm:w-auto">
+                <div className="flex flex-col gap-1 shrink-0 sm:w-auto">
                   <label className="text-[11px] text-transparent pl-4 hidden sm:block">&nbsp;</label>
                   <button
                     onClick={clearAll}
-                    className="flex items-center justify-center gap-1.5 h-12 rounded-full px-5 text-sm font-medium text-gray-500 hover:text-brand-darkRed border border-gray-200 bg-white transition-colors w-full sm:w-auto"
+                    className="flex items-center justify-center gap-1.5 h-10 sm:h-12 rounded-full px-4 sm:px-5 text-xs sm:text-sm font-medium text-gray-500 hover:text-brand-darkRed border border-gray-200 bg-white transition-colors whitespace-nowrap"
                   >
                     <X className="h-3.5 w-3.5" />
                     Limpiar ({activeFilterCount})

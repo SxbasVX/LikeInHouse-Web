@@ -192,7 +192,7 @@ export function TourDetail({ tour }: { tour: TourData }) {
 
   return (
     <>
-    <div>
+    <div className="pb-24 lg:pb-0">
 
       {/* ── HERO ────────────────────────────────────────────────── */}
       <div className="relative -mt-20 h-[62vh] min-h-[480px] w-full overflow-hidden">
@@ -674,6 +674,45 @@ export function TourDetail({ tour }: { tour: TourData }) {
         </div>
       </div>
     </div>
+
+    {/* ── STICKY MOBILE BOOK BAR ──────────────────────────── */}
+    {tour.tourType !== "INFORMATIONAL" && price && (
+      <div className="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3">
+        <div className="flex flex-col min-w-0">
+          <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">{t("from_price")}</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-heading text-xl font-bold text-brand-orange leading-none">{currency}{price.toFixed(0)}</span>
+            {hasGlobalDiscount && originalPrice != null && (
+              <span className="text-xs text-gray-400 line-through">{currency}{originalPrice.toFixed(0)}</span>
+            )}
+            <span className="text-[11px] text-gray-400">/ {t("per_person")}</span>
+          </div>
+        </div>
+        <Link
+          href={`/tours/${tour.slug}/reservar${selectedDate ? `?date=${selectedDate}` : ""}`}
+          className="shrink-0 inline-flex items-center gap-2 rounded-full bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-2 py-3 text-sm font-bold transition-all shadow-md"
+        >
+          {t("book_now")}
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20">
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </span>
+        </Link>
+      </div>
+    )}
+    {tour.tourType === "INFORMATIONAL" && (
+      <div className="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3">
+        <span className="text-sm font-semibold text-gray-700">{t("contact_for_info")}</span>
+        <Link
+          href="/contacto"
+          className="shrink-0 inline-flex items-center gap-2 rounded-full bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-2 py-3 text-sm font-bold transition-all shadow-md"
+        >
+          {t("contact_us")}
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20">
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </span>
+        </Link>
+      </div>
+    )}
 
     {/* ── LIGHTBOX ──────────────────────────────────────────── */}
     {lightboxOpen && tour.images.length > 0 && (

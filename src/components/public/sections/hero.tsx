@@ -72,24 +72,24 @@ export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
       </div>
 
       {/* Main centered content */}
-      <div className="relative z-20 flex-1 flex flex-col items-center justify-center text-center px-4 w-full pt-28 pb-32 lg:pt-36 lg:pb-40 pointer-events-none">
+      <div className="relative z-20 flex-1 flex flex-col items-center justify-center text-center px-4 w-full pt-24 pb-28 sm:pt-28 sm:pb-32 lg:pt-36 lg:pb-40 pointer-events-none">
 
         {/* Badge */}
         <div
-          className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-2 backdrop-blur-md mb-8"
+          className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 sm:px-5 py-1.5 sm:py-2 backdrop-blur-md mb-6 sm:mb-8"
           style={{ opacity: 0, animation: "hero-reveal 0.7s cubic-bezier(0.16,1,0.3,1) 200ms forwards" }}
         >
           <span className="h-2 w-2 rounded-full bg-brand-orange animate-pulse" />
-          <span className="text-sm font-semibold tracking-wide uppercase text-white">
+          <span className="text-[11px] sm:text-sm font-semibold tracking-wide uppercase text-white">
             {t("hero_badge")}
           </span>
         </div>
 
         {/* Title */}
         <h1
-          className="font-heading font-bold leading-[1.1] tracking-tight mb-6 max-w-5xl overflow-hidden"
+          className="font-heading font-bold leading-[1.05] sm:leading-[1.1] tracking-tight mb-5 sm:mb-6 max-w-5xl overflow-hidden px-2"
           style={{
-            fontSize: "clamp(2.8rem, 8vw, 6.5rem)",
+            fontSize: "clamp(2.1rem, 9vw, 6.5rem)",
             textShadow: "0 2px 12px rgba(0,0,0,0.4)",
           }}
         >
@@ -111,7 +111,7 @@ export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
 
         {/* Subtítulo cálido */}
         <p
-          className="text-white/80 text-lg lg:text-xl font-light max-w-xl mb-10 leading-relaxed"
+          className="text-white/80 text-sm sm:text-lg lg:text-xl font-light max-w-xl mb-7 sm:mb-10 leading-relaxed px-4"
           style={{ opacity: 0, animation: "hero-reveal 0.7s cubic-bezier(0.16,1,0.3,1) 700ms forwards" }}
         >
           {t("hero_subtitle", { fallback: "Viajes pensados para familias, amigos y aventureros que quieren vivir el Perú de verdad." })}
@@ -124,42 +124,45 @@ export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
         >
           <form
             onSubmit={handleSearch}
-            className="flex items-center gap-0 rounded-2xl bg-white p-2 shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+            className="flex items-center gap-0 rounded-2xl bg-white p-1.5 sm:p-2 shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
           >
-            <div className="flex-1 flex items-center gap-3 pl-4">
-              <Search className="h-5 w-5 text-gray-400 shrink-0" />
+            <div className="flex-1 flex items-center gap-2 sm:gap-3 pl-3 sm:pl-4 min-w-0">
+              <Search className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 shrink-0" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("search_placeholder", { fallback: "Destino, tour o actividad..." })}
-                className="flex-1 bg-transparent text-gray-900 placeholder:text-gray-400 text-base lg:text-lg outline-none py-3.5 min-w-0 font-medium"
+                className="flex-1 bg-transparent text-gray-900 placeholder:text-gray-400 text-sm sm:text-base lg:text-lg outline-none py-3 sm:py-3.5 min-w-0 font-medium"
               />
             </div>
             <button
               type="submit"
-              className="shrink-0 rounded-xl bg-brand-orange hover:bg-[#e33e1a] flex items-center gap-2 text-white font-bold transition-all hover:scale-[1.02] shadow-[0_0_16px_rgba(252,69,31,0.35)] px-4 py-3.5 sm:px-7 text-base"
+              aria-label={t("hero_cta", { fallback: "Explorar" })}
+              className="shrink-0 rounded-xl bg-brand-orange hover:bg-[#e33e1a] flex items-center gap-2 text-white font-bold transition-all hover:scale-[1.02] shadow-[0_0_16px_rgba(252,69,31,0.35)] px-3.5 py-3 sm:px-7 sm:py-3.5 text-sm sm:text-base"
             >
               <span className="hidden sm:inline">{t("hero_cta", { fallback: "Explorar" })}</span>
-              <ArrowUpRight className="h-5 w-5" />
+              <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
           </form>
 
-          {/* Filtro rápido por región */}
+          {/* Filtro rápido por región — scroll horizontal en mobile, wrap en desktop */}
           <div
-            className="flex flex-wrap justify-center gap-2 mt-4"
+            className="mt-4 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto sm:overflow-visible scrollbar-hide"
             style={{ opacity: 0, animation: "hero-fade 0.6s ease-out 1100ms forwards" }}
           >
-            {QUICK_DESTINATIONS.map((region) => (
-              <button
-                key={region}
-                type="button"
-                onClick={() => handleQuickDestination(region)}
-                className="rounded-full px-4 py-1.5 text-sm font-medium transition-all backdrop-blur-md border border-white/40 bg-white/10 text-white hover:bg-brand-orange hover:border-brand-orange"
-              >
-                {region}
-              </button>
-            ))}
+            <div className="flex sm:flex-wrap sm:justify-center gap-2 w-max sm:w-auto">
+              {QUICK_DESTINATIONS.map((region) => (
+                <button
+                  key={region}
+                  type="button"
+                  onClick={() => handleQuickDestination(region)}
+                  className="shrink-0 rounded-full px-3.5 sm:px-4 py-1.5 text-xs sm:text-sm font-medium transition-all backdrop-blur-md border border-white/40 bg-white/10 text-white hover:bg-brand-orange hover:border-brand-orange whitespace-nowrap"
+                >
+                  {region}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
