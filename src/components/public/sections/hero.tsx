@@ -8,7 +8,20 @@ import Image from "next/image";
 
 const DEFAULT_HERO_BG = "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=1920&q=80";
 
-const QUICK_SEARCHES = ["Machu Picchu", "Valle Sagrado", "Tumbes", "Ruta del Sol", "Montaña de Colores", "Turismo comunitario"];
+// Regiones / destinos peruanos para filtro rápido. Se envían como ?destination=
+// que el server hace contains-insensitive sobre Tour.destination.
+const QUICK_DESTINATIONS = [
+  "Cusco",
+  "Machu Picchu",
+  "Lima",
+  "Ica",
+  "Arequipa",
+  "Puno",
+  "Ancash",
+  "Tumbes",
+  "Lambayeque",
+  "Trujillo",
+];
 
 interface HeroProps {
   title?: string;
@@ -27,8 +40,8 @@ export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
     router.push(q ? `/tours?search=${encodeURIComponent(q)}` : "/tours");
   }
 
-  function handleQuick(term: string) {
-    router.push(`/tours?search=${encodeURIComponent(term)}`);
+  function handleQuickDestination(region: string) {
+    router.push(`/tours?destination=${encodeURIComponent(region)}`);
   }
 
   return (
@@ -132,19 +145,19 @@ export function HeroSection({ title, subtitle, imageUrl }: HeroProps = {}) {
             </button>
           </form>
 
-          {/* Quick search */}
+          {/* Filtro rápido por región */}
           <div
             className="flex flex-wrap justify-center gap-2 mt-4"
             style={{ opacity: 0, animation: "hero-fade 0.6s ease-out 1100ms forwards" }}
           >
-            {QUICK_SEARCHES.map((term) => (
+            {QUICK_DESTINATIONS.map((region) => (
               <button
-                key={term}
+                key={region}
                 type="button"
-                onClick={() => handleQuick(term)}
+                onClick={() => handleQuickDestination(region)}
                 className="rounded-full px-4 py-1.5 text-sm font-medium transition-all backdrop-blur-md border border-white/40 bg-white/10 text-white hover:bg-brand-orange hover:border-brand-orange"
               >
-                {term}
+                {region}
               </button>
             ))}
           </div>
