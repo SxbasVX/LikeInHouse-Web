@@ -88,7 +88,7 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
 
       {/* Hero Header */}
       <div className="bg-[#faf8f5] border-b border-gray-100">
-        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12 py-20 lg:py-28">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12 pt-16 pb-8 lg:pt-24 lg:pb-12">
           <div className="text-center">
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-teal mb-4">
               {t("catalog_subtitle")}
@@ -193,7 +193,7 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
       </div>
 
       {/* Grid */}
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12 py-16 lg:py-20">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12 py-8 lg:py-12">
 
         {/* Results count */}
         {!isLoading && (
