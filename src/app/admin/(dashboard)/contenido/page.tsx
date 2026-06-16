@@ -715,8 +715,8 @@ function BlogSection() {
       </Card>
 
       {/* Dialog Crear Blog */}
-      <Dialog open={showCreate} onOpenChange={(open) => { if (!open) resetForm(); setShowCreate(open); }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={showCreate} modal={false} onOpenChange={(open) => { if (!open) resetForm(); setShowCreate(open); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Nuevo Articulo de Blog</DialogTitle>
           </DialogHeader>
@@ -777,8 +777,8 @@ function BlogSection() {
       </Dialog>
 
       {/* Dialog Editar Blog */}
-      <Dialog open={!!editId} onOpenChange={(open) => { if (!open) { setEditId(null); resetForm(); } }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={!!editId} modal={false} onOpenChange={(open) => { if (!open) { setEditId(null); resetForm(); } }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Editar Articulo</DialogTitle>
           </DialogHeader>
@@ -1004,8 +1004,8 @@ function HomeSectionsSection() {
       </CardContent>
 
       {/* Dialog Editar Sección / Destinos */}
-      <Dialog open={!!editSection} onOpenChange={() => setEditSection(null)}>
-        <DialogContent className="max-w-xl">
+      <Dialog open={!!editSection} modal={false} onOpenChange={() => setEditSection(null)}>
+        <DialogContent className="max-w-xl" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Editar {editSection ? typeLabels[editSection.type] : "Sección"}</DialogTitle>
           </DialogHeader>
