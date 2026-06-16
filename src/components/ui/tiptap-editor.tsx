@@ -5,6 +5,7 @@ import StarterKit from "@tiptap/starter-kit";
 import ImageExtension from "@tiptap/extension-image";
 import LinkExtension from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import { CldUploadWidget } from "next-cloudinary";
 import { Button } from "@/components/ui/button";
 import {
   Bold,
@@ -157,9 +158,37 @@ export function TiptapEditor({ content, onChange, placeholder = "Escribe aqui...
         <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={addLink}>
           <LinkIcon className="h-4 w-4" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={addImage}>
-          <ImageIcon className="h-4 w-4" />
-        </Button>
+        <CldUploadWidget
+          onSuccess={(result: any) => {
+            const url = result.info.secure_url;
+            if (url) {
+              editor.chain().focus().setImage({ src: url }).run();
+            }
+          }}
+          uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "agencia_tours_dev"}
+          options={{
+            maxFiles: 1,
+            sources: ["local", "url", "camera"],
+            clientAllowedFormats: ["jpg", "jpeg", "png", "webp", "avif"],
+            maxImageFileSize: 10000000,
+            folder: "likesinhouse_blog",
+          }}
+        >
+          {({ open }) => (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={(e) => {
+                e.preventDefault();
+                open();
+              }}
+            >
+              <ImageIcon className="h-4 w-4" />
+            </Button>
+          )}
+        </CldUploadWidget>
 
         <div className="ml-auto flex gap-0.5">
           <Button
