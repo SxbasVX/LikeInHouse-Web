@@ -126,8 +126,8 @@ export function TourDetail({ tour }: { tour: TourData }) {
   const hasGlobalDiscount = globalPct > 0 && rawPrice != null && price !== rawPrice;
   const currency = "$";
 
-  const included = tour.includes.filter((i) => i.type === "INCLUDED");
-  const excluded = tour.includes.filter((i) => i.type === "EXCLUDED");
+  const included = tour.includes.filter((i) => i.type === "INCLUDE");
+  const excluded = tour.includes.filter((i) => i.type === "EXCLUDE");
 
   const toggleDay = (dayNumber: number) => {
     setExpandedDays((prev) => {
