@@ -11,6 +11,7 @@ const CERT_NAMES = [
   "Y tú qué planes?",
   "Gercetur Cusco",
   "Dircetur Tumbes",
+  "Certificado Caltur Oro",
 ];
 
 export function CertificationsSection() {
@@ -23,7 +24,7 @@ export function CertificationsSection() {
     return (settings as Record<string, string>)[key] || "";
   };
 
-  const items = [1, 2, 3, 4, 5]
+  const items = [1, 2, 3, 4, 5, 6]
     .map((i) => ({
       url: getSetting(`footerLogo${i}Url`),
       link: getSetting(`footerLogo${i}Link`),

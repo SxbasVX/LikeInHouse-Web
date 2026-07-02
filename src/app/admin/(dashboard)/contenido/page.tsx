@@ -1238,6 +1238,7 @@ const CERTIFICATIONS = [
   { slot: 3, name: "Y tú qué planes?", description: "Marca turística del Perú" },
   { slot: 4, name: "Gercetur Cusco",  description: "Gerencia Regional de Comercio Exterior y Turismo" },
   { slot: 5, name: "Dircetur Tumbes", description: "Dirección Regional de Comercio Exterior y Turismo" },
+  { slot: 6, name: "Certificado Caltur Oro", description: "Certificado Calidad Turística Oro" },
 ] as const;
 
 // ===== Settings =====
