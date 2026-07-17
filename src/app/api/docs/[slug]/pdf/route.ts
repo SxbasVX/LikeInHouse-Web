@@ -6,6 +6,16 @@ export const dynamic = "force-dynamic";
 
 const SLUG_RE = /^[a-z0-9-]+$/;
 
+function isTrustedPdfHost(hostname: string): boolean {
+    return (
+        hostname === "cloudinary.com" ||
+        hostname.endsWith(".cloudinary.com") ||
+        hostname === "github.com" ||
+        hostname === "raw.githubusercontent.com" ||
+        hostname.endsWith(".github.io")
+    );
+}
+
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ slug: string }> }
@@ -29,7 +39,7 @@ export async function GET(
     } catch {
         return NextResponse.json({ error: "Invalid source" }, { status: 502 });
     }
-    if (upstream.protocol !== "https:" || !upstream.hostname.endsWith(".cloudinary.com")) {
+    if (upstream.protocol !== "https:" || !isTrustedPdfHost(upstream.hostname)) {
         return NextResponse.json({ error: "Untrusted source" }, { status: 502 });
     }
 
