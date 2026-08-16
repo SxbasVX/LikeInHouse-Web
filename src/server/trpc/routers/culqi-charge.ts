@@ -53,7 +53,13 @@ export const culqiChargeRouter = router({
       // 1. Verificar reserva
       const reservation = await ctx.db.reservation.findUnique({
         where: { id: reservationId },
-        select: { id: true, referenceCode: true, status: true, totalAmount: true },
+        select: {
+          id: true,
+          referenceCode: true,
+          status: true,
+          totalAmount: true,
+          client: { select: { firstName: true, lastName: true } },
+        },
       });
       if (!reservation) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Reserva no encontrada" });
@@ -81,6 +87,11 @@ export const culqiChargeRouter = router({
           source_id: token,
           description: `Reserva ${reservation.referenceCode} - Like In House`,
           capture: true,
+          client_details: {
+            first_name: reservation.client.firstName,
+            last_name: reservation.client.lastName,
+            email: email,
+          },
           metadata: {
             reservation_id: reservationId,
             reference_code: reservation.referenceCode,
