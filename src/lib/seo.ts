@@ -174,6 +174,7 @@ export function travelAgencyJsonLd(locale: string) {
     sameAs: [
       "https://www.instagram.com/likeinhouseperu",
       "https://www.facebook.com/likeinhouseperu",
+      "https://www.tiktok.com/@likeinhouseperu",
     ],
   };
 }

@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure } from "../trpc";
+import { sanitizeName, sanitizePhone, toCountryCode } from "@/server/lib/payer";
 
 // ─── Tipo de cambio oficial SUNAT (vía apis.net.pe) ──────────────────────────
 // Fuente: SUNAT publica el tipo de cambio diariamente. Este endpoint
@@ -58,7 +59,10 @@ export const culqiChargeRouter = router({
           referenceCode: true,
           status: true,
           totalAmount: true,
-          client: { select: { firstName: true, lastName: true } },
+          currency: true,
+          client: {
+            select: { firstName: true, lastName: true, email: true, phone: true, country: true },
+          },
         },
       });
       if (!reservation) {
@@ -68,12 +72,58 @@ export const culqiChargeRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Esta reserva ya fue pagada" });
       }
 
+      // El monto y la moneda los decide el servidor a partir de la reserva:
+      // antes se cobraba el valor que enviaba el navegador, así que cualquiera
+      // podía pagar 1 céntimo. Un desfase entre lo cobrado y la reserva es
+      // además una de las señales que Culqi marca como sospechosa.
+      if (currency !== reservation.currency) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "La moneda del pago no coincide con la reserva",
+        });
+      }
+      const expectedAmount = Math.round(Number(reservation.totalAmount) * 100);
+      if (amount !== expectedAmount) {
+        console.error("[Culqi Charges] Amount mismatch:", {
+          referenceCode: reservation.referenceCode,
+          received: amount,
+          expected: expectedAmount,
+        });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "El monto del pago no coincide con la reserva",
+        });
+      }
+
+      // El correo de la reserva es la fuente de verdad: enviar a Culqi un
+      // email distinto al del cliente registrado eleva el score de riesgo.
+      const payerEmail = reservation.client.email || email;
+
       const secretKey = process.env.CULQI_SECRET_KEY;
       if (!secretKey) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Pasarela de pago no configurada" });
       }
 
       // 2. Crear cargo en Culqi
+      //
+      // IMPORTANTE: /v2/charges usa `antifraud_details` (snake_case), NO
+      // `client_details` — ese último sólo existe en /v2/orders. Enviar la
+      // clave equivocada hacía que Culqi descartara por completo los datos
+      // del cliente y su motor antifraude marcara el cargo como sospechoso.
+      // Sólo se incluyen los campos que realmente tienen valor: un
+      // placeholder ("Cliente", "Web") es peor que la ausencia del campo.
+      const antifraudDetails: Record<string, string> = {};
+      const firstName = sanitizeName(reservation.client.firstName);
+      const lastName = sanitizeName(reservation.client.lastName);
+      const phone = sanitizePhone(reservation.client.phone);
+      if (firstName) antifraudDetails.first_name = firstName;
+      if (lastName) antifraudDetails.last_name = lastName;
+      if (phone) antifraudDetails.phone_number = phone;
+      antifraudDetails.country_code = toCountryCode(reservation.client.country);
+      // `address` y `address_city` se omiten a propósito: el checkout no pide
+      // dirección y rellenarlos con el país sería dato falso, que es justo lo
+      // que el antifraude penaliza.
+
       const chargeRes = await fetch("https://api.culqi.com/v2/charges", {
         method: "POST",
         headers: {
@@ -81,17 +131,13 @@ export const culqiChargeRouter = router({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          amount,
+          amount: expectedAmount,
           currency_code: currency,
-          email,
+          email: payerEmail,
           source_id: token,
-          description: `Reserva ${reservation.referenceCode} - Like In House`,
+          description: `Reserva ${reservation.referenceCode} - Like In House`.slice(0, 80),
           capture: true,
-          client_details: {
-            first_name: reservation.client.firstName,
-            last_name: reservation.client.lastName,
-            email: email,
-          },
+          antifraud_details: antifraudDetails,
           metadata: {
             reservation_id: reservationId,
             reference_code: reservation.referenceCode,
@@ -102,6 +148,12 @@ export const culqiChargeRouter = router({
       const charge = await chargeRes.json();
 
       if (!chargeRes.ok || charge.object === "error") {
+        console.error("[Culqi Charges] Request failed:", {
+          status: chargeRes.status,
+          referenceCode: reservation.referenceCode,
+          antifraudKeys: Object.keys(antifraudDetails),
+          response: charge,
+        });
         const msg =
           charge.user_message ||
           charge.merchant_message ||
@@ -110,7 +162,7 @@ export const culqiChargeRouter = router({
       }
 
       // 3. Guardar pago y confirmar reserva en una transacción
-      const amountDecimal = amount / 100; // centavos → unidades
+      const amountDecimal = expectedAmount / 100; // centavos → unidades
 
       await ctx.db.$transaction(async (tx) => {
         await tx.payment.create({
@@ -160,13 +212,32 @@ export const culqiChargeRouter = router({
           id: true,
           referenceCode: true,
           status: true,
-          client: { select: { firstName: true, lastName: true, phone: true } },
+          totalAmount: true,
+          currency: true,
+          client: { select: { firstName: true, lastName: true, email: true, phone: true } },
         },
       });
       if (!reservation) throw new TRPCError({ code: "NOT_FOUND", message: "Reserva no encontrada" });
       if (reservation.status === "PAID" || reservation.status === "CONFIRMED") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Esta reserva ya fue pagada" });
       }
+
+      // El monto lo decide el servidor, no el navegador (ver createCharge).
+      // Orders API sólo admite PEN, así que la reserva debe estar en PEN.
+      if (reservation.currency !== "PEN") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Los métodos de billetera y banca móvil sólo están disponibles en soles (PEN)",
+        });
+      }
+      const expectedAmount = Math.round(Number(reservation.totalAmount) * 100);
+      if (amount !== expectedAmount) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "El monto del pago no coincide con la reserva",
+        });
+      }
+      const payerEmail = reservation.client.email || email;
 
       const secretKey = process.env.CULQI_SECRET_KEY;
       if (!secretKey) {
@@ -178,23 +249,32 @@ export const culqiChargeRouter = router({
       // order_number: único por merchant, alfanumérico + guiones. Max 50 chars.
       const orderNumber = `${reservation.referenceCode}-${Date.now()}`.slice(0, 50);
 
-      // phone_number Culqi: sólo dígitos, 7-15 caracteres
-      const rawPhone = (reservation.client.phone || "").replace(/\D/g, "");
-      const phoneNumber = rawPhone.length >= 7 ? rawPhone.slice(-15) : "999999999";
+      // Culqi exige client_details completo en /v2/orders (first_name,
+      // last_name, email, phone_number). Se envían los datos reales del
+      // cliente saneados; si faltan, rechazamos en vez de inventar
+      // placeholders — datos falsos hacen que Culqi marque la orden como
+      // sospechosa y el cobro nunca se procesa.
+      const firstName = sanitizeName(reservation.client.firstName);
+      const lastName = sanitizeName(reservation.client.lastName);
+      const phoneNumber = sanitizePhone(reservation.client.phone);
 
-      // first/last name: Culqi suele exigir 2-50 caracteres alfabéticos
-      const firstName = (reservation.client.firstName || "Cliente").slice(0, 50);
-      const lastName = (reservation.client.lastName || "Web").slice(0, 50);
+      if (!firstName || !lastName || !phoneNumber) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Para pagar con billetera o banca móvil necesitamos tu nombre, apellido y teléfono completos. Escríbenos por WhatsApp para completarlos.",
+        });
+      }
 
       const payload = {
-        amount,
+        amount: expectedAmount,
         currency_code: "PEN",
         description: `Reserva ${reservation.referenceCode} - Like In House`.slice(0, 80),
         order_number: orderNumber,
         client_details: {
           first_name: firstName,
           last_name: lastName,
-          email,
+          email: payerEmail,
           phone_number: phoneNumber,
         },
         expiration_date: expirationDate,

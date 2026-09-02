@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { RATE_LIMITS } from "@/server/lib/rate-limit";
 import { createAuditLog } from "@/server/lib/audit";
 import { sendBookingEmail } from "@/server/email/send-booking";
+import { sanitizeName, sanitizePhone, toCountryCode } from "@/server/lib/payer";
 
 const paypalLimited = rateLimitedProcedure(RATE_LIMITS.paypal);
 
@@ -52,6 +53,18 @@ export const paypalRouter = router({
         .mutation(async ({ ctx, input }) => {
             const reservation = await ctx.db.reservation.findUnique({
                 where: { id: input.reservationId },
+                include: {
+                    client: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                            email: true,
+                            phone: true,
+                            country: true,
+                        },
+                    },
+                    tour: { select: { nameEs: true } },
+                },
             });
 
             if (!reservation) {
@@ -81,24 +94,78 @@ export const paypalRouter = router({
 
             const accessToken = await generateAccessToken();
 
+            // Datos del pagador. Sin ellos PayPal recibía la orden anónima,
+            // mostraba los nombres de campo en blanco en el checkout y su
+            // motor de riesgo marcaba la compra como sospechosa.
+            const givenName = sanitizeName(reservation.client?.firstName);
+            const surname = sanitizeName(reservation.client?.lastName);
+            const payerEmail = reservation.client?.email || undefined;
+            const payerPhone = sanitizePhone(reservation.client?.phone);
+            const countryCode = toCountryCode(reservation.client?.country);
+
+            const payer: Record<string, unknown> = {};
+            if (givenName && surname) {
+                payer.name = { given_name: givenName, surname };
+            }
+            if (payerEmail) payer.email_address = payerEmail;
+            if (payerPhone) {
+                payer.phone = {
+                    phone_type: "MOBILE",
+                    phone_number: { national_number: payerPhone },
+                };
+            }
+            payer.address = { country_code: countryCode };
+
+            const serviceName = reservation.tour?.nameEs || "Servicio turístico";
+
             const response = await fetch(`${PAYPAL_API}/v2/checkout/orders`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${accessToken}`,
+                    // Idempotencia: dos clics en "Pagar" reutilizan la orden.
+                    // Se incluye el monto para no reutilizar una orden vieja
+                    // si el total de la reserva cambió.
+                    "PayPal-Request-Id": `order-${reservation.referenceCode}-${valueStr}`,
                 },
                 body: JSON.stringify({
                     intent: "CAPTURE",
+                    payer,
                     purchase_units: [
                         {
                             reference_id: reservation.referenceCode,
-                            description: `Reserva ${reservation.referenceCode} - LikeInHouse`,
+                            custom_id: reservation.referenceCode,
+                            invoice_id: reservation.referenceCode,
+                            description: `${serviceName} - Reserva ${reservation.referenceCode}`.slice(0, 127),
+                            soft_descriptor: "LIKEINHOUSE",
                             amount: {
                                 currency_code: paypalCurrency,
                                 value: valueStr,
                             },
+                            items: [
+                                {
+                                    name: serviceName.slice(0, 127),
+                                    description: `Reserva ${reservation.referenceCode}`.slice(0, 127),
+                                    quantity: "1",
+                                    // DIGITAL_GOODS evita que PayPal exija
+                                    // dirección de envío para un servicio.
+                                    category: "DIGITAL_GOODS",
+                                    unit_amount: {
+                                        currency_code: paypalCurrency,
+                                        value: valueStr,
+                                    },
+                                },
+                            ],
                         },
                     ],
+                    application_context: {
+                        brand_name: "Like In House",
+                        locale: "es-PE",
+                        // Un tour no se envía: pedir dirección de envío
+                        // rompía el flujo y elevaba el score de riesgo.
+                        shipping_preference: "NO_SHIPPING",
+                        user_action: "PAY_NOW",
+                    },
                 }),
             });
 
