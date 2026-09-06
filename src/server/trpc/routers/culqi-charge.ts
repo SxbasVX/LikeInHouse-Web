@@ -154,10 +154,18 @@ export const culqiChargeRouter = router({
           antifraudKeys: Object.keys(antifraudDetails),
           response: charge,
         });
-        const msg =
-          charge.user_message ||
-          charge.merchant_message ||
-          "Error al procesar el pago con tarjeta";
+        // Un `parameter_error` es un fallo NUESTRO de integración, no un
+        // rechazo de la tarjeta: el user_message de Culqi en ese caso es
+        // genérico y esconde el campo culpable. Lo exponemos para poder
+        // diagnosticarlo sin tener que entrar a los logs de Vercel.
+        const isParamError = charge.type === "parameter_error";
+        const msg = isParamError
+          ? `Error de configuración de la pasarela${charge.param ? ` (campo: ${charge.param})` : ""}: ${
+              charge.merchant_message || charge.user_message || "parámetro inválido"
+            }`
+          : charge.user_message ||
+            charge.merchant_message ||
+            "Error al procesar el pago con tarjeta";
         throw new TRPCError({ code: "BAD_REQUEST", message: msg });
       }
 
