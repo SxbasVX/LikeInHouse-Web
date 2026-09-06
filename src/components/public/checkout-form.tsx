@@ -156,6 +156,9 @@ export function CheckoutForm({
     const [step, setStep] = useState<CheckoutStep>("details");
     const [reservationId, setReservationId] = useState<string | null>(null);
     const [referenceCode, setReferenceCode] = useState<string>("");
+    // Total confirmado por el servidor al crear la reserva. Es la fuente de
+    // verdad para cobrar y mostrar en el paso de pago.
+    const [confirmedTotal, setConfirmedTotal] = useState<number | null>(null);
     const [currency, setCurrency] = useState<Currency>("USD");
     const [culqiReady, setCulqiReady] = useState(false);
     const [paypalReady, setPaypalReady] = useState(false);
@@ -232,6 +235,9 @@ export function CheckoutForm({
 
     const grandTotalUsd = Math.round(rawGrandTotalUsd * discountMultiplier * 100) / 100;
     const grandTotal = Math.round(grandTotalUsd * rate * 100) / 100;
+    // Una vez creada la reserva se cobra y se muestra el total que confirmó el
+    // servidor; antes de eso, el calculado en vivo.
+    const payableTotal = confirmedTotal ?? grandTotal;
 
     const totalParticipants = hasTiers
         ? tiers.reduce((acc, t) => acc + (quantities[t.id] ?? 0), 0)
@@ -260,6 +266,16 @@ export function CheckoutForm({
         onSuccess: (data: any) => {
             setReservationId(data.id);
             setReferenceCode(data.referenceCode);
+            // El monto que guardó el servidor manda a partir de aquí. Si
+            // recalculáramos el total en el paso de pago y el tipo de cambio
+            // se hubiera movido, cobraríamos algo distinto a la reserva y el
+            // servidor rechazaría el pago por descuadre.
+            if (typeof data.totalAmount === "number") {
+                setConfirmedTotal(data.totalAmount);
+            } else if (data.totalAmount != null) {
+                const parsed = Number(data.totalAmount);
+                if (!Number.isNaN(parsed)) setConfirmedTotal(parsed);
+            }
             setStep("payment");
         },
         onError: (e: any) => {
@@ -354,7 +370,7 @@ export function CheckoutForm({
             toast({ variant: "destructive", title: "Error", description: "Pasarela no cargada aún" });
             return;
         }
-        amountRef.current = Math.round(grandTotal * 100);
+        amountRef.current = Math.round(payableTotal * 100);
         emailRef.current  = watch("email");
 
         // Métodos alternativos (billetera, bancaMovil, agente, cuotealo) sólo
@@ -563,7 +579,7 @@ export function CheckoutForm({
                         <Separator />
                         <div className="flex justify-between font-bold">
                             <span>Total pagado</span>
-                            <span className="text-primary text-xl">{currencySymbol} {grandTotal.toFixed(2)}</span>
+                            <span className="text-primary text-xl">{currencySymbol} {payableTotal.toFixed(2)}</span>
                         </div>
                     </CardContent>
                 </Card>
@@ -586,8 +602,8 @@ export function CheckoutForm({
                             clientName:   `${watch("firstName")} ${watch("lastName")}`,
                             clientEmail:  watch("email"),
                             clientPhone:  watch("phone") || null,
-                            amountPaid:   grandTotal,
-                            totalAmount:  grandTotal,
+                            amountPaid:   payableTotal,
+                            totalAmount:  payableTotal,
                             currency,
                             dateStr:      showDepartures && selectedDeparture
                                 ? format(new Date(tour.departures.find((d) => d.id === selectedDeparture)?.departureDate || new Date()), "dd MMM yyyy", { locale: isEs ? es : undefined })
@@ -911,7 +927,7 @@ export function CheckoutForm({
                                         <Separator />
                                         <div className="flex justify-between font-bold text-base">
                                             <span>Total</span>
-                                            <span className="text-primary">{currencySymbol} {grandTotal.toFixed(2)}</span>
+                                            <span className="text-primary">{currencySymbol} {payableTotal.toFixed(2)}</span>
                                         </div>
                                         {currency === "PEN" && (
                                             <p className="text-xs text-muted-foreground text-right">≈ $ {grandTotalUsd.toFixed(2)} USD</p>
@@ -972,7 +988,7 @@ export function CheckoutForm({
                                                 ) : !culqiReady ? (
                                                     <><Loader2 className="h-5 w-5 animate-spin" />{isEs ? "Cargando pasarela..." : "Loading..."}</>
                                                 ) : (
-                                                    <><CreditCard className="h-5 w-5" />{isEs ? "Pagar con Tarjeta" : "Pay with Card"} — {currencySymbol} {grandTotal.toFixed(2)}</>
+                                                    <><CreditCard className="h-5 w-5" />{isEs ? "Pagar con Tarjeta" : "Pay with Card"} — {currencySymbol} {payableTotal.toFixed(2)}</>
                                                 )}
                                             </Button>
                                             <div className="text-center space-y-1">
@@ -1010,7 +1026,18 @@ export function CheckoutForm({
                                 </CardContent>
                             </Card>
 
-                            <Button variant="ghost" onClick={() => setStep("details")} className="gap-2">
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    // Al volver atrás el total vuelve a ser el
+                                    // calculado en vivo: si no, quedaría
+                                    // congelado el de la reserva anterior
+                                    // mientras el usuario cambia pasajeros.
+                                    setConfirmedTotal(null);
+                                    setStep("details");
+                                }}
+                                className="gap-2"
+                            >
                                 <ArrowLeft className="h-4 w-4" />
                                 {isEs ? "Volver a datos" : "Back to details"}
                             </Button>
@@ -1098,7 +1125,7 @@ export function CheckoutForm({
 
                             <div className="flex justify-between items-center font-bold">
                                 <span>Total</span>
-                                <span className="text-primary text-2xl">{currencySymbol} {grandTotal.toFixed(2)}</span>
+                                <span className="text-primary text-2xl">{currencySymbol} {payableTotal.toFixed(2)}</span>
                             </div>
 
                             {referenceCode && (

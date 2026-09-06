@@ -383,7 +383,20 @@ export const paymentLinkRouter = router({
             where: { id: link.quotationId },
             select: { referenceCode: true },
           });
-          referenceCode = quotationForCode?.referenceCode || await generateUniqueReservationRef(tx);
+          const quotationRef = quotationForCode?.referenceCode;
+          // Reservation.referenceCode es @unique. Al pagar primero el depósito
+          // y luego el saldo se crea una segunda reserva desde el mismo link,
+          // así que reutilizar el código de la cotización reventaba con una
+          // violación de unicidad y el cliente no podía pagar el saldo.
+          // Sólo se reutiliza si nadie lo está usando todavía.
+          const taken = quotationRef
+            ? await tx.reservation.findUnique({
+                where: { referenceCode: quotationRef },
+                select: { id: true },
+              })
+            : null;
+          referenceCode =
+            quotationRef && !taken ? quotationRef : await generateUniqueReservationRef(tx);
         } else {
           referenceCode = await generateUniqueReservationRef(tx);
         }
