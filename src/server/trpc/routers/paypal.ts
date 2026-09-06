@@ -109,9 +109,11 @@ export const paypalRouter = router({
             }
             if (payerEmail) payer.email_address = payerEmail;
             if (payerPhone) {
+                // PayPal exige national_number de 1 a 14 dígitos; sanitizePhone
+                // puede devolver hasta 15 y un dígito de más provoca un 400.
                 payer.phone = {
                     phone_type: "MOBILE",
-                    phone_number: { national_number: payerPhone },
+                    phone_number: { national_number: payerPhone.slice(-14) },
                 };
             }
             payer.address = { country_code: countryCode };
@@ -141,6 +143,16 @@ export const paypalRouter = router({
                             amount: {
                                 currency_code: paypalCurrency,
                                 value: valueStr,
+                                // Obligatorio en cuanto se envía `items`:
+                                // PayPal rechaza la orden con 400 si falta el
+                                // breakdown, y item_total debe cuadrar con la
+                                // suma de los items y con amount.value.
+                                breakdown: {
+                                    item_total: {
+                                        currency_code: paypalCurrency,
+                                        value: valueStr,
+                                    },
+                                },
                             },
                             items: [
                                 {

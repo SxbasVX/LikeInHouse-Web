@@ -16,6 +16,9 @@ export async function register() {
     const recommended: Record<string, string | undefined> = {
       RESEND_API_KEY: process.env.RESEND_API_KEY,
       CULQI_SECRET_KEY: process.env.CULQI_SECRET_KEY,
+      // La lee el navegador: sin el prefijo NEXT_PUBLIC_ no llega al cliente
+      // y el checkout de Culqi nunca abre (falla en silencio).
+      NEXT_PUBLIC_CULQI_PUBLIC_KEY: process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY,
     };
 
     // PayPal vars are required when PayPal is the active payment gateway

@@ -378,6 +378,19 @@ export function CheckoutForm({
         }
 
         const publicKey = process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY || "";
+        if (!publicKey) {
+            // Sin clave pública el checkout de Culqi no abre y no muestra nada:
+            // el botón parecería "no hacer nada". Mejor decirlo.
+            console.error("[Culqi] Falta NEXT_PUBLIC_CULQI_PUBLIC_KEY");
+            toast({
+                variant: "destructive",
+                title: isEs ? "Pago con tarjeta no disponible" : "Card payment unavailable",
+                description: isEs
+                    ? "No pudimos iniciar la pasarela. Usa PayPal o escríbenos por WhatsApp."
+                    : "We couldn't start the payment gateway. Please use PayPal or contact us on WhatsApp.",
+            });
+            return;
+        }
         const config: CulqiCheckoutConfig = {
             settings: {
                 title: "Like In House",
