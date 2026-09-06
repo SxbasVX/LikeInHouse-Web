@@ -86,10 +86,12 @@ describe("sanitizeAddress", () => {
     expect(sanitizeAddress("Av. El Sol 456\nCusco")).toBe("Av. El Sol 456 Cusco");
   });
 
-  it("rechaza direcciones vacías o muy cortas", () => {
+  it("rechaza direcciones por debajo del mínimo de Culqi (5 caracteres)", () => {
     expect(sanitizeAddress(null)).toBeNull();
     expect(sanitizeAddress("  ")).toBeNull();
     expect(sanitizeAddress("ab")).toBeNull();
+    expect(sanitizeAddress("Av 1")).toBeNull();
+    expect(sanitizeAddress("Av 12")).toBe("Av 12");
   });
 
   it("limita a 100 caracteres", () => {

@@ -86,9 +86,13 @@ export function sanitizePhone(value?: string | null): string | null {
   return digits.slice(-15);
 }
 
-/** Dirección para antifraude: recortada y sin caracteres de control. */
+/**
+ * Dirección para antifraude: recortada y sin caracteres de control.
+ * Culqi exige `address` de 5 a 100 caracteres, así que por debajo de 5
+ * devolvemos `null` para omitir el campo en vez de provocar un error.
+ */
 export function sanitizeAddress(value?: string | null): string | null {
   if (!value) return null;
   const clean = value.replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 100);
-  return clean.length >= 3 ? clean : null;
+  return clean.length >= 5 ? clean : null;
 }

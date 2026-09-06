@@ -42,7 +42,19 @@ export const culqiChargeRouter = router({
     .input(
       z.object({
         reservationId: z.string(),
-        token: z.string().startsWith("tkn_"),
+        // Culqi acepta como source_id un token de tarjeta (tkn_), uno de Yape
+        // (ype_) o una tarjeta guardada (crd_), y exige exactamente 25
+        // caracteres. Antes sólo se aceptaba `tkn_`, así que cualquier pago
+        // con Yape se rechazaba aquí sin llegar siquiera a Culqi.
+        // El spec dice 25 caracteres exactos, pero no lo imponemos aquí:
+        // si Culqi cambiara el formato, una validación estricta nuestra
+        // bloquearía pagos válidos. Validamos el prefijo y un rango amplio,
+        // y dejamos que Culqi sea la autoridad sobre la longitud.
+        token: z
+          .string()
+          .min(20)
+          .max(40)
+          .regex(/^(tkn|ype|crd)_[A-Za-z0-9_]+$/, "Token de pago inválido"),
         currency: z.enum(["PEN", "USD"]),
         amount: z.number().int().positive(), // en centavos (ej: 15000 = S/150.00)
         email: z.string().email(),
@@ -95,9 +107,35 @@ export const culqiChargeRouter = router({
         });
       }
 
+      // Límites duros de /v2/charges (OpenAPI oficial de Culqi): si se
+      // sobrepasan, Culqi responde parameter_error y el pago no se procesa.
+      // Es mejor avisar con un mensaje claro que dejar que falle en la pasarela.
+      if (expectedAmount > 999900) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "El monto supera el máximo que admite el pago con tarjeta (9,999). Escríbenos por WhatsApp para coordinar el pago.",
+        });
+      }
+      if (expectedAmount < 100) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "El monto es menor al mínimo que admite la pasarela.",
+        });
+      }
+
       // El correo de la reserva es la fuente de verdad: enviar a Culqi un
       // email distinto al del cliente registrado eleva el score de riesgo.
-      const payerEmail = reservation.client.email || email;
+      // Culqi limita `email` a 50 caracteres; si el del cliente es más largo
+      // usamos el del formulario antes que enviar uno truncado (inválido).
+      const reservationEmail = reservation.client.email || email;
+      const payerEmail = reservationEmail.length <= 50 ? reservationEmail : email;
+      if (payerEmail.length > 50) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "El correo es demasiado largo para la pasarela de pago (máx. 50 caracteres).",
+        });
+      }
 
       const secretKey = process.env.CULQI_SECRET_KEY;
       if (!secretKey) {
