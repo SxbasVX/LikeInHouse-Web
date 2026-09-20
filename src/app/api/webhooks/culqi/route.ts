@@ -73,13 +73,29 @@ export async function POST(req: NextRequest) {
             return await handleOrderEvent(data);
         }
 
+        // charge.creation.failed → no hay nada que registrar (la reserva sigue
+        // pendiente y el cliente ve el rechazo en el momento), pero se deja
+        // constancia: una racha de fallos suele ser un problema nuestro.
+        if (body.type === "charge.creation.failed") {
+            console.warn("[Culqi Webhook] Cargo rechazado:", {
+                referenceCode: data?.metadata?.reference_code,
+                outcome: data?.outcome?.user_message ?? data?.outcome?.merchant_message,
+            });
+            return NextResponse.json({ received: true });
+        }
+
         // charge.creation.succeeded → tarjeta
         if (body.type !== "charge.creation.succeeded") {
             return NextResponse.json({ received: true });
         }
 
         const chargeId = data.id;
-        const referenceCode = data.metadata?.referenceCode;
+        // El cargo se crea con `reference_code` (snake_case, como el resto de
+        // metadata de Culqi), pero aquí se leía `referenceCode`: el webhook
+        // salía siempre por el 400 de abajo y ningún cargo llegaba a
+        // procesarse. Se aceptan las dos grafías por si quedara algún cargo
+        // antiguo con la otra.
+        const referenceCode = data.metadata?.reference_code ?? data.metadata?.referenceCode;
 
         if (!chargeId || !referenceCode) {
             return NextResponse.json({ error: "Faltan identificadores críticos" }, { status: 400 });
