@@ -149,8 +149,8 @@ export default function ReportesPage() {
         currency: r.currency,
         status: r.status,
         origin: r.origin,
-        departureDate: r.departure
-          ? new Date(r.departure.departureDate).toLocaleDateString("es-PE", { timeZone: "UTC" })
+        departureDate: (r.departure || r.travelDate)
+          ? new Date((r.departure?.departureDate ?? r.travelDate)!).toLocaleDateString("es-PE", { timeZone: "UTC" })
           : "",
         date: new Date(r.createdAt).toLocaleDateString("es-PE", { timeZone: "UTC" }),
       })),

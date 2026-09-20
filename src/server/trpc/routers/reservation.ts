@@ -65,6 +65,9 @@ const trafficSourceSchema = z.object({
 const guestReservationSchema = z.object({
   tourId: z.string(),
   departureId: z.string().optional(),
+  // Fecha elegida en el calendario abierto (YYYY-MM-DD), para tours sin
+  // salidas programadas.
+  travelDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 
   // Client info
   firstName: z.string().min(2, "Nombre muy corto"),
@@ -250,6 +253,7 @@ export const reservationRouter = router({
           currency: true,
           origin: true,
           departure: { select: { departureDate: true } },
+          travelDate: true,
           tour: { select: { nameEs: true, destination: true } },
           client: { select: { firstName: true, lastName: true } },
         },
@@ -512,6 +516,7 @@ export const reservationRouter = router({
             clientId: client.id,
             tourId: input.tourId,
             departureId: input.departureId,
+            travelDate: input.travelDate ? new Date(`${input.travelDate}T00:00:00Z`) : null,
             adults: input.adults,
             children: input.children,
             currency: PAYMENT_CURRENCY,
@@ -555,12 +560,16 @@ export const reservationRouter = router({
       }
 
       // Email de confirmación al cliente (fire-and-forget, nunca lanza)
+      const fmtDate = (d: Date) =>
+        d.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
       const departureDateStr = input.departureId
         ? await ctx.db.tourDeparture
             .findUnique({ where: { id: input.departureId }, select: { departureDate: true } })
-            .then((d) => d?.departureDate ? d.departureDate.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" }) : "")
+            .then((d) => (d?.departureDate ? fmtDate(d.departureDate) : ""))
             .catch(() => "")
-        : "";
+        : input.travelDate
+          ? fmtDate(new Date(`${input.travelDate}T00:00:00Z`))
+          : "";
 
       sendBookingEmail({
         referenceCode: reservation.referenceCode,

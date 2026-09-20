@@ -71,9 +71,14 @@ async function emailAfterCulqiPayment(referenceCode: string, paidAmount: number,
             amountPaid,
             totalAmount,
             currency,
-            dateStr: res.departure?.departureDate
-                ? res.departure.departureDate.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })
-                : "",
+            // Sin salida programada la fecha vive en `travelDate` (calendario
+            // abierto): si no se mira, el correo sale sin fecha.
+            dateStr: (() => {
+                const d = res.departure?.departureDate ?? res.travelDate;
+                return d
+                    ? d.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
+                    : "";
+            })(),
             adults: res.adults,
             children: res.children,
             isPaid: amountPaid >= totalAmount - 0.01,

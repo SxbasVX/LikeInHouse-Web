@@ -148,6 +148,9 @@ export default function CalendarioPage() {
                 departure: r.departure
                   ? { departureDate: typeof r.departure.departureDate === "string" ? r.departure.departureDate : new Date(r.departure.departureDate).toISOString() }
                   : null,
+                travelDate: r.travelDate
+                  ? (typeof r.travelDate === "string" ? r.travelDate : new Date(r.travelDate).toISOString())
+                  : null,
               }))}
               month={month}
               onMonthChange={setMonth}

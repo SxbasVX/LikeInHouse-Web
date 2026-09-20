@@ -282,6 +282,7 @@ export const dashboardRouter = router({
             createdAt: true,
             client: { select: { firstName: true, lastName: true, email: true } },
             departure: { select: { departureDate: true } },
+            travelDate: true,
           },
           orderBy: { createdAt: "desc" },
         }),

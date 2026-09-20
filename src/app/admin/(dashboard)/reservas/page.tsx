@@ -62,6 +62,17 @@ import {
   FileDown,
 } from "lucide-react";
 
+/**
+ * Fecha del viaje: la salida programada si existe y, si no, la que pidió el
+ * cliente en el calendario abierto. Mirar sólo `departure` dejaba la mayoría
+ * de las reservas "Sin fecha".
+ */
+function reservationDateStr(r: { departure?: { departureDate: string | Date } | null; travelDate?: string | Date | null }): string {
+  const raw = r.departure?.departureDate ?? r.travelDate;
+  if (!raw) return "";
+  return new Date(raw).toLocaleDateString("es-PE", { timeZone: "UTC" });
+}
+
 const statusLabels: Record<string, string> = {
   PENDING: "Pendiente",
   CONFIRMED: "Confirmada",
@@ -217,9 +228,7 @@ export default function ReservasPage() {
                       </TableCell>
                       <TableCell>{reservation.tour.nameEs}</TableCell>
                       <TableCell>
-                        {reservation.departure
-                          ? new Date(reservation.departure.departureDate).toLocaleDateString("es-PE")
-                          : "Sin fecha"}
+                        {reservationDateStr(reservation) || "Sin fecha"}
                       </TableCell>
                       <TableCell>
                         {reservation.adults}A {reservation.children > 0 ? `+ ${reservation.children}N` : ""}
@@ -274,7 +283,7 @@ export default function ReservasPage() {
                             amountPaid: ["PAID", "COMPLETED"].includes(reservation.status) ? Number(reservation.totalAmount) : 0,
                             totalAmount: Number(reservation.totalAmount),
                             currency: reservation.currency,
-                            dateStr: reservation.departure ? new Date(reservation.departure.departureDate).toLocaleDateString("es-PE") : "Sin fecha",
+                            dateStr: reservationDateStr(reservation) || "Sin fecha",
                             adults: reservation.adults,
                             children: reservation.children,
                             isEs: true,

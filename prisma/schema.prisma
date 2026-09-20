@@ -321,6 +321,10 @@ model Reservation {
   tour           Tour           @relation(fields: [tourId], references: [id], onDelete: Restrict)
   departureId    String?
   departure      TourDeparture? @relation(fields: [departureId], references: [id], onDelete: SetNull)
+  // Fecha del viaje cuando el tour usa calendario abierto y no hay una salida
+  // programada. Antes sólo quedaba escrita dentro de `internalNotes`, así que
+  // el panel, los correos y el voucher mostraban la reserva "sin fecha".
+  travelDate     DateTime?      @db.Date
   assignedUserId String?
   assignedUser   User?          @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
   quotationId    String?

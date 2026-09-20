@@ -498,6 +498,9 @@ export function CheckoutForm({
             children:       childrenForBackend,
             totalAmountUsd: grandTotalUsd,
             displayCurrency,
+            // Fecha pedida en el calendario abierto: se guarda como dato de la
+            // reserva, no sólo en las notas internas.
+            travelDate: !selectedDeparture && openDate ? openDate : undefined,
             tierQuantities: hasTiers
                 ? tiers.filter((t) => (quantities[t.id] ?? 0) > 0)
                        .map((t) => ({ tierId: t.id, quantity: quantities[t.id] ?? 0 }))

@@ -22,6 +22,8 @@ interface CalendarReservation {
   currency: string;
   origin: string;
   departure: { departureDate: string } | null;
+  // Fecha pedida en tours de calendario abierto (sin salida programada).
+  travelDate?: string | null;
   tour: { nameEs: string; destination: string };
   client: { firstName: string; lastName: string };
 }
@@ -206,10 +208,16 @@ export function BookingCalendar({ reservations, month, onMonthChange }: BookingC
                   <p className="text-muted-foreground text-xs">Origen</p>
                   <p>{selected.origin}</p>
                 </div>
-                {selected.departure && (
+                {(selected.departure || selected.travelDate) && (
                   <div>
-                    <p className="text-muted-foreground text-xs">Fecha Salida</p>
-                    <p>{new Date(selected.departure.departureDate).toLocaleDateString("es-PE", { timeZone: "UTC" })}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {selected.departure ? "Fecha Salida" : "Fecha solicitada"}
+                    </p>
+                    <p>
+                      {new Date(
+                        selected.departure?.departureDate ?? selected.travelDate!
+                      ).toLocaleDateString("es-PE", { timeZone: "UTC" })}
+                    </p>
                   </div>
                 )}
                 <div>
