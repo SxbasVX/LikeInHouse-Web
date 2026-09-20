@@ -100,6 +100,13 @@ interface CulqiCheckoutConfig {
     appearance?: {
         theme?: string;
         menuType?: "sidebar" | "sliderTop" | "select";
+        // URL absoluta y pública del logo del comercio. Verificado en el
+        // bundle de js.culqi.com/checkout-js: `appearance.logo` viaja al
+        // iframe del checkout como parámetro `logo`.
+        logo?: string;
+        // Oculta el logo de Culqi en el modal. Se deja en su valor por
+        // defecto (visible): es una señal de confianza para quien paga.
+        hiddenCulqiLogo?: boolean;
         defaultStyle?: Record<string, string>;
     };
 }
@@ -426,6 +433,9 @@ export function CheckoutForm({
             appearance: {
                 theme: "default",
                 menuType: "sidebar",
+                // El logo se sirve desde nuestro propio dominio. En local
+                // Culqi no puede alcanzarlo y simplemente no se muestra.
+                logo: `${window.location.origin}/Logo-Cuadrado.png`,
                 defaultStyle: {
                     bannerColor: "#e8411d",
                     buttonBackground: "#e8411d",
