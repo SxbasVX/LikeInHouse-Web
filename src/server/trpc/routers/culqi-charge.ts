@@ -170,7 +170,27 @@ export const culqiChargeRouter = router({
 
       const charge = await chargeRes.json();
 
-      if (!chargeRes.ok || charge.object === "error") {
+      // Un cargo sólo cuenta como cobrado si Culqi devuelve un objeto `charge`
+      // con id y un `outcome.type` de venta exitosa.
+      //
+      // Comprobarlo importa muchísimo: Culqi responde HTTP 200 a cosas que NO
+      // son un cobro. Un 3D Secure pendiente llega como
+      // `{"action_code":"REVIEW","user_message":"El usuario necesita
+      // autenticarse"}` —sin `object`, sin `id`— y un rechazo antifraude llega
+      // como un charge con `outcome.type: "operacion_denegada"`. Antes sólo se
+      // miraba `!chargeRes.ok || charge.object === "error"`, así que ambos
+      // pasaban por buenos: la reserva quedaba PAGADA y el `culqiChargeId` se
+      // guardaba vacío, sin que hubiera entrado un sol.
+      //
+      // `charge.paid` NO sirve como señal: viene `false` incluso en ventas
+      // autorizadas (se refiere a la liquidación al comercio, no al cobro).
+      const isApprovedCharge =
+        chargeRes.ok &&
+        charge?.object === "charge" &&
+        typeof charge.id === "string" &&
+        charge.outcome?.type === "venta_exitosa";
+
+      if (!isApprovedCharge) {
         console.error("[Culqi Charges] Request failed:", {
           status: chargeRes.status,
           referenceCode: reservation.referenceCode,
@@ -186,13 +206,23 @@ export const culqiChargeRouter = router({
         // confundirlo: el problema no es la web, es que la operación no pasa
         // el filtro. Sin `param`, se muestra el mensaje de Culqi tal cual.
         const isIntegrationError = charge.type === "parameter_error" && !!charge.param;
+
+        // 3D Secure sin completar: el banco pide verificar al titular y el
+        // cobro no llegó a hacerse. No es un rechazo de la tarjeta, así que
+        // merece un mensaje que invite a reintentar.
+        const needs3DS = charge?.action_code === "REVIEW";
+
         const msg = isIntegrationError
           ? `Error de configuración de la pasarela (campo: ${charge.param}): ${
               charge.merchant_message || charge.user_message || "parámetro inválido"
             }`
-          : charge.user_message ||
-            charge.merchant_message ||
-            "Error al procesar el pago con tarjeta";
+          : needs3DS
+            ? "Tu banco pide una verificación adicional (3D Secure) que no se completó, así que el cobro no se realizó. Vuelve a intentarlo, prueba con otra tarjeta o paga con PayPal."
+            : charge.outcome?.user_message ||
+              charge.user_message ||
+              charge.outcome?.merchant_message ||
+              charge.merchant_message ||
+              "Tu banco no autorizó el pago. Prueba con otra tarjeta o paga con PayPal.";
         throw new TRPCError({ code: "BAD_REQUEST", message: msg });
       }
 
