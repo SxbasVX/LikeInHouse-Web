@@ -152,7 +152,6 @@ export function Navbar() {
                 {safeCartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{safeCartCount}</span>}
               </Link>
             </Button>
-            <CurrencySwitcher variant="dark" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white/90 hover:text-white hover:bg-white/15 focus-visible:ring-0">
@@ -232,6 +231,7 @@ export function Navbar() {
               {safeCartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{safeCartCount}</span>}
             </Link>
           </Button>
+          {/* Sólo en la barra compacta: en modo hero no cabe y se desborda. */}
           <CurrencySwitcher variant="light" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
