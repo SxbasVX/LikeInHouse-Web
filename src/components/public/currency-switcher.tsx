@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale } from "next-intl";
-import { Check, Coins } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,27 +27,35 @@ export function CurrencySwitcher({ variant = "light" }: { variant?: "light" | "d
   const isEs = locale === "es";
   const { currency, setCurrency } = useCurrency();
 
+  // Mismo lenguaje visual que los demás desplegables del navbar ("Tours ⌄",
+  // "Airbnb ⌄"): código de moneda + chevron. Un icono de monedas a 16px se
+  // leía como un borrón y no dejaba claro que fuera pulsable.
   const triggerClass =
     variant === "dark"
-      ? "h-10 w-auto px-3 gap-1.5 rounded-full text-white/90 hover:text-white hover:bg-white/10 focus-visible:ring-0"
-      : "h-10 w-auto px-3 gap-1.5 rounded-full text-gray-600 hover:text-brand-darkRed hover:bg-gray-100 focus-visible:ring-0";
+      ? "h-10 gap-1.5 rounded-full px-3 text-[14px] font-semibold text-white/90 hover:text-white hover:bg-white/10 focus-visible:ring-0"
+      : "h-10 gap-1.5 rounded-full px-3 text-[14px] font-semibold text-gray-600 hover:text-brand-darkRed hover:bg-gray-100 focus-visible:ring-0";
+
+  const isDark = variant === "dark";
+  const contentClass = isDark
+    ? "rounded-xl w-64 border-white/10 bg-black/80 backdrop-blur-xl text-white"
+    : "rounded-xl w-64";
+  const itemClass = isDark ? "focus:bg-white/20" : "";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
           className={triggerClass}
-          aria-label={isEs ? "Cambiar moneda" : "Change currency"}
+          aria-label={isEs ? `Moneda: ${currency}. Cambiar moneda` : `Currency: ${currency}. Change currency`}
         >
-          <Coins className="h-4 w-4" />
-          <span className="text-[13px] font-semibold">{currency}</span>
+          {currency}
+          <ChevronDown className="h-3.5 w-3.5 opacity-70" />
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="rounded-xl w-64">
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground leading-snug">
+      <DropdownMenuContent align="end" className={contentClass}>
+        <DropdownMenuLabel className={cn("text-xs font-normal leading-snug", isDark ? "text-white/60" : "text-muted-foreground")}>
           {isEs
             ? "Elige cómo quieres ver los precios."
             : "Choose how you want to see prices."}
@@ -62,19 +70,19 @@ export function CurrencySwitcher({ variant = "light" }: { variant?: "light" | "d
               <DropdownMenuItem
                 key={code}
                 onClick={() => setCurrency(code)}
-                className={cn("rounded-lg cursor-pointer gap-2", active && "font-semibold")}
+                className={cn("rounded-lg cursor-pointer gap-2", itemClass, active && "font-semibold")}
               >
-                <span className="w-10 shrink-0 text-muted-foreground">{def.symbol}</span>
+                <span className={cn("w-10 shrink-0", isDark ? "text-white/60" : "text-muted-foreground")}>{def.symbol}</span>
                 <span className="flex-1 truncate">{isEs ? def.nameEs : def.nameEn}</span>
-                <span className="text-xs text-muted-foreground">{code}</span>
-                {active && <Check className="h-3.5 w-3.5 text-brand-darkRed" />}
+                <span className={cn("text-xs", isDark ? "text-white/60" : "text-muted-foreground")}>{code}</span>
+                {active && <Check className={cn("h-3.5 w-3.5", isDark ? "text-white" : "text-brand-darkRed")} />}
               </DropdownMenuItem>
             );
           })}
         </div>
 
         <DropdownMenuSeparator />
-        <p className="px-2 py-1.5 text-[11px] leading-snug text-muted-foreground">
+        <p className={cn("px-2 py-1.5 text-[11px] leading-snug", isDark ? "text-white/60" : "text-muted-foreground")}>
           {isEs
             ? `Los precios en otras monedas son una conversión aproximada. El cobro se realiza siempre en ${BASE_CURRENCY}.`
             : `Prices in other currencies are an approximate conversion. You are always charged in ${BASE_CURRENCY}.`}
