@@ -26,6 +26,7 @@ import { DownloadPDFButton } from "@/components/pdf/download-button";
 import { waUrl } from "@/lib/whatsapp";
 import { useCurrency } from "@/hooks/use-currency";
 import { formatCurrency, BASE_CURRENCY, PAYMENT_CURRENCY } from "@/lib/currency";
+import { COUNTRIES, dialCodeFor, phoneForCountry } from "@/lib/countries";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 //
@@ -253,9 +254,24 @@ export function CheckoutForm({
         : childrenFallback;
 
     // ── Form ─────────────────────────────────────────────────────────────────
-    const { register, handleSubmit, watch, formState: { errors } } = useForm<CheckoutFormData>({
+    const { register, handleSubmit, watch, setValue, getValues, formState: { errors } } = useForm<CheckoutFormData>({
         resolver: zodResolver(checkoutSchema),
     });
+
+    // ── País → prefijo telefónico ────────────────────────────────────────────
+    // Al elegir país se rellena el prefijo (+51, +34...) para que nadie deje
+    // un número sin código de país: así no sirve para escribirle por WhatsApp.
+    // Si el viajero ya escribió su número, no se toca.
+    const countryField = register("country");
+    const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        countryField.onChange(e);
+        const next = phoneForCountry(e.target.value, getValues("phone"));
+        if (next !== null) setValue("phone", next, { shouldValidate: false });
+    };
+    const selectedCountry = watch("country");
+    const phonePlaceholder = dialCodeFor(selectedCountry)
+        ? `${dialCodeFor(selectedCountry)} 999 888 777`
+        : "+51 999 888 777";
 
     // ── Refs para Culqi ──────────────────────────────────────────────────────
     const emailRef  = useRef("");
@@ -698,36 +714,25 @@ export function CheckoutForm({
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label>{isEs ? "WhatsApp / Teléfono" : "Phone"}</Label>
-                                            <Input type="tel" {...register("phone")} placeholder="+51 999 888 777" />
+                                            <Input type="tel" {...register("phone")} placeholder={phonePlaceholder} />
                                             {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
                                         </div>
                                     </div>
                                     <div className="space-y-1.5">
                                         <Label>{isEs ? "País de residencia" : "Country"}</Label>
-                                        <select {...register("country")} defaultValue=""
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                        <select
+                                            {...countryField}
+                                            onChange={handleCountryChange}
+                                            defaultValue=""
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        >
                                             <option value="" disabled>{isEs ? "Selecciona tu país" : "Select your country"}</option>
-                                            <option value="Peru">Perú</option>
-                                            <option value="Argentina">Argentina</option>
-                                            <option value="Bolivia">Bolivia</option>
-                                            <option value="Brasil">Brasil</option>
-                                            <option value="Chile">Chile</option>
-                                            <option value="Colombia">Colombia</option>
-                                            <option value="Ecuador">Ecuador</option>
-                                            <option value="Mexico">México</option>
-                                            <option value="Paraguay">Paraguay</option>
-                                            <option value="Uruguay">Uruguay</option>
-                                            <option value="Venezuela">Venezuela</option>
-                                            <option value="USA">Estados Unidos / USA</option>
-                                            <option value="Canada">Canadá</option>
-                                            <option value="Spain">España</option>
-                                            <option value="France">Francia / France</option>
-                                            <option value="Germany">Alemania / Germany</option>
-                                            <option value="UK">Reino Unido / UK</option>
-                                            <option value="Italy">Italia / Italy</option>
-                                            <option value="Australia">Australia</option>
-                                            <option value="Japan">Japón / Japan</option>
-                                            <option value="Other">{isEs ? "Otro" : "Other"}</option>
+                                            {COUNTRIES.map((c) => (
+                                                <option key={c.value} value={c.value}>
+                                                    {isEs ? c.labelEs : c.labelEn}
+                                                    {c.dial ? ` (${c.dial})` : ""}
+                                                </option>
+                                            ))}
                                         </select>
                                         {errors.country && <p className="text-xs text-destructive">{errors.country.message}</p>}
                                     </div>
