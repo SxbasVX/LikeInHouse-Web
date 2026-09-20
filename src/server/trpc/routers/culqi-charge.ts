@@ -177,13 +177,17 @@ export const culqiChargeRouter = router({
           antifraudKeys: Object.keys(antifraudDetails),
           response: charge,
         });
-        // Un `parameter_error` es un fallo NUESTRO de integración, no un
-        // rechazo de la tarjeta: el user_message de Culqi en ese caso es
-        // genérico y esconde el campo culpable. Lo exponemos para poder
-        // diagnosticarlo sin tener que entrar a los logs de Vercel.
-        const isParamError = charge.type === "parameter_error";
-        const msg = isParamError
-          ? `Error de configuración de la pasarela${charge.param ? ` (campo: ${charge.param})` : ""}: ${
+        // Un `parameter_error` CON `param` es un fallo nuestro de integración:
+        // se nombra el campo culpable para poder arreglarlo sin bucear en los
+        // logs. Pero Culqi devuelve ese mismo tipo para cosas que no tienen
+        // nada que ver con la integración —por ejemplo sus reglas antifraude
+        // ("Excede el límite semanal de número de compras por correo")—, y
+        // entonces decirle al cliente que hay un "error de configuración" es
+        // confundirlo: el problema no es la web, es que la operación no pasa
+        // el filtro. Sin `param`, se muestra el mensaje de Culqi tal cual.
+        const isIntegrationError = charge.type === "parameter_error" && !!charge.param;
+        const msg = isIntegrationError
+          ? `Error de configuración de la pasarela (campo: ${charge.param}): ${
               charge.merchant_message || charge.user_message || "parámetro inválido"
             }`
           : charge.user_message ||
