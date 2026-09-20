@@ -3,91 +3,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { db } from "@/server/lib/db";
 import { createAuditLog } from "@/server/lib/audit";
 import { sendWhatsAppAlert, sendWhatsAppToClient } from "@/server/lib/whatsapp";
-import { sendBookingEmail } from "@/server/email/send-booking";
-
-/**
- * Trigger booking confirmation email after a successful Culqi capture.
- * Fire-and-forget: nunca lanza, solo logea.
- */
-async function emailAfterCulqiPayment(referenceCode: string, paidAmount: number, currency: string) {
-    try {
-        const res = await db.reservation.findUnique({
-            where: { referenceCode },
-            include: {
-                client: { select: { firstName: true, lastName: true, email: true, phone: true } },
-                tour: {
-                    select: {
-                        nameEs: true,
-                        shortDescEs: true,
-                        destination: true,
-                        durationDays: true,
-                        durationNights: true,
-                        durationHours: true,
-                        images: { where: { isPrimary: true }, take: 1, select: { url: true } },
-                        includes: {
-                            where: { type: "INCLUDE" },
-                            orderBy: { sortOrder: "asc" },
-                            select: { textEs: true },
-                        },
-                    },
-                },
-                departure: { select: { departureDate: true } },
-            },
-        });
-        if (!res || !res.client?.email) return;
-
-        // Reservation.paymentLink es solo FK sin relacion Prisma; query aparte si aplica.
-        const link = res.paymentLinkId
-            ? await db.paymentLink.findUnique({
-                  where: { id: res.paymentLinkId },
-                  select: { titleEs: true, descriptionEs: true, includesEs: true, totalAmount: true, amountPaid: true },
-              })
-            : null;
-
-        const isPaymentLink = !!link;
-        const totalAmount = link ? Number(link.totalAmount) : Number(res.totalAmount);
-        const amountPaid = link ? Number(link.amountPaid) : paidAmount;
-
-        await sendBookingEmail({
-            referenceCode: res.referenceCode,
-            type: isPaymentLink ? "PAYMENT_LINK" : "RESERVATION",
-            serviceName: link ? link.titleEs : (res.tour?.nameEs || "Servicio"),
-            serviceDescription: link ? link.descriptionEs : (res.tour?.shortDescEs || null),
-            serviceImageUrl: res.tour?.images[0]?.url || null,
-            serviceDestination: res.tour?.destination || null,
-            serviceDurationLabel: res.tour
-                ? res.tour.durationDays && res.tour.durationDays > 0
-                    ? `${res.tour.durationDays}D / ${res.tour.durationNights ?? Math.max(0, res.tour.durationDays - 1)}N`
-                    : res.tour.durationHours && res.tour.durationHours > 0
-                        ? `${res.tour.durationHours}h`
-                        : null
-                : null,
-            serviceIncludes: link
-                ? link.includesEs
-                : (res.tour?.includes.map((i) => i.textEs) || []),
-            clientName: `${res.client.firstName} ${res.client.lastName}`,
-            clientEmail: res.client.email,
-            clientPhone: res.client.phone || null,
-            amountPaid,
-            totalAmount,
-            currency,
-            // Sin salida programada la fecha vive en `travelDate` (calendario
-            // abierto): si no se mira, el correo sale sin fecha.
-            dateStr: (() => {
-                const d = res.departure?.departureDate ?? res.travelDate;
-                return d
-                    ? d.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
-                    : "";
-            })(),
-            adults: res.adults,
-            children: res.children,
-            isPaid: amountPaid >= totalAmount - 0.01,
-            isEs: true,
-        });
-    } catch (err) {
-        console.error("[Email] Culqi booking email failed:", err);
-    }
-}
+import { sendPaymentConfirmationEmail } from "@/server/email/send-payment-confirmation";
 
 // Vercel serverless: extend timeout for webhook processing (default 30s on Hobby)
 export const maxDuration = 60;
@@ -199,7 +115,11 @@ export async function POST(req: NextRequest) {
             ? verifiedCharge.currency_code
             : "USD";
 
-        // Transacción Serializable para evitar race conditions con webhooks duplicados
+        // Transacción Serializable para evitar race conditions con webhooks duplicados.
+        // `recorded` distingue "yo registré este pago" de "ya estaba": sin eso,
+        // un webhook duplicado —o el que llega tras cobrar por `createCharge`—
+        // reenviaba el correo de confirmación al viajero.
+        let recorded = false;
         await db.$transaction(async (tx) => {
             // Idempotencia DENTRO de la transacción
             const existingPayment = await tx.payment.findFirst({
@@ -240,6 +160,7 @@ export async function POST(req: NextRequest) {
                     processedAt: new Date(),
                 },
             });
+            recorded = true;
 
             sendWhatsAppAlert(
                 `🏦 *Pago Recibido vía Culqi (Tarjeta)*\nRef: ${referenceCode}\nMonto: ${verifiedCurrency} ${verifiedAmount}`
@@ -254,8 +175,10 @@ export async function POST(req: NextRequest) {
             }
         }, { isolationLevel: "Serializable" });
 
-        // Email confirmación al cliente (fuera de la transacción, fire-and-forget)
-        emailAfterCulqiPayment(referenceCode, verifiedAmount, verifiedCurrency).catch(console.error);
+        // Email al cliente sólo si este webhook fue quien registró el pago.
+        if (recorded) {
+            sendPaymentConfirmationEmail(referenceCode, verifiedAmount, verifiedCurrency);
+        }
 
         return NextResponse.json({ received: true });
     } catch (error) {
@@ -308,6 +231,7 @@ async function handleOrderEvent(data: any): Promise<NextResponse> {
 
     const verifiedAmount = order.amount / 100;
 
+    let recorded = false;
     await db.$transaction(async (tx) => {
         const existingPayment = await tx.payment.findFirst({
             where: { culqiChargeId: orderId },
@@ -345,6 +269,7 @@ async function handleOrderEvent(data: any): Promise<NextResponse> {
                 processedAt: new Date(),
             },
         });
+        recorded = true;
 
         sendWhatsAppAlert(
             `🏦 *Pago Recibido vía Culqi (Orden)*\nRef: ${referenceCode}\nMonto: PEN ${verifiedAmount}\nOrden: ${orderId}`
@@ -359,8 +284,10 @@ async function handleOrderEvent(data: any): Promise<NextResponse> {
         }
     }, { isolationLevel: "Serializable" });
 
-    // Email confirmación al cliente (fire-and-forget)
-    emailAfterCulqiPayment(referenceCode, verifiedAmount, "PEN").catch(console.error);
+    // Email al cliente sólo si este webhook fue quien registró el pago.
+    if (recorded) {
+        sendPaymentConfirmationEmail(referenceCode, verifiedAmount, "PEN");
+    }
 
     return NextResponse.json({ received: true });
 }

@@ -3,6 +3,8 @@ import { z } from "zod";
 import { router, publicProcedure } from "../trpc";
 import { sanitizeName, sanitizePhone, toCountryCode } from "@/server/lib/payer";
 import { PAYMENT_CURRENCY } from "@/lib/currency";
+import { sendPaymentConfirmationEmail } from "@/server/email/send-payment-confirmation";
+import { sendWhatsAppAlert, sendWhatsAppToClient } from "@/server/lib/whatsapp";
 
 /**
  * Cobros con Culqi.
@@ -208,11 +210,35 @@ export const culqiChargeRouter = router({
           },
         });
 
+        // El cargo cubre el total de la reserva, así que queda PAGADA. Antes
+        // se dejaba en CONFIRMED: el panel mostraba como "pendiente de pago"
+        // una reserva ya cobrada, y no coincidía con PayPal ni con el webhook,
+        // que sí ponen PAID.
         await tx.reservation.update({
           where: { id: reservationId },
-          data: { status: "CONFIRMED" },
+          data: { status: "PAID" },
         });
       });
+
+      // Avisos posteriores al cobro (fire-and-forget, nunca tumban el pago).
+      //
+      // Esto vivía SÓLO en el webhook de Culqi. Si el webhook no llegaba —por
+      // no estar configurado en el panel de Culqi, o por fallar la firma— el
+      // viajero pagaba y se quedaba con el correo de "reserva pendiente" que
+      // se envía al crearla, sin confirmación ninguna. Aquí sabemos de
+      // primera mano que el cargo se hizo, así que no dependemos de nadie.
+      sendPaymentConfirmationEmail(reservation.referenceCode, amountDecimal, PAYMENT_CURRENCY);
+
+      sendWhatsAppAlert(
+        `🏦 *Pago Recibido vía Culqi (Tarjeta)*\nRef: ${reservation.referenceCode}\nMonto: ${PAYMENT_CURRENCY} ${amountDecimal}`
+      ).catch(console.error);
+
+      if (reservation.client.phone) {
+        sendWhatsAppToClient(
+          reservation.client.phone,
+          `¡Hola ${reservation.client.firstName}! Confirmamos la recepción de tu pago por ${PAYMENT_CURRENCY} ${amountDecimal}.\n\nReserva: ${reservation.referenceCode}\n\n¡Gracias por tu compra en Like In House!`
+        ).catch(console.error);
+      }
 
       return { success: true, chargeId: charge.id as string };
     }),
