@@ -16,6 +16,34 @@ import {
  */
 
 /**
+ * Margen sobre el tipo de cambio, en porcentaje.
+ *
+ * El TC interbancario (SUNAT, open.er-api) no es el que acaba pagando el
+ * cliente: su banco o su tarjeta le aplican su propio spread, así que el
+ * precio que veía en soles quedaba por debajo de lo que realmente le
+ * descontaban. Este margen acerca la cifra mostrada a la real.
+ *
+ * Es un margen de VISUALIZACIÓN: el cobro sigue siendo el importe en USD, de
+ * modo que esto nunca puede hacer que se cobre de más. Se aplica a todas las
+ * monedas menos al dólar, que es la base.
+ *
+ * Configurable con CURRENCY_MARKUP_PERCENT (por defecto 3%). Se limita a un
+ * máximo del 20% para que una variable mal escrita no muestre precios
+ * disparatados.
+ */
+export function getMarkupPercent(): number {
+  const raw = parseFloat(process.env.CURRENCY_MARKUP_PERCENT ?? "3");
+  if (!isFinite(raw) || raw < 0) return 0;
+  return Math.min(raw, 20);
+}
+
+/** Aplica el margen a una tasa USD→moneda. El dólar nunca lleva margen. */
+function withMarkup(rate: number, currency: CurrencyCode): number {
+  if (currency === "USD") return 1;
+  return rate * (1 + getMarkupPercent() / 100);
+}
+
+/**
  * Tipo de cambio oficial SUNAT (vía apis.net.pe).
  *
  * Se usa el tipo "venta": es lo que efectivamente paga el cliente cuando su
@@ -66,7 +94,10 @@ async function fetchOpenRates(): Promise<ExchangeRates> {
 
 export interface ExchangeRatesResult {
   base: "USD";
+  /** Tasas YA con el margen aplicado: son las que ve el pasajero. */
   rates: Record<CurrencyCode, number>;
+  /** Margen aplicado, en porcentaje. */
+  markupPercent: number;
   /** Origen efectivo de cada tasa, para diagnosticar en producción. */
   sources: { pen: "SUNAT" | "fallback"; others: "open.er-api.com" | "fallback" };
   fetchedAt: string;
@@ -84,14 +115,19 @@ export async function getExchangeRates(): Promise<ExchangeRatesResult> {
   for (const [code, value] of Object.entries(openRates)) {
     rates[code as CurrencyCode] = value as number;
   }
-  rates.USD = 1;
   rates.PEN = penRate; // SUNAT manda sobre el proveedor general
+
+  // Margen de visualización sobre todas las monedas salvo el dólar.
+  for (const code of CURRENCY_CODES) {
+    rates[code] = withMarkup(rates[code], code);
+  }
 
   const penFromFallback = penRate === parseFloat(process.env.USD_TO_PEN_RATE_FALLBACK || String(FALLBACK_RATES.PEN));
 
   return {
     base: "USD",
     rates,
+    markupPercent: getMarkupPercent(),
     sources: {
       pen: penFromFallback ? "fallback" : "SUNAT",
       others: Object.keys(openRates).length > 0 ? "open.er-api.com" : "fallback",
@@ -100,10 +136,15 @@ export async function getExchangeRates(): Promise<ExchangeRatesResult> {
   };
 }
 
-/** Tasa puntual USD→moneda, resuelta en el servidor. */
+/**
+ * Tasa puntual USD→moneda, con el mismo margen que ve el pasajero.
+ *
+ * Debe coincidir con `getExchangeRates`: es la que se guarda en la reserva
+ * como `exchangeRate`, y tiene que explicar la cifra que el cliente vio.
+ */
 export async function getRateFor(currency: CurrencyCode): Promise<number> {
   if (currency === "USD") return 1;
-  if (currency === "PEN") return getUsdToPenRate();
+  if (currency === "PEN") return withMarkup(await getUsdToPenRate(), "PEN");
   const { rates } = await getExchangeRates();
-  return rates[currency] ?? FALLBACK_RATES[currency];
+  return rates[currency] ?? withMarkup(FALLBACK_RATES[currency], currency);
 }

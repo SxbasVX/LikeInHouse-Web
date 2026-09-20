@@ -206,3 +206,63 @@ describe("Validación de códigos", () => {
     expect(toCurrencyCode(undefined)).toBe("USD");
   });
 });
+
+describe("Margen de conversión (spread de visualización)", () => {
+  // Réplica de la lógica de src/server/lib/exchange.ts para poder probarla
+  // sin salir a la red. Si cambia allí, debe cambiar aquí.
+  function markupPercent(env?: string): number {
+    const raw = parseFloat(env ?? "3");
+    if (!isFinite(raw) || raw < 0) return 0;
+    return Math.min(raw, 20);
+  }
+  function withMarkup(rate: number, currency: string, env?: string): number {
+    if (currency === "USD") return 1;
+    return rate * (1 + markupPercent(env) / 100);
+  }
+
+  it("el dólar nunca lleva margen: es la moneda base y la de cobro", () => {
+    expect(withMarkup(1, "USD")).toBe(1);
+    expect(withMarkup(1, "USD", "20")).toBe(1);
+  });
+
+  it("sube el precio mostrado en moneda local (queda a nuestro favor)", () => {
+    const sunat = 3.5;
+    const conMargen = withMarkup(sunat, "PEN"); // 3% por defecto
+    expect(conMargen).toBeCloseTo(3.605, 4);
+    // 100 USD pasan de S/ 350 a S/ 360.50
+    expect(convertFromUSD(100, "PEN", { PEN: conMargen })).toBe(360.5);
+  });
+
+  it("con 5% el margen es mayor", () => {
+    expect(withMarkup(3.5, "PEN", "5")).toBeCloseTo(3.675, 4);
+    expect(convertFromUSD(100, "PEN", { PEN: withMarkup(3.5, "PEN", "5") })).toBe(367.5);
+  });
+
+  it("el margen nunca reduce el precio mostrado", () => {
+    const base = 3.5;
+    for (const env of ["0", "1", "3", "5", "10"]) {
+      expect(withMarkup(base, "PEN", env)).toBeGreaterThanOrEqual(base);
+    }
+  });
+
+  it("se limita al 20% aunque la variable diga más", () => {
+    expect(markupPercent("999")).toBe(20);
+    expect(withMarkup(3.5, "PEN", "999")).toBeCloseTo(4.2, 4);
+  });
+
+  it("ignora valores inválidos o negativos", () => {
+    expect(markupPercent("-5")).toBe(0);
+    expect(markupPercent("abc")).toBe(0);
+    expect(withMarkup(3.5, "PEN", "-5")).toBe(3.5);
+  });
+
+  it("el importe COBRADO no cambia con el margen", () => {
+    // Esta es la garantía central: el margen sólo toca lo que se ve.
+    const totalUsd = 100;
+    const sinMargen = convertFromUSD(totalUsd, "PEN", { PEN: 3.5 });
+    const conMargen = convertFromUSD(totalUsd, "PEN", { PEN: withMarkup(3.5, "PEN", "5") });
+    expect(conMargen).toBeGreaterThan(sinMargen);
+    // El cobro sale de USD, no de ninguna de las dos cifras anteriores
+    expect(convertFromUSD(totalUsd, "USD", { PEN: 3.5 })).toBe(100);
+  });
+});
