@@ -80,8 +80,9 @@ export const paypalRouter = router({
                 throw new TRPCError({ code: "BAD_REQUEST", message: "Reservation is already paid" });
             }
 
-            // Validate currency is USD (PayPal only supports USD in this integration)
-            if (reservation.currency !== "USD") {
+            // PayPal cobra en USD. Una reserva antigua guardada en soles no
+            // puede pagarse aquí: el número significaría otra cosa.
+            if ((reservation.paymentCurrency || reservation.currency) !== "USD") {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Only USD reservations can be paid via PayPal",
@@ -302,6 +303,7 @@ export const paypalRouter = router({
                                 reservationId: input.reservationId,
                                 amount: capturedAmount,
                                 currency: captureInfo.amount.currency_code || "USD",
+                                amountUsd: capturedAmount,
                                 method: "PAYPAL",
                                 status: "COMPLETED",
                                 paypalOrderId: input.orderId,

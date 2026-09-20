@@ -24,10 +24,16 @@ import { getTrafficData } from "@/hooks/use-traffic-tracking";
 import { Link } from "@/i18n/routing";
 import { DownloadPDFButton } from "@/components/pdf/download-button";
 import { waUrl } from "@/lib/whatsapp";
+import { useCurrency } from "@/hooks/use-currency";
+import { formatCurrency, BASE_CURRENCY, PAYMENT_CURRENCY } from "@/lib/currency";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
-type Currency = "USD" | "PEN";
-const RATE_FALLBACK = 3.75;
+//
+// El checkout distingue dos monedas y jamás las mezcla:
+//   · la de VISUALIZACIÓN, que elige el pasajero en el navbar, y
+//   · la de COBRO, que es siempre USD.
+// Todos los importes de este archivo están en USD; sólo se convierten en el
+// momento de pintarlos, con `display()`.
 
 interface PricingTier {
     id: string;
@@ -159,7 +165,8 @@ export function CheckoutForm({
     // Total confirmado por el servidor al crear la reserva. Es la fuente de
     // verdad para cobrar y mostrar en el paso de pago.
     const [confirmedTotal, setConfirmedTotal] = useState<number | null>(null);
-    const [currency, setCurrency] = useState<Currency>("USD");
+    // Moneda de visualización (global, persistida). No afecta al cobro.
+    const { currency: displayCurrency, display, isConverted } = useCurrency();
     const [culqiReady, setCulqiReady] = useState(false);
     const [paypalReady, setPaypalReady] = useState(false);
     const [paypalRendered, setPaypalRendered] = useState(false);
@@ -203,11 +210,6 @@ export function CheckoutForm({
     const [adultsFallback, setAdultsFallback] = useState(1);
     const [childrenFallback, setChildrenFallback] = useState(0);
 
-    // ── Tipo de cambio oficial SUNAT ─────────────────────────────────────────
-    const { data: rateData } = trpc.culqiCharge.getExchangeRate.useQuery(undefined, {
-        staleTime: 4 * 60 * 60 * 1000,
-    });
-    const exchangeRate = rateData?.rate ?? RATE_FALLBACK;
 
     // ── Descuento global activo (Black Friday, etc.) ─────────────────────────
     const { data: globalDiscount } = trpc.public.activeGlobalDiscount.useQuery(undefined, {
@@ -216,15 +218,15 @@ export function CheckoutForm({
     const globalPct = globalDiscount ? Math.min(Number(globalDiscount.percent) || 0, 100) : 0;
     const discountMultiplier = 1 - globalPct / 100;
 
-    // ── Cálculo de totales ────────────────────────────────────────────────────
-    const rate = currency === "PEN" ? exchangeRate : 1;
-
+    // ── Cálculo de totales (SIEMPRE en USD) ──────────────────────────────────
+    // Descuentos e importes se calculan sobre el precio base en dólares. La
+    // conversión a la moneda del pasajero ocurre sólo al renderizar.
     const tierLines = hasTiers
         ? tiers.map((t) => ({
               tier: t,
               qty: quantities[t.id] ?? 0,
-              unitPrice: t.priceUsd * discountMultiplier * rate,
-              subtotal: (quantities[t.id] ?? 0) * t.priceUsd * discountMultiplier * rate,
+              unitPriceUsd: t.priceUsd * discountMultiplier,
+              subtotalUsd: (quantities[t.id] ?? 0) * t.priceUsd * discountMultiplier,
           })).filter((l) => l.qty > 0)
         : [];
 
@@ -234,10 +236,9 @@ export function CheckoutForm({
           childrenFallback * (tour.pricing?.basePriceUsdChild ?? 0);
 
     const grandTotalUsd = Math.round(rawGrandTotalUsd * discountMultiplier * 100) / 100;
-    const grandTotal = Math.round(grandTotalUsd * rate * 100) / 100;
-    // Una vez creada la reserva se cobra y se muestra el total que confirmó el
-    // servidor; antes de eso, el calculado en vivo.
-    const payableTotal = confirmedTotal ?? grandTotal;
+    // Una vez creada la reserva manda el total en USD que confirmó el servidor;
+    // antes de eso, el calculado en vivo. Este es el importe que se cobra.
+    const payableTotalUsd = confirmedTotal ?? grandTotalUsd;
 
     const totalParticipants = hasTiers
         ? tiers.reduce((acc, t) => acc + (quantities[t.id] ?? 0), 0)
@@ -291,8 +292,6 @@ export function CheckoutForm({
         },
     });
 
-    const createOrderMut = trpc.culqiCharge.createOrder.useMutation();
-
     const createPaypalOrder = trpc.paypal.createOrder.useMutation();
     const capturePaypalOrder = trpc.paypal.captureOrder.useMutation({
         onSuccess: () => { setIsProcessing(false); setStep("success"); },
@@ -341,11 +340,8 @@ export function CheckoutForm({
 
     // Si Culqi esta desactivado, forza PayPal (admin podria haberlo apagado)
     useEffect(() => {
-        if (!culqiEnabled && paymentMethod === "card") {
-            setPaymentMethod("paypal");
-            if (currency !== "USD") setCurrency("USD");
-        }
-    }, [culqiEnabled, paymentMethod, currency]);
+        if (!culqiEnabled && paymentMethod === "card") setPaymentMethod("paypal");
+    }, [culqiEnabled, paymentMethod]);
 
     // Fallback: si el Script no dispara onLoad (cache, SPA navigation, etc.),
     // detecta window.CulqiCheckout por polling durante los primeros 10s
@@ -370,28 +366,11 @@ export function CheckoutForm({
             toast({ variant: "destructive", title: "Error", description: "Pasarela no cargada aún" });
             return;
         }
-        amountRef.current = Math.round(payableTotal * 100);
+        // El cobro es en USD. Este importe sólo sirve para que el modal de
+        // Culqi muestre la cifra correcta: el cargo real lo calcula el
+        // servidor a partir de la reserva.
+        amountRef.current = Math.round(payableTotalUsd * 100);
         emailRef.current  = watch("email");
-
-        // Métodos alternativos (billetera, bancaMovil, agente, cuotealo) sólo
-        // funcionan en PEN y requieren crear una Orden Culqi previa. Si la
-        // creación falla (cuenta test/merchant sin Orders API activo),
-        // degradamos a tarjeta+Yape sin bloquear el flujo.
-        let orderId: string | undefined;
-        if (currency === "PEN") {
-            setIsProcessing(true);
-            try {
-                const order = await createOrderMut.mutateAsync({
-                    reservationId: reservationId!,
-                    amount: amountRef.current,
-                    email: emailRef.current,
-                });
-                orderId = order.orderId;
-            } catch (e: unknown) {
-                console.warn("[Culqi] createOrder falló, continuando solo con tarjeta+Yape:", e);
-            }
-            setIsProcessing(false);
-        }
 
         const publicKey = process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY || "";
         if (!publicKey) {
@@ -410,9 +389,8 @@ export function CheckoutForm({
         const config: CulqiCheckoutConfig = {
             settings: {
                 title: "Like In House",
-                currency,
+                currency: PAYMENT_CURRENCY,
                 amount: amountRef.current,
-                ...(orderId ? { order: orderId } : {}),
             },
             client: {
                 email: emailRef.current,
@@ -421,15 +399,13 @@ export function CheckoutForm({
                 lang: isEs ? "es" : "en",
                 installments: true,
                 modal: true,
+                // Sólo tarjeta: Yape y los métodos de la Orders API (billetera,
+                // banca móvil, agentes, Cuotéalo) operan únicamente en soles y
+                // el cobro de este checkout es en dólares.
                 paymentMethods: {
                     tarjeta: true,
-                    yape: currency === "PEN",
-                    billetera: !!orderId,
-                    bancaMovil: !!orderId,
-                    agente: !!orderId,
-                    cuotealo: !!orderId,
                 },
-                paymentMethodsSort: ["tarjeta", "yape", "billetera", "bancaMovil", "agente", "cuotealo"],
+                paymentMethodsSort: ["tarjeta"],
             },
             appearance: {
                 theme: "default",
@@ -452,11 +428,11 @@ export function CheckoutForm({
             if (instance.token) {
                 // Tarjeta: cargar vía createCharge server-side
                 setIsProcessing(true);
+                // Ni moneda ni importe viajan desde aquí: el servidor los
+                // recalcula desde la reserva y cobra en USD.
                 createCharge.mutate({
                     reservationId: reservationId!,
                     token: instance.token.id,
-                    currency,
-                    amount: amountRef.current,
                     email: emailRef.current,
                 });
                 instance.close();
@@ -520,9 +496,8 @@ export function CheckoutForm({
             country:     data.country,
             adults:         adultsForBackend,
             children:       childrenForBackend,
-            currency,
-            totalAmount:    grandTotal,
             totalAmountUsd: grandTotalUsd,
+            displayCurrency,
             tierQuantities: hasTiers
                 ? tiers.filter((t) => (quantities[t.id] ?? 0) > 0)
                        .map((t) => ({ tierId: t.id, quantity: quantities[t.id] ?? 0 }))
@@ -542,7 +517,13 @@ export function CheckoutForm({
         });
     };
 
-    const currencySymbol = currency === "USD" ? "$" : "S/";
+    // Importe que se cobra, siempre en USD y siempre explícito.
+    const chargedLabel = formatCurrency(payableTotalUsd, PAYMENT_CURRENCY, { locale, withCode: true });
+
+    // Aviso que acompaña a cualquier precio mostrado en otra moneda.
+    const conversionNote = isEs
+        ? `Los importes en ${displayCurrency} son una conversión aproximada. El cobro se procesa en ${PAYMENT_CURRENCY}.`
+        : `Amounts in ${displayCurrency} are an approximate conversion. You will be charged in ${PAYMENT_CURRENCY}.`;
 
     // ── Pantalla de éxito ─────────────────────────────────────────────────────
     if (step === "success") {
@@ -573,14 +554,19 @@ export function CheckoutForm({
                                 <span className="text-muted-foreground">
                                     {l.qty}× {isEs ? l.tier.labelEs : l.tier.labelEn}
                                 </span>
-                                <span>{currencySymbol} {l.subtotal.toFixed(2)}</span>
+                                <span>{display(l.subtotalUsd)}</span>
                             </div>
                         ))}
                         <Separator />
                         <div className="flex justify-between font-bold">
-                            <span>Total pagado</span>
-                            <span className="text-primary text-xl">{currencySymbol} {payableTotal.toFixed(2)}</span>
+                            <span>{isEs ? "Total pagado" : "Total paid"}</span>
+                            <span className="text-primary text-xl">{chargedLabel}</span>
                         </div>
+                        {isConverted && (
+                            <p className="text-xs text-muted-foreground text-right">
+                                ≈ {display(payableTotalUsd)} {displayCurrency}
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -602,9 +588,9 @@ export function CheckoutForm({
                             clientName:   `${watch("firstName")} ${watch("lastName")}`,
                             clientEmail:  watch("email"),
                             clientPhone:  watch("phone") || null,
-                            amountPaid:   payableTotal,
-                            totalAmount:  payableTotal,
-                            currency,
+                            amountPaid:   payableTotalUsd,
+                            totalAmount:  payableTotalUsd,
+                            currency:     PAYMENT_CURRENCY,
                             dateStr:      showDepartures && selectedDeparture
                                 ? format(new Date(tour.departures.find((d) => d.id === selectedDeparture)?.departureDate || new Date()), "dd MMM yyyy", { locale: isEs ? es : undefined })
                                 : openDate || "",
@@ -818,8 +804,8 @@ export function CheckoutForm({
                                     {hasTiers && (
                                         <p className="text-xs text-muted-foreground mt-1">
                                             {isEs ? "Precios por persona en" : "Prices per person in"}{" "}
-                                            <span className="font-medium">{currency}</span>
-                                            {currency === "PEN" && ` (TC: S/ ${exchangeRate.toFixed(3)})`}
+                                            <span className="font-medium">{displayCurrency}</span>
+                                            {isConverted && ` · ${isEs ? "cobro en" : "charged in"} ${PAYMENT_CURRENCY}`}
                                         </p>
                                     )}
                                 </CardHeader>
@@ -827,7 +813,7 @@ export function CheckoutForm({
                                     {hasTiers ? (
                                         <div className="space-y-3">
                                             {tiers.map((tier) => {
-                                                const price = tier.priceUsd * rate;
+                                                const priceUsd = tier.priceUsd;
                                                 const qty   = quantities[tier.id] ?? 0;
                                                 const label = isEs ? tier.labelEs : tier.labelEn;
                                                 const age   = ageLabel(tier, isEs);
@@ -838,7 +824,7 @@ export function CheckoutForm({
                                                             <p className="font-medium text-sm">{label}</p>
                                                             {age && <p className="text-xs text-muted-foreground">{age}</p>}
                                                             <p className="text-sm font-semibold text-brand-orange mt-0.5">
-                                                                {currencySymbol} {price.toFixed(2)}
+                                                                {display(priceUsd)}
                                                                 <span className="text-xs font-normal text-muted-foreground ml-1">
                                                                     {isEs ? "/ persona" : "/ person"}
                                                                 </span>
@@ -865,7 +851,7 @@ export function CheckoutForm({
                                                 <div>
                                                     <p className="font-medium text-sm">{isEs ? "Adultos" : "Adults"}</p>
                                                     <p className="text-sm font-semibold text-brand-orange">
-                                                        {currencySymbol} {((tour.pricing?.basePriceUsdAdult ?? 0) * rate).toFixed(2)}
+                                                        {display(tour.pricing?.basePriceUsdAdult ?? 0)}
                                                     </p>
                                                 </div>
                                                 <Stepper value={adultsFallback} min={1} onChange={setAdultsFallback} />
@@ -874,7 +860,7 @@ export function CheckoutForm({
                                                 <div>
                                                     <p className="font-medium text-sm">{isEs ? "Niños" : "Children"}</p>
                                                     <p className="text-sm font-semibold text-brand-orange">
-                                                        {currencySymbol} {((tour.pricing?.basePriceUsdChild ?? 0) * rate).toFixed(2)}
+                                                        {display(tour.pricing?.basePriceUsdChild ?? 0)}
                                                     </p>
                                                 </div>
                                                 <Stepper value={childrenFallback} min={0} onChange={setChildrenFallback} />
@@ -905,7 +891,7 @@ export function CheckoutForm({
                                                     <span className="text-muted-foreground">
                                                         {l.qty}× {isEs ? l.tier.labelEs : l.tier.labelEn}
                                                     </span>
-                                                    <span>{currencySymbol} {l.subtotal.toFixed(2)}</span>
+                                                    <span>{display(l.subtotalUsd)}</span>
                                                 </div>
                                             )) : (
                                                 <p className="text-muted-foreground text-center">—</p>
@@ -914,23 +900,34 @@ export function CheckoutForm({
                                             <>
                                                 <div className="flex justify-between">
                                                     <span className="text-muted-foreground">{adultsForBackend}× {isEs ? "Adultos" : "Adults"}</span>
-                                                    <span>{currencySymbol} {(adultsForBackend * (tour.pricing?.basePriceUsdAdult ?? 0) * rate).toFixed(2)}</span>
+                                                    <span>{display(adultsForBackend * (tour.pricing?.basePriceUsdAdult ?? 0))}</span>
                                                 </div>
                                                 {childrenForBackend > 0 && (
                                                     <div className="flex justify-between">
                                                         <span className="text-muted-foreground">{childrenForBackend}× {isEs ? "Niños" : "Children"}</span>
-                                                        <span>{currencySymbol} {(childrenForBackend * (tour.pricing?.basePriceUsdChild ?? 0) * rate).toFixed(2)}</span>
+                                                        <span>{display(childrenForBackend * (tour.pricing?.basePriceUsdChild ?? 0))}</span>
                                                     </div>
                                                 )}
                                             </>
                                         )}
                                         <Separator />
-                                        <div className="flex justify-between font-bold text-base">
-                                            <span>Total</span>
-                                            <span className="text-primary">{currencySymbol} {payableTotal.toFixed(2)}</span>
-                                        </div>
-                                        {currency === "PEN" && (
-                                            <p className="text-xs text-muted-foreground text-right">≈ $ {grandTotalUsd.toFixed(2)} USD</p>
+                                        {isConverted ? (
+                                            <>
+                                                <div className="flex justify-between text-base">
+                                                    <span>{isEs ? "Total estimado" : "Estimated total"}</span>
+                                                    <span className="font-semibold">{display(payableTotalUsd)} {displayCurrency}</span>
+                                                </div>
+                                                <div className="flex justify-between font-bold text-base">
+                                                    <span>{isEs ? "Cobro final" : "Final charge"}</span>
+                                                    <span className="text-primary">{chargedLabel}</span>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground leading-snug pt-1">{conversionNote}</p>
+                                            </>
+                                        ) : (
+                                            <div className="flex justify-between font-bold text-base">
+                                                <span>Total</span>
+                                                <span className="text-primary">{chargedLabel}</span>
+                                            </div>
                                         )}
                                     </div>
 
@@ -951,12 +948,12 @@ export function CheckoutForm({
                                                     }`}
                                                 >
                                                     <CreditCard className="h-4 w-4" />
-                                                    {isEs ? "Tarjeta / Yape" : "Card / Yape"}
+                                                    {isEs ? "Tarjeta" : "Card"}
                                                 </button>
                                             )}
                                             <button
                                                 type="button"
-                                                onClick={() => { setPaymentMethod("paypal"); if (currency !== "USD") setCurrency("USD"); }}
+                                                onClick={() => setPaymentMethod("paypal")}
                                                 className={`flex items-center justify-center gap-2 rounded-xl border-2 p-3 text-sm font-medium transition-all ${
                                                     paymentMethod === "paypal"
                                                         ? "border-[#003087] bg-[#003087]/5 text-[#003087]"
@@ -967,11 +964,11 @@ export function CheckoutForm({
                                                 <span className="font-bold text-[#009cde]">Pal</span>
                                             </button>
                                         </div>
-                                        {paymentMethod === "paypal" && currency === "USD" && (
-                                            <p className="text-xs text-muted-foreground text-center">
-                                                {isEs ? "PayPal solo acepta pagos en USD" : "PayPal only accepts USD payments"}
-                                            </p>
-                                        )}
+                                        <p className="text-xs text-muted-foreground text-center">
+                                            {isEs
+                                                ? `Ambos métodos cobran en ${PAYMENT_CURRENCY}.`
+                                                : `Both methods charge in ${PAYMENT_CURRENCY}.`}
+                                        </p>
                                     </div>
 
                                     {/* Pago con tarjeta (Culqi) */}
@@ -988,7 +985,7 @@ export function CheckoutForm({
                                                 ) : !culqiReady ? (
                                                     <><Loader2 className="h-5 w-5 animate-spin" />{isEs ? "Cargando pasarela..." : "Loading..."}</>
                                                 ) : (
-                                                    <><CreditCard className="h-5 w-5" />{isEs ? "Pagar con Tarjeta" : "Pay with Card"} — {currencySymbol} {payableTotal.toFixed(2)}</>
+                                                    <><CreditCard className="h-5 w-5" />{isEs ? "Pagar con Tarjeta" : "Pay with Card"} — {chargedLabel}</>
                                                 )}
                                             </Button>
                                             <div className="text-center space-y-1">
@@ -996,7 +993,7 @@ export function CheckoutForm({
                                                     <ShieldCheck className="h-4 w-4 text-brand-teal" />
                                                     {isEs ? "Pago seguro por Culqi" : "Secure payment by Culqi"}
                                                 </div>
-                                                <p className="text-xs text-muted-foreground">Visa · Mastercard · Amex · Diners · Yape</p>
+                                                <p className="text-xs text-muted-foreground">Visa · Mastercard · Amex · Diners</p>
                                             </div>
                                         </div>
                                     )}
@@ -1061,33 +1058,22 @@ export function CheckoutForm({
                         <CardContent className="p-4 space-y-4">
                             <p className="font-bold text-base leading-snug">{isEs ? tour.nameEs : tour.nameEn}</p>
 
-                            {/* Moneda */}
-                            <div className="space-y-2">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                    {isEs ? "Moneda de pago" : "Payment currency"}
-                                </p>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {(["USD","PEN"] as Currency[]).map((c) => (
-                                        <button key={c} type="button"
-                                            onClick={() => setCurrency(c)}
-                                            disabled={step === "payment"}
-                                            className={`flex items-center justify-center gap-1.5 rounded-lg border-2 py-2 text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                                                currency === c
-                                                    ? "border-brand-orange bg-brand-orange/10 text-brand-orange"
-                                                    : "border-border hover:border-brand-orange/40 text-muted-foreground"
-                                            }`}>
-                                            <DollarSign className="h-3.5 w-3.5" />
-                                            {c === "USD" ? "USD ($)" : "PEN (S/)"}
-                                        </button>
-                                    ))}
+                            {/* Monedas: lo que se ve vs. lo que se cobra */}
+                            {isConverted && (
+                                <div className="rounded-lg border border-dashed p-3 space-y-1.5">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="text-muted-foreground">{isEs ? "Ves los precios en" : "Prices shown in"}</span>
+                                        <span className="font-semibold">{displayCurrency}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="text-muted-foreground">{isEs ? "Se te cobrará en" : "You will be charged in"}</span>
+                                        <span className="font-semibold inline-flex items-center gap-1">
+                                            <DollarSign className="h-3 w-3" />{PAYMENT_CURRENCY}
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] leading-snug text-muted-foreground pt-1">{conversionNote}</p>
                                 </div>
-                                {currency === "PEN" && rateData && (
-                                    <p className="text-xs text-center text-muted-foreground">
-                                        {isEs ? "TC oficial SUNAT:" : "Official SUNAT rate:"}{" "}
-                                        <span className="font-semibold text-foreground">S/ {exchangeRate.toFixed(3)}</span>
-                                    </p>
-                                )}
-                            </div>
+                            )}
 
                             <Separator />
 
@@ -1097,11 +1083,11 @@ export function CheckoutForm({
                                     tiers.map((t) => {
                                         const qty = quantities[t.id] ?? 0;
                                         if (qty === 0 && step !== "details") return null;
-                                        const price = t.priceUsd * rate;
+                                        const priceUsd = t.priceUsd;
                                         return (
                                             <div key={t.id} className={`flex justify-between ${qty === 0 ? "text-muted-foreground/40" : ""}`}>
                                                 <span>{qty}× {isEs ? t.labelEs : t.labelEn}</span>
-                                                <span>{qty > 0 ? `${currencySymbol} ${(qty * price).toFixed(2)}` : "—"}</span>
+                                                <span>{qty > 0 ? display(qty * priceUsd) : "—"}</span>
                                             </div>
                                         );
                                     })
@@ -1109,12 +1095,12 @@ export function CheckoutForm({
                                     <>
                                         <div className="flex justify-between">
                                             <span>{adultsFallback}× {isEs ? "Adultos" : "Adults"}</span>
-                                            <span>{currencySymbol} {(adultsFallback * (tour.pricing?.basePriceUsdAdult ?? 0) * rate).toFixed(2)}</span>
+                                            <span>{display(adultsFallback * (tour.pricing?.basePriceUsdAdult ?? 0))}</span>
                                         </div>
                                         {childrenFallback > 0 && (
                                             <div className="flex justify-between">
                                                 <span>{childrenFallback}× {isEs ? "Niños" : "Children"}</span>
-                                                <span>{currencySymbol} {(childrenFallback * (tour.pricing?.basePriceUsdChild ?? 0) * rate).toFixed(2)}</span>
+                                                <span>{display(childrenFallback * (tour.pricing?.basePriceUsdChild ?? 0))}</span>
                                             </div>
                                         )}
                                     </>
@@ -1125,8 +1111,13 @@ export function CheckoutForm({
 
                             <div className="flex justify-between items-center font-bold">
                                 <span>Total</span>
-                                <span className="text-primary text-2xl">{currencySymbol} {payableTotal.toFixed(2)}</span>
+                                <span className="text-primary text-2xl">{display(payableTotalUsd)}</span>
                             </div>
+                            {isConverted && (
+                                <p className="text-xs text-muted-foreground text-right -mt-2">
+                                    {isEs ? "Cobro final" : "Final charge"}: <span className="font-semibold text-foreground">{chargedLabel}</span>
+                                </p>
+                            )}
 
                             {referenceCode && (
                                 <div className="flex justify-between text-sm text-muted-foreground">

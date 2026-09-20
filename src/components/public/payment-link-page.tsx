@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useCurrency } from "@/hooks/use-currency";
+import { formatCurrency, PAYMENT_CURRENCY } from "@/lib/currency";
 import { useToast } from "@/hooks/use-toast";
 import { getTrafficData } from "@/hooks/use-traffic-tracking";
 import {
@@ -139,7 +141,10 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
         );
     }
 
-    const currencySymbol = "$";
+    // Los importes del link están en USD: es la moneda base y la de cobro.
+    // `display` sólo los traduce a la moneda que el cliente eligió ver.
+    const { display, isConverted, currency: displayCurrency } = useCurrency();
+    const charged = (usd: number) => formatCurrency(usd, PAYMENT_CURRENCY, { locale, withCode: true });
     const pendingAmount = link.totalAmount - link.amountPaid;
     const depositPending = link.depositRequired && link.depositAmount
         ? Math.max(0, link.depositAmount - link.amountPaid)
@@ -176,7 +181,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">{isEs ? "Monto pagado" : "Amount paid"}</span>
-                                <span className="font-bold text-primary">{currencySymbol} {amountToPay.toFixed(2)}</span>
+                                <span className="font-bold text-primary">{display(amountToPay)}</span>
                             </div>
                         </CardContent>
                     </Card>
@@ -395,7 +400,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
                                         </CardTitle>
                                         <p className="text-sm text-muted-foreground">
                                             {isEs ? "Monto a pagar:" : "Amount to pay:"}{" "}
-                                            <span className="font-bold text-foreground">{currencySymbol} {amountToPay.toFixed(2)}</span>
+                                            <span className="font-bold text-foreground">{display(amountToPay)}</span>
                                         </p>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
@@ -459,20 +464,20 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
                                 <CardContent className="p-5 space-y-4">
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">{isEs ? "Total del servicio" : "Service total"}</span>
-                                        <span className="font-bold">{currencySymbol} {link.totalAmount.toFixed(2)}</span>
+                                        <span className="font-bold">{display(link.totalAmount)}</span>
                                     </div>
 
                                     {link.amountPaid > 0 && (
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{isEs ? "Ya pagado" : "Already paid"}</span>
-                                            <span className="text-brand-teal font-medium">- {currencySymbol} {link.amountPaid.toFixed(2)}</span>
+                                            <span className="text-brand-teal font-medium">- {display(link.amountPaid)}</span>
                                         </div>
                                     )}
 
                                     {link.depositRequired && link.depositAmount && link.amountPaid === 0 && (
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{isEs ? "Deposito requerido" : "Deposit required"}</span>
-                                            <span>{currencySymbol} {link.depositAmount.toFixed(2)}</span>
+                                            <span>{display(link.depositAmount)}</span>
                                         </div>
                                     )}
 
@@ -480,8 +485,15 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
 
                                     <div className="flex justify-between text-lg font-bold">
                                         <span>{isEs ? "Pendiente" : "Pending"}</span>
-                                        <span className="text-primary">{currencySymbol} {pendingAmount.toFixed(2)}</span>
+                                        <span className="text-primary">{display(pendingAmount)}</span>
                                     </div>
+                                    {isConverted && (
+                                        <p className="text-xs text-muted-foreground -mt-1">
+                                            {isEs
+                                                ? `El importe en ${displayCurrency} es una conversión aproximada. El cobro final es de ${charged(pendingAmount)}.`
+                                                : `The ${displayCurrency} amount is an approximate conversion. The final charge is ${charged(pendingAmount)}.`}
+                                        </p>
+                                    )}
 
                                     <div className="text-xs text-muted-foreground flex items-center gap-1">
                                         <Clock className="h-3 w-3" />
@@ -503,7 +515,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
                                                     ) : (
                                                         <CreditCard className="h-5 w-5 mr-2" />
                                                     )}
-                                                    {isEs ? `Pagar Deposito (${currencySymbol} ${depositPending.toFixed(2)})` : `Pay Deposit (${currencySymbol} ${depositPending.toFixed(2)})`}
+                                                    {isEs ? `Pagar Deposito (${display(depositPending)})` : `Pay Deposit (${display(depositPending)})`}
                                                 </Button>
                                             )}
 
@@ -519,7 +531,7 @@ export function PaymentLinkPage({ token, locale }: PaymentLinkPageProps) {
                                                 ) : (
                                                     <CreditCard className="h-5 w-5 mr-2" />
                                                 )}
-                                                {isEs ? `Pagar Total (${currencySymbol} ${pendingAmount.toFixed(2)})` : `Pay Full (${currencySymbol} ${pendingAmount.toFixed(2)})`}
+                                                {isEs ? `Pagar Total (${display(pendingAmount)})` : `Pay Full (${display(pendingAmount)})`}
                                             </Button>
                                         </div>
                                     )}

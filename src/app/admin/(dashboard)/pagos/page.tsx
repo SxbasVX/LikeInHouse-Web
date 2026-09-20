@@ -115,7 +115,7 @@ export default function PagosPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-brand-teal">
-                S/ {Number(stats.completed.total).toFixed(2)}
+                USD {Number(stats.completed.total).toFixed(2)}
               </div>
               <p className="text-xs font-serif italic text-brand-teal">
                 {stats.completed.count} transacciones
@@ -129,7 +129,7 @@ export default function PagosPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-brand-orange">
-                S/ {Number(stats.pending.total).toFixed(2)}
+                USD {Number(stats.pending.total).toFixed(2)}
               </div>
               <p className="text-xs font-serif italic text-brand-teal">
                 {stats.pending.count} transacciones
@@ -143,7 +143,7 @@ export default function PagosPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-brand-darkTeal">
-                S/ {Number(stats.refunded.total).toFixed(2)}
+                USD {Number(stats.refunded.total).toFixed(2)}
               </div>
               <p className="text-xs font-serif italic text-brand-teal">
                 {stats.refunded.count} transacciones

@@ -7,6 +7,7 @@ import { usePathname as useNextPathname, useSearchParams } from "next/navigation
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Menu, Globe, Map, ChevronDown, ChevronRight, MapPin, ShoppingCart, X, ArrowUpRight } from "lucide-react";
+import { CurrencySwitcher } from "@/components/public/currency-switcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -151,6 +152,7 @@ export function Navbar() {
                 {safeCartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{safeCartCount}</span>}
               </Link>
             </Button>
+            <CurrencySwitcher variant="dark" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white/90 hover:text-white hover:bg-white/15 focus-visible:ring-0">
@@ -230,6 +232,7 @@ export function Navbar() {
               {safeCartCount > 0 && <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 shadow-md">{safeCartCount}</span>}
             </Link>
           </Button>
+          <CurrencySwitcher variant="light" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-gray-600 hover:text-brand-darkRed hover:bg-gray-100 focus-visible:ring-0">
@@ -339,6 +342,11 @@ function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMo
         </div>
       )}
 
+      {/* Moneda de visualización: el cobro sigue siendo en USD */}
+      <div className="mt-10 flex items-center justify-between border-t border-neutral-200 pt-6">
+        <span className="text-lg font-medium text-neutral-700">{isEs ? "Moneda" : "Currency"}</span>
+        <CurrencySwitcher variant="light" />
+      </div>
       <div className="flex gap-3 mt-12 mb-4">
         <Button variant="outline" className="flex-1 rounded-2xl h-14 font-semibold text-lg border-neutral-200" onClick={() => { switchLocale(isEs ? "en" : "es"); setMobileOpen(false); }}>
           {isEs ? "English" : "Español"}

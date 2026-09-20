@@ -164,7 +164,8 @@ export async function POST(req: NextRequest) {
                     data: {
                         reservationId: reservation.id,
                         amount: capturedAmount,
-                        currency: "USD",
+                        currency: "USD", // PayPal captura siempre en USD
+                        amountUsd: capturedAmount,
                         method: "PAYPAL",
                         status: "COMPLETED",
                         paypalOrderId: orderId,

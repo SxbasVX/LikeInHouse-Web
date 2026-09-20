@@ -3,6 +3,7 @@
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { useCartStore, useCartHydration } from "@/lib/cart-store";
+import { useCurrency } from "@/hooks/use-currency";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Trash2, ArrowRight, MapPin, Clock, X, CalendarDays } from "lucide-react";
 import Image from "next/image";
@@ -17,6 +18,9 @@ export default function CartPage() {
   const isEs = locale === "es";
   const cartHydrated = useCartHydration();
   const { items, removeItem, clearCart, updateItemDate } = useCartStore();
+  // Los precios del carrito se guardan en USD; aquí sólo se convierten
+  // para mostrarlos en la moneda que eligió el pasajero.
+  const { display } = useCurrency();
 
   if (!cartHydrated) {
     return (
@@ -148,7 +152,7 @@ export default function CartPage() {
                       <span className="text-sm text-gray-400">{t("informational")}</span>
                     ) : item.priceUsd ? (
                       <p className="text-lg font-bold text-brand-darkRed">
-                        ${item.priceUsd.toFixed(0)}{" "}
+                        {display(item.priceUsd, { compact: true })}{" "}
                         <span className="text-sm font-normal text-gray-400">/ {t("per_person")}</span>
                       </p>
                     ) : (

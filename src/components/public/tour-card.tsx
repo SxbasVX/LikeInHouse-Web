@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { getFinalPrice } from "@/lib/pricing";
 import { formatDuration } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface TourCardProps {
   tour: {
@@ -55,6 +56,8 @@ export function TourCard({ tour }: TourCardProps) {
   const cartHydrated = useCartHydration();
   const { addItem, isInCart } = useCartStore();
   const { toast } = useToast();
+  // Precio mostrado en la moneda elegida. El importe real sigue en USD.
+  const { display } = useCurrency();
   const inCart = cartHydrated ? isInCart(tour.id) : false;
 
   const { data: globalDiscount } = trpc.public.activeGlobalDiscount.useQuery(undefined, {
@@ -208,11 +211,11 @@ export function TourCard({ tour }: TourCardProps) {
           <div className="flex items-baseline gap-2">
             {priceInfo.hasDiscount && (
               <span className="text-sm text-gray-400 line-through font-light">
-                ${priceInfo.originalPrice.toFixed(0)}
+                {display(priceInfo.originalPrice, { compact: true })}
               </span>
             )}
             <p className={`text-lg font-bold ${priceInfo.hasDiscount ? "text-emerald-600" : "text-brand-darkRed"}`}>
-              ${priceInfo.finalPrice.toFixed(0)}{" "}
+              {display(priceInfo.finalPrice, { compact: true })}{" "}
               <span className="text-[13px] font-light text-gray-500">/ {t("per_person")}</span>
             </p>
           </div>

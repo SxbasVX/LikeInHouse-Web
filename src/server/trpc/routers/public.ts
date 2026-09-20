@@ -14,6 +14,7 @@ import {
   getCachedSettings,
 } from "@/server/lib/cache";
 import { serializeDecimals } from "@/server/lib/serialize";
+import { getExchangeRates } from "@/server/lib/exchange";
 
 export const publicRouter = router({
   // Tours publicados con paginación y filtros
@@ -226,6 +227,12 @@ export const publicRouter = router({
   // Descuento global activo (Black Friday, etc.)
   activeGlobalDiscount: publicProcedure.query(async ({ ctx }) => {
     return ctx.db.globalDiscount.findFirst({ where: { isActive: true } });
+  }),
+  // Tipos de cambio USD→X para la MONEDA DE VISUALIZACIÓN.
+  // El cobro es siempre en USD: estas tasas no intervienen en ningún importe
+  // que se envíe a una pasarela. PEN viene de SUNAT (tipo venta).
+  exchangeRates: publicProcedure.query(async () => {
+    return getExchangeRates();
   }),
 
   // Enviar mensaje de contacto (rate limited)

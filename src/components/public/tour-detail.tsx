@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDuration } from "@/lib/utils";
 import { TourConditions } from "@/components/public/tour-conditions";
 import { trpc } from "@/lib/trpc";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface TourImage {
   id: string;
@@ -124,7 +125,9 @@ export function TourDetail({ tour }: { tour: TourData }) {
       : rawPrice;
   const originalPrice = rawPrice;
   const hasGlobalDiscount = globalPct > 0 && rawPrice != null && price !== rawPrice;
-  const currency = "$";
+  // Moneda de visualización elegida por el pasajero. El precio real del
+  // sistema sigue siendo el USD que devuelve la BD; aquí sólo se muestra.
+  const { display } = useCurrency();
 
   const included = tour.includes.filter((i) => i.type === "INCLUDE");
   const excluded = tour.includes.filter((i) => i.type === "EXCLUDE");
@@ -487,12 +490,11 @@ export function TourDetail({ tour }: { tour: TourData }) {
                           )}
                         </div>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-lg font-semibold text-gray-400 leading-none">{currency}</span>
-                          <span className="font-heading text-5xl font-bold text-brand-orange leading-none">{price.toFixed(0)}</span>
+                          <span className="font-heading text-5xl font-bold text-brand-orange leading-none">{display(price, { compact: true })}</span>
                           <span className="text-sm text-gray-400 ml-1">/ {t("per_person")}</span>
                         </div>
                         {hasGlobalDiscount && originalPrice != null && (
-                          <p className="text-sm text-gray-400 line-through mt-1">{currency}{originalPrice.toFixed(0)}</p>
+                          <p className="text-sm text-gray-400 line-through mt-1">{display(originalPrice, { compact: true })}</p>
                         )}
                         {/* Tarifas por categoría */}
                         {tour.pricing?.tiers && tour.pricing.tiers.length > 1 && (
@@ -512,9 +514,9 @@ export function TourDetail({ tour }: { tour: TourData }) {
                                       : "bg-gray-100 text-gray-600"
                                   }`}
                                 >
-                                  {tierLabel} · {currency}{tierFinal.toFixed(0)}
+                                  {tierLabel} · {display(tierFinal, { compact: true })}
                                   {hasGlobalDiscount && (
-                                    <span className="text-[10px] line-through opacity-60 ml-1">{currency}{tierRaw.toFixed(0)}</span>
+                                    <span className="text-[10px] line-through opacity-60 ml-1">{display(tierRaw, { compact: true })}</span>
                                   )}
                                 </span>
                               );
@@ -681,9 +683,9 @@ export function TourDetail({ tour }: { tour: TourData }) {
         <div className="flex flex-col min-w-0">
           <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">{t("from_price")}</span>
           <div className="flex items-baseline gap-1.5">
-            <span className="font-heading text-xl font-bold text-brand-orange leading-none">{currency}{price.toFixed(0)}</span>
+            <span className="font-heading text-xl font-bold text-brand-orange leading-none">{display(price, { compact: true })}</span>
             {hasGlobalDiscount && originalPrice != null && (
-              <span className="text-xs text-gray-400 line-through">{currency}{originalPrice.toFixed(0)}</span>
+              <span className="text-xs text-gray-400 line-through">{display(originalPrice, { compact: true })}</span>
             )}
             <span className="text-[11px] text-gray-400">/ {t("per_person")}</span>
           </div>

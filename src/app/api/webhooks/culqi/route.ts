@@ -188,6 +188,11 @@ export async function POST(req: NextRequest) {
 
         // Validar monto verificado por Culqi server-to-server (no confiar en data del webhook)
         const verifiedAmount = verifiedCharge.amount / 100; // Culqi en centimos
+        // La moneda la dicta el cargo, no una constante: escribirla a mano
+        // hacía que un cobro en soles quedara registrado como dólares.
+        const verifiedCurrency = typeof verifiedCharge.currency_code === "string"
+            ? verifiedCharge.currency_code
+            : "USD";
 
         // Transacción Serializable para evitar race conditions con webhooks duplicados
         await db.$transaction(async (tx) => {
@@ -221,7 +226,8 @@ export async function POST(req: NextRequest) {
                 data: {
                     reservationId: reservation.id,
                     amount: verifiedAmount,
-                    currency: "USD",
+                    currency: verifiedCurrency,
+                    amountUsd: verifiedCurrency === "USD" ? verifiedAmount : null,
                     method: "CULQI_CARD",
                     status: "COMPLETED",
                     culqiChargeId: chargeId,
@@ -231,20 +237,20 @@ export async function POST(req: NextRequest) {
             });
 
             sendWhatsAppAlert(
-                `🏦 *Pago Recibido vía Culqi (Tarjeta)*\nRef: ${referenceCode}\nMonto: USD ${verifiedAmount}`
+                `🏦 *Pago Recibido vía Culqi (Tarjeta)*\nRef: ${referenceCode}\nMonto: ${verifiedCurrency} ${verifiedAmount}`
             ).catch(console.error);
 
             const clientPhone = reservation.client?.phone;
             if (clientPhone) {
                 sendWhatsAppToClient(
                     clientPhone,
-                    `¡Hola ${reservation.client?.firstName}! Confirmamos la recepción exitosa de tu pago por USD ${verifiedAmount} a través de nuestro portal.\n\nReserva: ${referenceCode}\nTour: ${reservation.tour?.nameEs}\n\n¡Gracias por tu compra en Like In House!`
+                    `¡Hola ${reservation.client?.firstName}! Confirmamos la recepción exitosa de tu pago por ${verifiedCurrency} ${verifiedAmount} a través de nuestro portal.\n\nReserva: ${referenceCode}\nTour: ${reservation.tour?.nameEs}\n\n¡Gracias por tu compra en Like In House!`
                 ).catch(console.error);
             }
         }, { isolationLevel: "Serializable" });
 
         // Email confirmación al cliente (fuera de la transacción, fire-and-forget)
-        emailAfterCulqiPayment(referenceCode, verifiedAmount, "USD").catch(console.error);
+        emailAfterCulqiPayment(referenceCode, verifiedAmount, verifiedCurrency).catch(console.error);
 
         return NextResponse.json({ received: true });
     } catch (error) {
@@ -324,6 +330,8 @@ async function handleOrderEvent(data: any): Promise<NextResponse> {
             data: {
                 reservationId: reservation.id,
                 amount: verifiedAmount,
+                // Orders API de Culqi es sólo PEN. Ya no generamos órdenes;
+                // esto cubre las emitidas antes del paso a cobro en dólares.
                 currency: "PEN",
                 method: "CULQI_CARD",
                 status: "COMPLETED",

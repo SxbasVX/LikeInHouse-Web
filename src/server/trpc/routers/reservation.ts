@@ -9,7 +9,8 @@ import { generateUniqueReservationRef } from "@/server/lib/references";
 import { calculateTotalWithDiscount } from "@/lib/pricing";
 import { sendBookingEmail } from "@/server/email/send-booking";
 import { getActiveGlobalDiscountPercent } from "@/server/lib/global-discount";
-import { getUsdToPenRate } from "@/server/lib/exchange";
+import { getRateFor } from "@/server/lib/exchange";
+import { BASE_CURRENCY, PAYMENT_CURRENCY, CURRENCY_CODES, roundForCurrency, toCurrencyCode } from "@/lib/currency";
 
 // Valid status transitions
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -75,14 +76,16 @@ const guestReservationSchema = z.object({
   // Reservation details
   adults: z.number().min(1).default(1),
   children: z.number().min(0).default(0),
-  currency: z.enum(["USD", "PEN"]).default("USD"),
-  totalAmount: z.number().min(0),
+  // Moneda de VISUALIZACIÓN elegida por el pasajero. Sólo se guarda para
+  // auditar lo que vio; el cobro es siempre en USD.
+  displayCurrency: z.enum(CURRENCY_CODES as [string, ...string[]]).optional(),
 
   // Internal notes (tier breakdown, requested date for open-calendar tours)
   internalNotes: z.string().max(500).optional(),
 
-  // USD total for server-side validation (always USD regardless of display currency)
-  totalAmountUsd: z.number().min(0).optional(),
+  // Total en USD calculado por el cliente. Se usa SÓLO para detectar
+  // desajustes contra el cálculo del servidor, nunca como importe a cobrar.
+  totalAmountUsd: z.number().min(0),
 
   // Tier quantities for multi-tier price validation
   tierQuantities: z.array(z.object({
@@ -408,7 +411,7 @@ export const reservationRouter = router({
           : Math.round(rawTotal * 100) / 100;
 
         // Validate against client USD total (allow 5 cents tolerance for rounding)
-        const clientTotalUsd = input.totalAmountUsd ?? input.totalAmount;
+        const clientTotalUsd = input.totalAmountUsd;
         if (Math.abs(serverTotalUsd - clientTotalUsd) > 0.05) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -435,7 +438,7 @@ export const reservationRouter = router({
         const { total } = calculateTotalWithDiscount(pricingData, input.adults, input.children);
         serverTotalUsd = total;
 
-        const clientTotalUsd = input.totalAmountUsd ?? input.totalAmount;
+        const clientTotalUsd = input.totalAmountUsd;
         if (Math.abs(serverTotalUsd - clientTotalUsd) > 0.05) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -444,15 +447,15 @@ export const reservationRouter = router({
         }
       }
 
-      // El importe que se guarda lo decide el servidor, NUNCA el navegador.
-      // Antes se validaba `totalAmountUsd` pero se persistía `totalAmount` tal
-      // cual: enviando currency="PEN" con totalAmount=1 y un totalAmountUsd
-      // correcto, la reserva quedaba en S/ 1,00 y la pasarela cobraba ese
-      // importe, porque createCharge valida contra la reserva ya envenenada.
-      // Aquí se recalcula desde `serverTotalUsd` con el tipo de cambio del
-      // servidor (SUNAT), no con el que envíe el cliente.
-      const storedRate = input.currency === "PEN" ? await getUsdToPenRate() : 1;
-      const storedTotal = Math.round(serverTotalUsd * storedRate * 100) / 100;
+      // El importe que se guarda y se cobra lo decide el servidor, NUNCA el
+      // navegador: `serverTotalUsd` sale de los precios de la BD.
+      //
+      // La moneda que eligió el pasajero se guarda aparte, con su tipo de
+      // cambio, para poder explicarle después qué cifra vio. Esa conversión
+      // es informativa: no interviene en el cobro ni en un reembolso.
+      const displayCurrency = toCurrencyCode(input.displayCurrency);
+      const displayRate = displayCurrency === BASE_CURRENCY ? 1 : await getRateFor(displayCurrency);
+      const displayAmount = roundForCurrency(serverTotalUsd * displayRate, displayCurrency);
 
       // Use serializable transaction to prevent race conditions on departure capacity
       const reservation = await ctx.db.$transaction(async (tx) => {
@@ -511,8 +514,12 @@ export const reservationRouter = router({
             departureId: input.departureId,
             adults: input.adults,
             children: input.children,
-            currency: input.currency,
-            totalAmount: storedTotal,
+            currency: PAYMENT_CURRENCY,
+            totalAmount: serverTotalUsd,
+            paymentCurrency: PAYMENT_CURRENCY,
+            displayCurrency,
+            displayAmount,
+            exchangeRate: displayRate,
             internalNotes: input.internalNotes || null,
             // Traffic source attribution
             firstSource: input.trafficSource?.firstSource || "direct",

@@ -19,21 +19,21 @@ enum UserRole {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  passwordHash  String
-  role          UserRole  @default(SALES)
-  isActive      Boolean   @default(true)
-  lastLoginAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(SALES)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  quotations    Quotation[]
-  paymentLinks  PaymentLink[]
-  reservations  Reservation[]
-  accounts      Account[]
-  sessions      Session[]
+  quotations   Quotation[]
+  paymentLinks PaymentLink[]
+  reservations Reservation[]
+  accounts     Account[]
+  sessions     Session[]
 }
 
 model Account {
@@ -90,46 +90,46 @@ enum BookingMode {
 }
 
 enum ConditionType {
-  HEALTH     // Salud: hipertensión, embarazo, enfermedades
-  AGE        // Edad mínima/máxima
-  BEHAVIOR   // Comportamiento: no tocar, no gritar
+  HEALTH // Salud: hipertensión, embarazo, enfermedades
+  AGE // Edad mínima/máxima
+  BEHAVIOR // Comportamiento: no tocar, no gritar
   GROUP_SIZE // Mínimo de personas requeridas
-  PHYSICAL   // Condición física: nivel de esfuerzo
-  GENERAL    // Condición general / aviso importante
+  PHYSICAL // Condición física: nivel de esfuerzo
+  GENERAL // Condición general / aviso importante
 }
 
 model Tour {
-  id             String     @id @default(cuid())
-  slug           String     @unique
-  status         TourStatus @default(DRAFT)
-  tourType       TourType   @default(BOOKABLE)
+  id             String      @id @default(cuid())
+  slug           String      @unique
+  status         TourStatus  @default(DRAFT)
+  tourType       TourType    @default(BOOKABLE)
   bookingMode    BookingMode @default(CALENDAR)
-  isFeatured     Boolean    @default(false)
+  isFeatured     Boolean     @default(false)
   category       String
-  difficulty     Difficulty @default(EASY)
+  difficulty     Difficulty  @default(EASY)
   durationDays   Int
   durationNights Int
   durationHours  Int?
   destination    String
 
-  nameEs         String
-  shortDescEs    String
-  longDescEs     String     @db.Text
+  nameEs      String
+  shortDescEs String
+  longDescEs  String @db.Text
 
-  nameEn         String
-  shortDescEn    String
-  longDescEn     String     @db.Text
+  nameEn      String
+  shortDescEn String
+  longDescEn  String @db.Text
 
-  metaTitleEs    String?
-  metaDescEs     String?
-  metaTitleEn    String?
-  metaDescEn     String?
+  metaTitleEs String?
+  metaDescEs  String?
+  metaTitleEn String?
+  metaDescEn  String?
 
-  isActive       Boolean    @default(true) // For soft deletes
-  sortOrder      Int        @default(0)
+  isActive  Boolean @default(true) // For soft deletes
+  sortOrder Int     @default(0)
 
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   images         TourImage[]
   itinerary      ItineraryDay[]
@@ -175,13 +175,13 @@ model ItineraryDay {
 }
 
 model TourPricing {
-  id                   String   @id @default(cuid())
-  tourId               String   @unique
-  tour                 Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  tourId String @unique
+  tour   Tour   @relation(fields: [tourId], references: [id], onDelete: Cascade)
 
   // Legacy fields kept for migration — use tiers instead
-  basePriceUsdAdult    Decimal  @default(0) @db.Decimal(10, 2)
-  basePriceUsdChild    Decimal  @default(0) @db.Decimal(10, 2)
+  basePriceUsdAdult Decimal @default(0) @db.Decimal(10, 2)
+  basePriceUsdChild Decimal @default(0) @db.Decimal(10, 2)
 
   groupDiscountPercent Decimal? @db.Decimal(5, 2)
   groupMinPersons      Int?
@@ -192,17 +192,17 @@ model TourPricing {
   promoLabelEs         String?
   promoLabelEn         String?
 
-  tiers                TourPricingTier[]
+  tiers TourPricingTier[]
 }
 
 model TourPricingTier {
   id        String      @id @default(cuid())
   pricingId String
   pricing   TourPricing @relation(fields: [pricingId], references: [id], onDelete: Cascade)
-  labelEs   String      // "Adulto", "Niño (3-11 años)", "Estudiante Pregrado"
-  labelEn   String      // "Adult", "Child (3-11 years)", "Undergraduate Student"
-  ageMin    Int?        // Optional minimum age
-  ageMax    Int?        // Optional maximum age
+  labelEs   String // "Adulto", "Niño (3-11 años)", "Estudiante Pregrado"
+  labelEn   String // "Adult", "Child (3-11 years)", "Undergraduate Student"
+  ageMin    Int? // Optional minimum age
+  ageMax    Int? // Optional maximum age
   priceUsd  Decimal     @db.Decimal(10, 2)
   isDefault Boolean     @default(false) // Main tier shown in cards/listings
   sortOrder Int         @default(0)
@@ -262,7 +262,7 @@ model TourDeparture {
   bookedCount   Int             @default(0)
   status        DepartureStatus @default(AVAILABLE)
 
-  reservations  Reservation[]
+  reservations Reservation[]
 
   @@index([tourId, departureDate])
   @@index([status])
@@ -273,16 +273,16 @@ model TourDeparture {
 // ============================================================
 
 model Client {
-  id           String       @id @default(cuid())
-  email        String       @unique
-  firstName    String
-  lastName     String
-  phone        String?
-  country      String?
-  language     String       @default("es")
-  notes        String?      @db.Text
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id        String   @id @default(cuid())
+  email     String   @unique
+  firstName String
+  lastName  String
+  phone     String?
+  country   String?
+  language  String   @default("es")
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   reservations Reservation[]
   quotations   Quotation[]
@@ -310,46 +310,62 @@ enum ReservationOrigin {
 }
 
 model Reservation {
-  id              String            @id @default(cuid())
-  referenceCode   String            @unique @default(cuid())
-  status          ReservationStatus @default(PENDING)
-  origin          ReservationOrigin @default(WEB)
+  id            String            @id @default(cuid())
+  referenceCode String            @unique @default(cuid())
+  status        ReservationStatus @default(PENDING)
+  origin        ReservationOrigin @default(WEB)
 
-  clientId        String
-  client          Client            @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  tourId          String
-  tour            Tour              @relation(fields: [tourId], references: [id], onDelete: Restrict)
-  departureId     String?
-  departure       TourDeparture?    @relation(fields: [departureId], references: [id], onDelete: SetNull)
-  assignedUserId  String?
-  assignedUser    User?             @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
-  quotationId     String?
-  paymentLinkId   String?
+  clientId       String
+  client         Client         @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  tourId         String
+  tour           Tour           @relation(fields: [tourId], references: [id], onDelete: Restrict)
+  departureId    String?
+  departure      TourDeparture? @relation(fields: [departureId], references: [id], onDelete: SetNull)
+  assignedUserId String?
+  assignedUser   User?          @relation(fields: [assignedUserId], references: [id], onDelete: SetNull)
+  quotationId    String?
+  paymentLinkId  String?
 
-  adults          Int               @default(1)
-  children        Int               @default(0)
-  currency        String            @default("USD")
-  totalAmount     Decimal           @db.Decimal(10, 2)
-  depositAmount   Decimal?          @db.Decimal(10, 2)
-  balanceAmount   Decimal?          @db.Decimal(10, 2)
+  adults   Int @default(1)
+  children Int @default(0)
+
+  // ── Dinero ───────────────────────────────────────────────────────────
+  // `currency` + `totalAmount` son el importe REAL de la reserva y, desde
+  // la migración a cobro en dólares, siempre están en USD. Se conservan tal
+  // cual para que las reservas históricas (algunas en PEN) se sigan leyendo
+  // e imprimiendo correctamente: NO se han convertido retroactivamente.
+  currency    String  @default("USD")
+  totalAmount Decimal @db.Decimal(10, 2)
+
+  // Moneda en la que se cobra. Siempre USD para reservas nuevas; nulo en las
+  // históricas, donde manda `currency`.
+  paymentCurrency String?
+  // Lo que el pasajero VIO al reservar. Es informativo: sirve para atención
+  // al cliente y para auditar conversiones, nunca para cobrar ni reembolsar.
+  displayCurrency String?
+  displayAmount   Decimal? @db.Decimal(14, 2)
+  // Tipo de cambio USD→displayCurrency usado en ese momento (SUNAT para PEN).
+  exchangeRate    Decimal? @db.Decimal(14, 6)
+  depositAmount   Decimal? @db.Decimal(10, 2)
+  balanceAmount   Decimal? @db.Decimal(10, 2)
   extras          Json?
 
-  customDescEs    String?           @db.Text
-  customDescEn    String?           @db.Text
-  internalNotes   String?           @db.Text
+  customDescEs  String? @db.Text
+  customDescEn  String? @db.Text
+  internalNotes String? @db.Text
 
   // Traffic source attribution
-  firstSource     String?           // First touch: instagram, tiktok, facebook, google, direct, referral
-  lastSource      String?           // Last touch before purchase
-  utmSource       String?           // utm_source parameter
-  utmCampaign     String?           // utm_campaign parameter
-  utmMedium       String?           // utm_medium parameter
-  utmContent      String?           // utm_content parameter
+  firstSource String? // First touch: instagram, tiktok, facebook, google, direct, referral
+  lastSource  String? // Last touch before purchase
+  utmSource   String? // utm_source parameter
+  utmCampaign String? // utm_campaign parameter
+  utmMedium   String? // utm_medium parameter
+  utmContent  String? // utm_content parameter
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  payments        Payment[]
+  payments Payment[]
 
   @@index([status])
   @@index([clientId])
@@ -384,26 +400,31 @@ enum PaymentMethod {
 }
 
 model Payment {
-  id               String        @id @default(cuid())
-  reservationId    String
-  reservation      Reservation   @relation(fields: [reservationId], references: [id], onDelete: Restrict)
-  status           PaymentStatus @default(PENDING)
-  method           PaymentMethod
-  amount           Decimal       @db.Decimal(10, 2)
-  currency         String        @default("USD")
+  id            String        @id @default(cuid())
+  reservationId String
+  reservation   Reservation   @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  status        PaymentStatus @default(PENDING)
+  method        PaymentMethod
+  amount        Decimal       @db.Decimal(10, 2)
+  // Moneda REALMENTE cobrada por la pasarela (la del cargo verificado).
+  currency      String        @default("USD")
+  // Importe equivalente en USD. Para cobros en USD coincide con `amount`;
+  // en pagos históricos en PEN permite consolidar reportes sin reinterpretar
+  // el dato original.
+  amountUsd     Decimal?      @db.Decimal(10, 2)
 
-  culqiChargeId    String?       @unique
-  paypalOrderId    String?       @unique
-  gatewayResponse  Json?
+  culqiChargeId   String? @unique
+  paypalOrderId   String? @unique
+  gatewayResponse Json?
 
   manualVerifiedBy String?
   manualVerifiedAt DateTime?
   manualNotes      String?
 
-  isDeposit        Boolean       @default(false)
+  isDeposit Boolean @default(false)
 
-  processedAt      DateTime?
-  createdAt        DateTime      @default(now())
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([reservationId])
   @@index([status])
@@ -423,39 +444,39 @@ enum QuotationStatus {
 }
 
 model Quotation {
-  id              String          @id @default(cuid())
-  referenceCode   String          @unique
-  status          QuotationStatus @default(DRAFT)
+  id            String          @id @default(cuid())
+  referenceCode String          @unique
+  status        QuotationStatus @default(DRAFT)
 
   clientId        String
-  client          Client          @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  client          Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
   createdByUserId String
-  createdBy       User            @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdBy       User   @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
 
-  titleEs         String
-  titleEn         String?
-  notesEs         String?         @db.Text
-  notesEn         String?         @db.Text
-  currency        String          @default("USD")
-  totalAmount     Decimal         @db.Decimal(10, 2)
-  customAmount    Decimal?        @db.Decimal(10, 2)
-  validUntil      DateTime
-  depositPercent  Decimal?        @db.Decimal(5, 2)
+  titleEs        String
+  titleEn        String?
+  notesEs        String?  @db.Text
+  notesEn        String?  @db.Text
+  currency       String   @default("USD")
+  totalAmount    Decimal  @db.Decimal(10, 2)
+  customAmount   Decimal? @db.Decimal(10, 2)
+  validUntil     DateTime
+  depositPercent Decimal? @db.Decimal(5, 2)
 
-  sentAt          DateTime?
-  viewedAt        DateTime?
-  acceptedAt      DateTime?
-  reminderSentAt  DateTime?
-  reminderDays    Int             @default(3)
+  sentAt         DateTime?
+  viewedAt       DateTime?
+  acceptedAt     DateTime?
+  reminderSentAt DateTime?
+  reminderDays   Int       @default(3)
 
-  reservationId   String?         @unique
-  paymentLinkId   String?         @unique
+  reservationId String? @unique
+  paymentLinkId String? @unique
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  items           QuotationItem[]
-  paymentLink     PaymentLink?
+  items       QuotationItem[]
+  paymentLink PaymentLink?
 
   @@index([status])
   @@index([clientId])
@@ -463,21 +484,21 @@ model Quotation {
 }
 
 model QuotationItem {
-  id            String    @id @default(cuid())
-  quotationId   String
-  quotation     Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
-  tourId        String?
-  tour          Tour?     @relation(fields: [tourId], references: [id])
+  id          String    @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  tourId      String?
+  tour        Tour?     @relation(fields: [tourId], references: [id])
 
   descriptionEs String
   descriptionEn String?
-  adults        Int       @default(1)
-  children      Int       @default(0)
-  unitPrice     Decimal   @db.Decimal(10, 2)
-  quantity      Int       @default(1)
-  subtotal      Decimal   @db.Decimal(10, 2)
+  adults        Int     @default(1)
+  children      Int     @default(0)
+  unitPrice     Decimal @db.Decimal(10, 2)
+  quantity      Int     @default(1)
+  subtotal      Decimal @db.Decimal(10, 2)
 
-  sortOrder     Int       @default(0)
+  sortOrder Int @default(0)
 
   @@index([quotationId])
 }
@@ -495,50 +516,50 @@ enum PaymentLinkStatus {
 }
 
 model PaymentLink {
-  id              String            @id @default(cuid())
-  token           String            @unique @default(cuid())
-  status          PaymentLinkStatus @default(ACTIVE)
+  id     String            @id @default(cuid())
+  token  String            @unique @default(cuid())
+  status PaymentLinkStatus @default(ACTIVE)
 
   createdByUserId String
-  createdBy       User              @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdBy       User   @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
 
-  quotationId     String?           @unique
-  quotation       Quotation?        @relation(fields: [quotationId], references: [id])
+  quotationId String?    @unique
+  quotation   Quotation? @relation(fields: [quotationId], references: [id])
 
-  clientName      String
-  clientEmail     String
-  clientPhone     String?
+  clientName  String
+  clientEmail String
+  clientPhone String?
 
-  titleEs         String
-  titleEn         String?
-  descriptionEs   String            @db.Text
-  descriptionEn   String?           @db.Text
-  includesEs      String[]
-  includesEn      String[]
-  excludesEs      String[]
-  excludesEn      String[]
-  departureDate   DateTime?
-  returnDate      DateTime?
-  adults          Int               @default(1)
-  children        Int               @default(0)
+  titleEs       String
+  titleEn       String?
+  descriptionEs String    @db.Text
+  descriptionEn String?   @db.Text
+  includesEs    String[]
+  includesEn    String[]
+  excludesEs    String[]
+  excludesEn    String[]
+  departureDate DateTime?
+  returnDate    DateTime?
+  adults        Int       @default(1)
+  children      Int       @default(0)
 
-  currency        String            @default("USD")
-  totalAmount     Decimal           @db.Decimal(10, 2)
-  depositRequired Boolean           @default(false)
-  depositPercent  Decimal?          @db.Decimal(5, 2)
-  depositAmount   Decimal?          @db.Decimal(10, 2)
-  balanceAmount   Decimal?          @db.Decimal(10, 2)
+  currency        String    @default("USD")
+  totalAmount     Decimal   @db.Decimal(10, 2)
+  depositRequired Boolean   @default(false)
+  depositPercent  Decimal?  @db.Decimal(5, 2)
+  depositAmount   Decimal?  @db.Decimal(10, 2)
+  balanceAmount   Decimal?  @db.Decimal(10, 2)
   balanceDueDate  DateTime?
 
-  expiresAt       DateTime
+  expiresAt DateTime
 
-  amountPaid      Decimal           @db.Decimal(10, 2) @default(0)
+  amountPaid Decimal @default(0) @db.Decimal(10, 2)
 
-  termsEs         String?           @db.Text
-  termsEn         String?           @db.Text
+  termsEs String? @db.Text
+  termsEn String? @db.Text
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([expiresAt])
@@ -579,7 +600,6 @@ model Page {
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
 }
 
 enum HomeSectionType {
@@ -611,8 +631,8 @@ model HomeSection {
 }
 
 model BlogPost {
-  id            String   @id @default(cuid())
-  slug          String   @unique
+  id            String    @id @default(cuid())
+  slug          String    @unique
   titleEs       String
   titleEn       String
   excerptEs     String
@@ -621,14 +641,14 @@ model BlogPost {
   contentEn     Json
   coverImageUrl String?
   category      String?
-  isPublished   Boolean  @default(false)
+  isPublished   Boolean   @default(false)
   publishedAt   DateTime?
   metaTitleEs   String?
   metaDescEs    String?
   metaTitleEn   String?
   metaDescEn    String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([isPublished, publishedAt])
 }
@@ -668,7 +688,7 @@ model FAQ {
 
 model AuditLog {
   id        String   @id @default(cuid())
-  userId    String   // Real user ID or system actor name (e.g. "system-cron")
+  userId    String // Real user ID or system actor name (e.g. "system-cron")
   action    String
   entity    String
   entityId  String
@@ -731,7 +751,7 @@ model Document {
   titleEs     String
   titleEn     String
   type        DocumentType @default(PDF)
-  pdfUrl      String?      // URL de Cloudinary para tipo PDF
+  pdfUrl      String? // URL de Cloudinary para tipo PDF
   contentEs   String?      @db.Text
   contentEn   String?      @db.Text
   isPublished Boolean      @default(true)
@@ -748,21 +768,21 @@ model Document {
 // ============================================================
 
 model Banner {
-  id          String    @id @default(cuid())
-  titleEs     String
-  titleEn     String
-  subtitleEs  String?
-  subtitleEn  String?
-  imageUrl    String
-  linkUrl     String?
-  linkTextEs  String?
-  linkTextEn  String?
-  isActive    Boolean   @default(true)
-  startsAt    DateTime?
-  endsAt      DateTime?
-  sortOrder   Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String    @id @default(cuid())
+  titleEs    String
+  titleEn    String
+  subtitleEs String?
+  subtitleEn String?
+  imageUrl   String
+  linkUrl    String?
+  linkTextEs String?
+  linkTextEn String?
+  isActive   Boolean   @default(true)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  sortOrder  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([isActive, sortOrder])
 }
@@ -773,7 +793,7 @@ model Banner {
 
 model GlobalDiscount {
   id        String   @id @default(cuid())
-  name      String   // "Black Friday", "Verano 2025"
+  name      String // "Black Friday", "Verano 2025"
   percent   Decimal  @db.Decimal(5, 2)
   isActive  Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -789,8 +809,8 @@ model GlobalDiscount {
 // ============================================================
 
 enum ComplaintType {
-  RECLAMO  // Disconformidad con el servicio
-  QUEJA    // Malestar o descontento con la atencion
+  RECLAMO // Disconformidad con el servicio
+  QUEJA // Malestar o descontento con la atencion
 }
 
 enum ComplaintItemType {
@@ -799,24 +819,24 @@ enum ComplaintItemType {
 }
 
 enum ComplaintStatus {
-  PENDIENTE    // Recibido, sin respuesta
-  EN_PROCESO   // En revision
-  RESUELTO     // Respondido al consumidor
-  RECHAZADO    // No procede
+  PENDIENTE // Recibido, sin respuesta
+  EN_PROCESO // En revision
+  RESUELTO // Respondido al consumidor
+  RECHAZADO // No procede
 }
 
 model ComplaintBook {
-  id              String            @id @default(cuid())
-  code            String            @unique // LR-2026-00001
+  id   String @id @default(cuid())
+  code String @unique // LR-2026-00001
 
   // Datos del consumidor
   consumerName    String
-  consumerDocType String            // DNI, CE, PASAPORTE, RUC
+  consumerDocType String // DNI, CE, PASAPORTE, RUC
   consumerDocNum  String
   consumerAddress String
   consumerPhone   String?
   consumerEmail   String
-  isMinor         Boolean           @default(false)
+  isMinor         Boolean @default(false)
   guardianName    String?
   guardianDocNum  String?
 
@@ -827,22 +847,22 @@ model ComplaintBook {
   currency        String            @default("PEN") // PEN o USD
 
   // Detalle
-  type            ComplaintType
-  detail          String            @db.Text
-  request         String            @db.Text // Pedido del consumidor
+  type    ComplaintType
+  detail  String        @db.Text
+  request String        @db.Text // Pedido del consumidor
 
   // Respuesta del proveedor (max 30 dias calendario)
-  status          ComplaintStatus   @default(PENDIENTE)
-  response        String?           @db.Text
-  respondedAt     DateTime?
-  respondedBy     String?           // userId
+  status      ComplaintStatus @default(PENDIENTE)
+  response    String?         @db.Text
+  respondedAt DateTime?
+  respondedBy String? // userId
 
   // Meta
-  ipAddress       String?
-  userAgent       String?           @db.Text
-  locale          String            @default("es") // es | en
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  ipAddress String?
+  userAgent String?  @db.Text
+  locale    String   @default("es") // es | en
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, createdAt])
   @@index([code])

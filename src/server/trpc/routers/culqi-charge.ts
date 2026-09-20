@@ -2,17 +2,20 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure } from "../trpc";
 import { sanitizeName, sanitizePhone, toCountryCode } from "@/server/lib/payer";
-import { getUsdToPenRate } from "@/server/lib/exchange";
+import { PAYMENT_CURRENCY } from "@/lib/currency";
 
+/**
+ * Cobros con Culqi.
+ *
+ * TODO cargo se emite en USD, sea cual sea la moneda en la que el pasajero
+ * vio el precio. El importe no lo envía el navegador: se recalcula aquí a
+ * partir de la reserva.
+ *
+ * Nota sobre métodos de pago: la Orders API de Culqi (billeteras, banca
+ * móvil, agentes, Cuotéalo) y Yape operan únicamente en soles, así que no
+ * son compatibles con el cobro en dólares y se retiraron del checkout.
+ */
 export const culqiChargeRouter = router({
-  /**
-   * Devuelve el tipo de cambio USD→PEN del BCRP (fuente oficial SUNAT).
-   * Cacheado 4 horas en el servidor.
-   */
-  getExchangeRate: publicProcedure.query(async () => {
-    const rate = await getUsdToPenRate();
-    return { rate, source: "BCRP" };
-  }),
 
   /**
    * Crea un cargo en Culqi con el token generado en el cliente.
@@ -36,13 +39,13 @@ export const culqiChargeRouter = router({
           .min(20)
           .max(40)
           .regex(/^(tkn|ype|crd)_[A-Za-z0-9_]+$/, "Token de pago inválido"),
-        currency: z.enum(["PEN", "USD"]),
-        amount: z.number().int().positive(), // en centavos (ej: 15000 = S/150.00)
+        // Ni `currency` ni `amount` se aceptan desde el navegador: el cobro
+        // es siempre en USD y el importe sale de la reserva.
         email: z.string().email(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { reservationId, token, currency, amount, email } = input;
+      const { reservationId, token, email } = input;
 
       // 1. Verificar reserva
       const reservation = await ctx.db.reservation.findUnique({
@@ -53,6 +56,7 @@ export const culqiChargeRouter = router({
           status: true,
           totalAmount: true,
           currency: true,
+          paymentCurrency: true,
           client: {
             select: { firstName: true, lastName: true, email: true, phone: true, country: true },
           },
@@ -65,28 +69,26 @@ export const culqiChargeRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Esta reserva ya fue pagada" });
       }
 
-      // El monto y la moneda los decide el servidor a partir de la reserva:
-      // antes se cobraba el valor que enviaba el navegador, así que cualquiera
-      // podía pagar 1 céntimo. Un desfase entre lo cobrado y la reserva es
-      // además una de las señales que Culqi marca como sospechosa.
-      if (currency !== reservation.currency) {
+      // El importe y la moneda salen ÍNTEGRAMENTE de la reserva. El navegador
+      // no participa: lo que el pasajero vio en su moneda local es una
+      // conversión informativa que nunca llega hasta aquí.
+      //
+      // Las reservas antiguas guardadas en soles no se pueden cobrar por esta
+      // vía (cobraríamos el número en la moneda equivocada), así que se
+      // rechazan explícitamente en vez de emitir un cargo incorrecto.
+      const reservationCurrency = reservation.paymentCurrency || reservation.currency;
+      if (reservationCurrency !== PAYMENT_CURRENCY) {
+        console.error("[Culqi Charges] Reserva en moneda no cobrable:", {
+          referenceCode: reservation.referenceCode,
+          reservationCurrency,
+        });
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "La moneda del pago no coincide con la reserva",
+          message:
+            "Esta reserva se generó en otra moneda y no puede cobrarse en línea. Escríbenos por WhatsApp y la regularizamos.",
         });
       }
       const expectedAmount = Math.round(Number(reservation.totalAmount) * 100);
-      if (amount !== expectedAmount) {
-        console.error("[Culqi Charges] Amount mismatch:", {
-          referenceCode: reservation.referenceCode,
-          received: amount,
-          expected: expectedAmount,
-        });
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "El monto del pago no coincide con la reserva",
-        });
-      }
 
       // Límites duros de /v2/charges (OpenAPI oficial de Culqi): si se
       // sobrepasan, Culqi responde parameter_error y el pago no se procesa.
@@ -95,7 +97,7 @@ export const culqiChargeRouter = router({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message:
-            "El monto supera el máximo que admite el pago con tarjeta (9,999). Escríbenos por WhatsApp para coordinar el pago.",
+            "El monto supera el máximo que admite el pago con tarjeta (USD 9,999). Escríbenos por WhatsApp para coordinar el pago.",
         });
       }
       if (expectedAmount < 100) {
@@ -151,7 +153,7 @@ export const culqiChargeRouter = router({
         },
         body: JSON.stringify({
           amount: expectedAmount,
-          currency_code: currency,
+          currency_code: PAYMENT_CURRENCY,
           email: payerEmail,
           source_id: token,
           description: `Reserva ${reservation.referenceCode} - Like In House`.slice(0, 80),
@@ -196,7 +198,8 @@ export const culqiChargeRouter = router({
           data: {
             reservationId,
             amount: amountDecimal,
-            currency,
+            currency: PAYMENT_CURRENCY,
+            amountUsd: amountDecimal,
             method: "CULQI_CARD",
             status: "COMPLETED",
             culqiChargeId: charge.id,
@@ -214,128 +217,4 @@ export const culqiChargeRouter = router({
       return { success: true, chargeId: charge.id as string };
     }),
 
-  /**
-   * Crea una Orden en Culqi (/v2/orders) necesaria para métodos alternativos:
-   * Billeteras móviles, Banca móvil, Agentes/Bodegas, Cuotéalo BCP.
-   * Tarjeta y Yape NO requieren orden.
-   *
-   * Solo soporta PEN: Culqi Orders API no admite USD.
-   * La orden expira en 24h. El webhook order.status.changed confirmará el pago.
-   */
-  createOrder: publicProcedure
-    .input(
-      z.object({
-        reservationId: z.string(),
-        amount: z.number().int().positive(), // centavos PEN
-        email: z.string().email(),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { reservationId, amount, email } = input;
-
-      const reservation = await ctx.db.reservation.findUnique({
-        where: { id: reservationId },
-        select: {
-          id: true,
-          referenceCode: true,
-          status: true,
-          totalAmount: true,
-          currency: true,
-          client: { select: { firstName: true, lastName: true, email: true, phone: true } },
-        },
-      });
-      if (!reservation) throw new TRPCError({ code: "NOT_FOUND", message: "Reserva no encontrada" });
-      if (reservation.status === "PAID" || reservation.status === "CONFIRMED") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Esta reserva ya fue pagada" });
-      }
-
-      // El monto lo decide el servidor, no el navegador (ver createCharge).
-      // Orders API sólo admite PEN, así que la reserva debe estar en PEN.
-      if (reservation.currency !== "PEN") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Los métodos de billetera y banca móvil sólo están disponibles en soles (PEN)",
-        });
-      }
-      const expectedAmount = Math.round(Number(reservation.totalAmount) * 100);
-      if (amount !== expectedAmount) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "El monto del pago no coincide con la reserva",
-        });
-      }
-      const payerEmail = reservation.client.email || email;
-
-      const secretKey = process.env.CULQI_SECRET_KEY;
-      if (!secretKey) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Pasarela de pago no configurada" });
-      }
-
-      // Culqi exige: expiration_date entre now+10min y now+9d; tomamos +24h
-      const expirationDate = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
-      // order_number: único por merchant, alfanumérico + guiones. Max 50 chars.
-      const orderNumber = `${reservation.referenceCode}-${Date.now()}`.slice(0, 50);
-
-      // Culqi exige client_details completo en /v2/orders (first_name,
-      // last_name, email, phone_number). Se envían los datos reales del
-      // cliente saneados; si faltan, rechazamos en vez de inventar
-      // placeholders — datos falsos hacen que Culqi marque la orden como
-      // sospechosa y el cobro nunca se procesa.
-      const firstName = sanitizeName(reservation.client.firstName);
-      const lastName = sanitizeName(reservation.client.lastName);
-      const phoneNumber = sanitizePhone(reservation.client.phone);
-
-      if (!firstName || !lastName || !phoneNumber) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "Para pagar con billetera o banca móvil necesitamos tu nombre, apellido y teléfono completos. Escríbenos por WhatsApp para completarlos.",
-        });
-      }
-
-      const payload = {
-        amount: expectedAmount,
-        currency_code: "PEN",
-        description: `Reserva ${reservation.referenceCode} - Like In House`.slice(0, 80),
-        order_number: orderNumber,
-        client_details: {
-          first_name: firstName,
-          last_name: lastName,
-          email: payerEmail,
-          phone_number: phoneNumber,
-        },
-        expiration_date: expirationDate,
-        confirm: false,
-        metadata: {
-          reservation_id: reservationId,
-          reference_code: reservation.referenceCode,
-        },
-      };
-
-      const res = await fetch("https://api.culqi.com/v2/orders", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${secretKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const order = await res.json();
-      if (!res.ok || order.object === "error") {
-        console.error("[Culqi Orders] Request failed:", {
-          status: res.status,
-          payload: { ...payload, client_details: { ...payload.client_details, email: "***" } },
-          response: order,
-        });
-        const msg =
-          order.user_message ||
-          order.merchant_message ||
-          (order.errors && order.errors[0]?.message) ||
-          "Error al crear la orden de pago";
-        throw new TRPCError({ code: "BAD_REQUEST", message: msg });
-      }
-
-      return { orderId: order.id as string };
-    }),
 });
