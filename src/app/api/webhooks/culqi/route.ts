@@ -8,45 +8,97 @@ import { sendPaymentConfirmationEmail } from "@/server/email/send-payment-confir
 // Vercel serverless: extend timeout for webhook processing (default 30s on Hobby)
 export const maxDuration = 60;
 
-/**
- * Verify Culqi webhook HMAC signature.
- * Culqi signs webhooks with the merchant's secret key.
- */
-function verifyCulqiSignature(rawBody: string, signatureHeader: string | null): boolean {
-    const secretKey = process.env.CULQI_SECRET_KEY;
-    if (!secretKey || !signatureHeader) return false;
-
+/** Comparación en tiempo constante, tolerante a longitudes distintas. */
+function safeEquals(a: string, b: string): boolean {
+    const ab = Buffer.from(a);
+    const bb = Buffer.from(b);
+    if (ab.length !== bb.length) return false;
     try {
-        const expectedSig = createHmac("sha256", secretKey).update(rawBody).digest("hex");
-        const sigBuffer = Buffer.from(signatureHeader);
-        const expectedBuffer = Buffer.from(expectedSig);
-        if (sigBuffer.length !== expectedBuffer.length) return false;
-        return timingSafeEqual(sigBuffer, expectedBuffer);
+        return timingSafeEqual(ab, bb);
     } catch {
         return false;
     }
+}
+
+/**
+ * Firma HMAC-SHA256 del cuerpo con la llave secreta.
+ * Se mantiene por si Culqi envía la cabecera, pero en la práctica su panel
+ * autentica con el toggle "Activar autenticación" (usuario y contraseña), no
+ * con una firma.
+ */
+function verifyCulqiSignature(rawBody: string, signatureHeader: string): boolean {
+    const secretKey = process.env.CULQI_SECRET_KEY;
+    if (!secretKey) return false;
+    const expected = createHmac("sha256", secretKey).update(rawBody).digest("hex");
+    return safeEquals(signatureHeader, expected);
+}
+
+type AuthResult = { ok: boolean; method: "basic" | "hmac" | "none"; reason?: string };
+
+/**
+ * Autenticación del webhook.
+ *
+ * Culqi rechazaba TODOS los envíos con 403 porque este endpoint exigía una
+ * cabecera `x-culqi-signature` que Culqi no manda: su panel autentica con
+ * "Activar autenticación", que envía usuario y contraseña por HTTP Basic.
+ *
+ * Orden de preferencia:
+ *  1. Basic, si hay credenciales configuradas (lo recomendado).
+ *  2. Firma HMAC, si Culqi llegara a enviarla.
+ *  3. Sin autenticar. No es un agujero: más abajo el cargo se vuelve a pedir
+ *     a la API de Culqi con nuestra llave secreta y se comprueban importe y
+ *     reserva, así que un webhook inventado no puede marcar nada como pagado.
+ *     Aun así se avisa en el log, porque lo correcto es configurar el punto 1.
+ */
+function authenticateWebhook(req: NextRequest, rawBody: string): AuthResult {
+    const user = process.env.CULQI_WEBHOOK_USER;
+    const password = process.env.CULQI_WEBHOOK_PASSWORD;
+
+    if (user && password) {
+        const header = req.headers.get("authorization");
+        if (!header?.startsWith("Basic ")) {
+            return { ok: false, method: "basic", reason: "Falta la cabecera Authorization Basic" };
+        }
+        const expected = `Basic ${Buffer.from(`${user}:${password}`).toString("base64")}`;
+        return { ok: safeEquals(header, expected), method: "basic", reason: "Credenciales incorrectas" };
+    }
+
+    const signature = req.headers.get("x-culqi-signature");
+    if (signature) {
+        return { ok: verifyCulqiSignature(rawBody, signature), method: "hmac", reason: "Firma inválida" };
+    }
+
+    return { ok: true, method: "none" };
 }
 
 export async function POST(req: NextRequest) {
     try {
         const rawBody = await req.text();
 
-        // HMAC signature verification - ALWAYS required
-        const signature = req.headers.get("x-culqi-signature");
+        // La llave secreta es imprescindible: con ella se vuelve a consultar el
+        // cargo a Culqi, que es la comprobación que de verdad sostiene esto.
         if (!process.env.CULQI_SECRET_KEY) {
             console.error("[Culqi Webhook] CULQI_SECRET_KEY not configured - rejecting");
             return NextResponse.json({ error: "Webhook verification not configured" }, { status: 500 });
         }
-        if (!verifyCulqiSignature(rawBody, signature)) {
-            console.error("[Culqi Webhook] Invalid signature - rejecting");
+
+        const auth = authenticateWebhook(req, rawBody);
+        if (!auth.ok) {
+            console.error(`[Culqi Webhook] Rechazado (${auth.method}): ${auth.reason}`);
             createAuditLog({
                 userId: "SYSTEM",
                 action: "WEBHOOK_REJECTED",
                 entity: "CulqiWebhook",
                 entityId: "unknown",
-                changes: { reason: "Invalid HMAC signature" },
+                changes: { method: auth.method, reason: auth.reason },
             });
-            return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
+        if (auth.method === "none") {
+            console.warn(
+                "[Culqi Webhook] Sin autenticar: configura CULQI_WEBHOOK_USER y CULQI_WEBHOOK_PASSWORD " +
+                "y activa la autenticación en el panel de Culqi. El cargo se sigue verificando contra la API."
+            );
         }
 
         let body: any;

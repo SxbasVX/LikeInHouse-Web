@@ -163,3 +163,59 @@ describe("Seed Script Production Guard", () => {
     expect(shouldBlockSeed("development")).toBe(false);
   });
 });
+
+/**
+ * Autenticación del webhook de Culqi.
+ *
+ * Contexto: el endpoint exigía una cabecera `x-culqi-signature` que Culqi no
+ * envía, así que su panel registraba 403 Forbidden en todos los intentos. Su
+ * mecanismo real es el toggle "Activar autenticación" (usuario y contraseña
+ * por HTTP Basic). Se replica aquí la lógica de decisión de
+ * `src/app/api/webhooks/culqi/route.ts`.
+ */
+describe("Culqi Webhook Authentication", () => {
+  function authenticate(
+    env: { user?: string; password?: string },
+    headers: { authorization?: string; signature?: string },
+    signatureIsValid = false
+  ): { ok: boolean; method: "basic" | "hmac" | "none" } {
+    if (env.user && env.password) {
+      if (!headers.authorization?.startsWith("Basic ")) return { ok: false, method: "basic" };
+      const expected = `Basic ${Buffer.from(`${env.user}:${env.password}`).toString("base64")}`;
+      return { ok: headers.authorization === expected, method: "basic" };
+    }
+    if (headers.signature) return { ok: signatureIsValid, method: "hmac" };
+    return { ok: true, method: "none" };
+  }
+
+  const creds = { user: "culqi", password: "s3creto" };
+  const validHeader = `Basic ${Buffer.from("culqi:s3creto").toString("base64")}`;
+
+  it("acepta las credenciales correctas por Basic", () => {
+    expect(authenticate(creds, { authorization: validHeader })).toEqual({ ok: true, method: "basic" });
+  });
+
+  it("rechaza credenciales incorrectas", () => {
+    const wrong = `Basic ${Buffer.from("culqi:otra").toString("base64")}`;
+    expect(authenticate(creds, { authorization: wrong }).ok).toBe(false);
+  });
+
+  it("rechaza si faltan credenciales estando configuradas", () => {
+    expect(authenticate(creds, {}).ok).toBe(false);
+    expect(authenticate(creds, { authorization: "Bearer abc" }).ok).toBe(false);
+  });
+
+  it("sin credenciales configuradas, valida la firma si Culqi la envía", () => {
+    expect(authenticate({}, { signature: "abc" }, true)).toEqual({ ok: true, method: "hmac" });
+    expect(authenticate({}, { signature: "abc" }, false)).toEqual({ ok: false, method: "hmac" });
+  });
+
+  it("sin credenciales ni firma, acepta y se apoya en la verificación del cargo", () => {
+    // Este es el caso que antes devolvía 403 a todos los webhooks de Culqi.
+    expect(authenticate({}, {})).toEqual({ ok: true, method: "none" });
+  });
+
+  it("una contraseña vacía no cuenta como configurada", () => {
+    expect(authenticate({ user: "culqi", password: "" }, {}).method).toBe("none");
+  });
+});
