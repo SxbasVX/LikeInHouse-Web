@@ -9,6 +9,7 @@ import { generateUniqueReservationRef } from "@/server/lib/references";
 import { calculateTotalWithDiscount } from "@/lib/pricing";
 import { sendBookingEmail } from "@/server/email/send-booking";
 import { getActiveGlobalDiscountPercent } from "@/server/lib/global-discount";
+import { getUsdToPenRate } from "@/server/lib/exchange";
 
 // Valid status transitions
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -443,6 +444,16 @@ export const reservationRouter = router({
         }
       }
 
+      // El importe que se guarda lo decide el servidor, NUNCA el navegador.
+      // Antes se validaba `totalAmountUsd` pero se persistía `totalAmount` tal
+      // cual: enviando currency="PEN" con totalAmount=1 y un totalAmountUsd
+      // correcto, la reserva quedaba en S/ 1,00 y la pasarela cobraba ese
+      // importe, porque createCharge valida contra la reserva ya envenenada.
+      // Aquí se recalcula desde `serverTotalUsd` con el tipo de cambio del
+      // servidor (SUNAT), no con el que envíe el cliente.
+      const storedRate = input.currency === "PEN" ? await getUsdToPenRate() : 1;
+      const storedTotal = Math.round(serverTotalUsd * storedRate * 100) / 100;
+
       // Use serializable transaction to prevent race conditions on departure capacity
       const reservation = await ctx.db.$transaction(async (tx) => {
         // Validate departure capacity inside transaction
@@ -501,7 +512,7 @@ export const reservationRouter = router({
             adults: input.adults,
             children: input.children,
             currency: input.currency,
-            totalAmount: input.totalAmount,
+            totalAmount: storedTotal,
             internalNotes: input.internalNotes || null,
             // Traffic source attribution
             firstSource: input.trafficSource?.firstSource || "direct",

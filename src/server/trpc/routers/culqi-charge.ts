@@ -2,26 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, publicProcedure } from "../trpc";
 import { sanitizeName, sanitizePhone, toCountryCode } from "@/server/lib/payer";
-
-// ─── Tipo de cambio oficial SUNAT (vía apis.net.pe) ──────────────────────────
-// Fuente: SUNAT publica el tipo de cambio diariamente. Este endpoint
-// lo agrega y expone en JSON. Se usa el tipo "venta" (lo que paga el cliente).
-async function fetchTipoCambioSunat(): Promise<number> {
-  const FALLBACK = parseFloat(process.env.USD_TO_PEN_RATE_FALLBACK || "3.75");
-  try {
-    const res = await fetch("https://api.apis.net.pe/v1/tipo-cambio-sunat", {
-      next: { revalidate: 14400 }, // caché Next.js: 4 horas
-      headers: { Accept: "application/json", Referer: "https://likeinhouse.com" },
-    });
-    if (!res.ok) return FALLBACK;
-    // { origen: "SUNAT", compra: 3.389, venta: 3.399, moneda: "USD", fecha: "2026-04-09" }
-    const data = await res.json();
-    const rate = parseFloat(data?.venta ?? "");
-    return isNaN(rate) ? FALLBACK : rate;
-  } catch {
-    return FALLBACK;
-  }
-}
+import { getUsdToPenRate } from "@/server/lib/exchange";
 
 export const culqiChargeRouter = router({
   /**
@@ -29,7 +10,7 @@ export const culqiChargeRouter = router({
    * Cacheado 4 horas en el servidor.
    */
   getExchangeRate: publicProcedure.query(async () => {
-    const rate = await fetchTipoCambioSunat();
+    const rate = await getUsdToPenRate();
     return { rate, source: "BCRP" };
   }),
 
