@@ -11,7 +11,7 @@ import {
 import { useState } from "react";
 import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import { useToast } from "@/hooks/use-toast";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration, parseItineraryDescription } from "@/lib/utils";
 import { TourConditions } from "@/components/public/tour-conditions";
 import { trpc } from "@/lib/trpc";
 import { useCurrency } from "@/hooks/use-currency";
@@ -397,9 +397,19 @@ export function TourDetail({ tour }: { tour: TourData }) {
                           </button>
 
                           {isOpen && (
-                            <p className="mt-3 text-sm text-gray-500 leading-relaxed border-l-2 border-brand-orange/30 pl-3">
-                              {isEs ? day.descriptionEs : (day.descriptionEn || day.descriptionEs)}
-                            </p>
+                            <div className="mt-3 space-y-3 border-l-2 border-brand-orange/30 pl-3 text-sm leading-relaxed text-gray-500">
+                              {parseItineraryDescription(isEs ? day.descriptionEs : (day.descriptionEn || day.descriptionEs)).map((block, blockIndex) =>
+                                block.type === "heading" ? (
+                                  <h3 key={blockIndex} className="font-semibold text-gray-800">
+                                    {block.text}
+                                  </h3>
+                                ) : (
+                                  <p key={blockIndex} className="whitespace-pre-line">
+                                    {block.text}
+                                  </p>
+                                )
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>

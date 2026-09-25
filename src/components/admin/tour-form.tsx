@@ -35,6 +35,7 @@ import { Plus, Trash2, ChevronDown, Eye, Save, Star, Loader2 } from "lucide-reac
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import type { TourCreateInput } from "@/lib/validators/tour";
+import { parseItineraryDescription } from "@/lib/utils";
 
 interface TourFormProps {
   initialData?: Partial<TourFormData>;
@@ -725,7 +726,8 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Textarea rows={3} placeholder="Describe las actividades en español..." {...register(`itinerary.${index}.descriptionEs`)} className={errors.itinerary?.[index]?.descriptionEs ? "border-destructive" : ""} />
-                        <Textarea rows={3} placeholder="Describe las actividades en inglés..." {...register(`itinerary.${index}.descriptionEn`)} className={errors.itinerary?.[index]?.descriptionEn ? "border-destructive" : ""} />
+                        <Textarea rows={5} placeholder="Describe las actividades en español... Puedes separar los puntos con una línea en blanco." {...register(`itinerary.${index}.descriptionEs`)} className={`whitespace-pre-wrap ${errors.itinerary?.[index]?.descriptionEs ? "border-destructive" : ""}`} />
+                        <Textarea rows={5} placeholder="Describe las actividades en inglés... Puedes separar los puntos con una línea en blanco." {...register(`itinerary.${index}.descriptionEn`)} className={`whitespace-pre-wrap ${errors.itinerary?.[index]?.descriptionEn ? "border-destructive" : ""}`} />
                       </div>
                     </div>
                   ))}
@@ -956,7 +958,15 @@ function TourPreview({ data }: { data: TourFormData }) {
           {data.itinerary.map((day, i) => (
             <div key={i} className="mb-2 rounded border p-2">
               <p className="text-sm font-medium">Dia {i + 1}: {day.titleEs}</p>
-              <p className="text-xs text-muted-foreground">{day.descriptionEs}</p>
+              <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+                {parseItineraryDescription(day.descriptionEs).map((block, blockIndex) =>
+                  block.type === "heading" ? (
+                    <p key={blockIndex} className="font-semibold text-foreground">{block.text}</p>
+                  ) : (
+                    <p key={blockIndex} className="whitespace-pre-line">{block.text}</p>
+                  )
+                )}
+              </div>
             </div>
           ))}
         </div>
