@@ -725,7 +725,6 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                         <Input placeholder="Título (EN) ej. Magical Arrival..." {...register(`itinerary.${index}.titleEn`)} className={`font-medium ${errors.itinerary?.[index]?.titleEn ? "border-destructive" : ""}`} />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Textarea rows={3} placeholder="Describe las actividades en español..." {...register(`itinerary.${index}.descriptionEs`)} className={errors.itinerary?.[index]?.descriptionEs ? "border-destructive" : ""} />
                         <Textarea rows={5} placeholder="Describe las actividades en español... Puedes separar los puntos con una línea en blanco." {...register(`itinerary.${index}.descriptionEs`)} className={`whitespace-pre-wrap ${errors.itinerary?.[index]?.descriptionEs ? "border-destructive" : ""}`} />
                         <Textarea rows={5} placeholder="Describe las actividades en inglés... Puedes separar los puntos con una línea en blanco." {...register(`itinerary.${index}.descriptionEn`)} className={`whitespace-pre-wrap ${errors.itinerary?.[index]?.descriptionEn ? "border-destructive" : ""}`} />
                       </div>
