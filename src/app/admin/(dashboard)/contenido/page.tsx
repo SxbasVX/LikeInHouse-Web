@@ -1229,8 +1229,9 @@ const PREDEFINED_SETTINGS = [
   { key: "libroReclamacionesUrl", label: "Libro de Reclamaciones (URL)", placeholder: "https://..." },
   { key: "codigoEsnnaUrl", label: "Código ESNNA (URL)", placeholder: "https://..." },
   { key: "politicasCancelacionUrl", label: "Políticas de Cancelación (URL)", placeholder: "/politicas-cancelacion" },
-  { key: "proteccionDatosUrl", label: "Protección de Datos (URL)", placeholder: "/proteccion-datos" },
 ] as const;
+
+const DEPRECATED_SETTING_KEYS = new Set(["proteccionDatosUrl"]);
 
 const CERTIFICATIONS = [
   { slot: 1, name: "Mincetur",        description: "Ministerio de Comercio Exterior y Turismo" },
@@ -1313,7 +1314,9 @@ function SettingsSection() {
 
   // Settings not in the predefined list
   const predefinedKeys = new Set<string>(PREDEFINED_SETTINGS.map(s => s.key));
-  const customSettings = settings?.filter((s: Setting) => !predefinedKeys.has(s.key)) || [];
+  const customSettings = settings?.filter(
+    (s: Setting) => !predefinedKeys.has(s.key) && !DEPRECATED_SETTING_KEYS.has(s.key)
+  ) || [];
 
   return (
     <div className="space-y-6">

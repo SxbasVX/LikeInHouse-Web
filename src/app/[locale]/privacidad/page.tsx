@@ -12,7 +12,7 @@ export async function generateMetadata({
   const isEs = locale === "es";
   return buildMetadata({
     locale,
-    title: isEs ? "Política de Privacidad" : "Privacy Policy",
+    title: isEs ? "Política de Privacidad y Protección de Datos" : "Privacy & Data Protection Policy",
     description: isEs
       ? "Conoce cómo Like In House trata y protege tus datos personales conforme a la Ley N° 29733."
       : "Learn how Like In House handles and protects your personal data under Law N° 29733.",
@@ -59,7 +59,7 @@ export default async function PrivacidadPage({
 function PrivacidadEs() {
   return (
     <article className="prose prose-gray max-w-none prose-headings:font-heading prose-a:text-brand-orange">
-      <h1>Política de Privacidad</h1>
+      <h1>Política de Privacidad y Protección de Datos</h1>
       <p className="lead">
         En Like In House nos comprometemos a proteger la privacidad de nuestros clientes. Esta política explica qué datos recopilamos, cómo los usamos y tus derechos al respecto.
       </p>
@@ -140,7 +140,7 @@ function PrivacidadEs() {
 function PrivacidadEn() {
   return (
     <article className="prose prose-gray max-w-none prose-headings:font-heading prose-a:text-brand-orange">
-      <h1>Privacy Policy</h1>
+      <h1>Privacy &amp; Data Protection Policy</h1>
       <p className="lead">
         At Like In House we are committed to protecting our clients' privacy. This policy explains what data we collect, how we use it, and your rights.
       </p>

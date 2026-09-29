@@ -4,7 +4,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { trpc } from "@/lib/trpc";
 import Image from "next/image";
-import { Phone, Mail, ArrowUpRight, BookOpen, Shield, FileText, ShieldCheck, ScrollText, Lock } from "lucide-react";
+import { Phone, Mail, ArrowUpRight, BookOpen, Shield, FileText, ScrollText, Lock } from "lucide-react";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -69,14 +69,13 @@ export function Footer() {
   const legalSettingsLinks = [
     { key: "codigoEsnnaUrl", label: isEs ? "Código ESNNA" : "ESNNA Code", icon: Shield },
     { key: "politicasCancelacionUrl", label: isEs ? "Políticas de Cancelación" : "Cancellation Policy", icon: FileText },
-    { key: "proteccionDatosUrl", label: isEs ? "Protección de Datos" : "Data Protection", icon: ShieldCheck },
   ];
 
   // Links estáticos siempre disponibles
   const staticLegalLinks = [
     { href: "/libro-reclamaciones", label: isEs ? "Libro de Reclamaciones" : "Complaint Book", icon: BookOpen },
     { href: "/terminos", label: isEs ? "Términos y Condiciones" : "Terms & Conditions", icon: ScrollText },
-    { href: "/privacidad", label: isEs ? "Política de Privacidad" : "Privacy Policy", icon: Lock },
+    { href: "/privacidad", label: isEs ? "Privacidad y Protección de Datos" : "Privacy & Data Protection", icon: Lock },
   ];
 
   return (
