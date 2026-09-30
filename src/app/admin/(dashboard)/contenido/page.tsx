@@ -1228,7 +1228,6 @@ const PREDEFINED_SETTINGS = [
   { key: "youtubeUrl", label: "YouTube", placeholder: "https://youtube.com/@..." },
   { key: "libroReclamacionesUrl", label: "Libro de Reclamaciones (URL)", placeholder: "https://..." },
   { key: "codigoEsnnaUrl", label: "Código ESNNA (URL)", placeholder: "https://..." },
-  { key: "politicasCancelacionUrl", label: "Políticas de Cancelación (URL)", placeholder: "/politicas-cancelacion" },
 ] as const;
 
 const DEPRECATED_SETTING_KEYS = new Set(["proteccionDatosUrl"]);

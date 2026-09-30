@@ -56,6 +56,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   entries.push(...localizedEntry(baseUrl, "/faq", now, "monthly", 0.6));
   entries.push(...localizedEntry(baseUrl, "/privacidad", now, "yearly", 0.3));
   entries.push(...localizedEntry(baseUrl, "/terminos", now, "yearly", 0.3));
+  entries.push(...localizedEntry(baseUrl, "/politicas-cancelacion", now, "yearly", 0.3));
   entries.push(...localizedEntry(baseUrl, "/libro-reclamaciones", now, "yearly", 0.3));
 
   for (const tour of publishedTours) {

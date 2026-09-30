@@ -59,67 +59,86 @@ export default async function TerminosPage({
 function TerminosEs() {
   return (
     <article className="prose prose-gray max-w-none prose-headings:font-heading prose-a:text-brand-orange">
-      <h1>Términos y Condiciones</h1>
+      <h1>Políticas, Términos y Condiciones</h1>
       <p className="lead">
-        Bienvenido a Like In House. Al contratar nuestros servicios turísticos, aceptas los siguientes términos y condiciones.
+        Es esencial que revise y acepte nuestras políticas, términos y condiciones relacionados con los servicios que ofrecemos.
       </p>
 
-      <h2>1. Reservas y Pagos</h2>
-      <p>
-        Para confirmar una reserva se requiere un depósito del 30% del costo total del tour. El saldo restante debe abonarse con al menos 48 horas de anticipación a la fecha de inicio del tour.
-      </p>
-      <p>
-        Los pagos pueden realizarse mediante transferencia bancaria, tarjeta de crédito/débito a través de nuestra plataforma o pago en efectivo en nuestra oficina.
-      </p>
-
-      <h2>2. Política de Cancelación</h2>
+      <h2>De nuestros servicios</h2>
       <ul>
-        <li><strong>Cancelación con más de 15 días de anticipación:</strong> Reembolso del 90% del monto pagado.</li>
-        <li><strong>Cancelación entre 8 y 15 días de anticipación:</strong> Reembolso del 50% del monto pagado.</li>
-        <li><strong>Cancelación con menos de 7 días:</strong> No se realizan reembolsos. Se puede reagendar el tour sujeto a disponibilidad.</li>
-        <li><strong>No presentación (No Show):</strong> Sin reembolso.</li>
+        <li>El agente de viajes brinda información y asesoría, pero no garantiza disponibilidad.</li>
+        <li>Los paquetes se elaboran según lo solicitado y se cotizan en dólares o soles al tipo de cambio vigente. No incluyen impuestos de ley para pasajeros peruanos o residentes.</li>
+        <li>Por desastres naturales, clima, huelgas, protestas u otras situaciones de fuerza mayor, la reserva puede modificarse, posponerse, cancelarse o reprogramarse para proteger la seguridad de los pasajeros. En estos casos se emitirá una nota de crédito con vigencia de un año, descontando 10% por gastos administrativos.</li>
+        <li>Like In House puede actuar como intermediario entre el pasajero y operadores turísticos.</li>
+        <li>Las tarifas publicadas no aplican a feriados, fines de semana largos o eventos internacionales, salvo indicación expresa.</li>
+        <li>Las reservas de transporte son personales, intransferibles y no reembolsables, y están sujetas a las políticas del transportista.</li>
+        <li>El pasajero debe presentarse con la anticipación requerida en la estación o aeropuerto. No asumimos responsabilidad por pérdidas ocasionadas por tardanzas, colas o falta de check-in.</li>
+        <li>Para prestar nuestros servicios se debe firmar el consentimiento informado al confirmar la reserva.</li>
       </ul>
 
-      <h2>3. Modificaciones de Itinerario</h2>
-      <p>
-        Like In House se reserva el derecho de modificar itinerarios por razones de fuerza mayor, condiciones climáticas adversas, o factores fuera de nuestro control. En tal caso, se ofrecerán alternativas equivalentes sin costo adicional.
-      </p>
-
-      <h2>4. Responsabilidades del Pasajero</h2>
+      <h2>Políticas de reserva</h2>
       <ul>
-        <li>Presentarse en el punto de encuentro a la hora indicada.</li>
-        <li>Portar los documentos de identidad vigentes.</li>
-        <li>Informar previamente sobre condiciones médicas relevantes.</li>
-        <li>Respetar las indicaciones del guía y las normas de los atractivos turísticos.</li>
-        <li>Contratar un seguro de viaje (recomendado).</li>
+        <li>Las reservas de Cusco deben confirmarse con 60 días de anticipación; los grupos de más de 15 personas, con 90 días. Sin Machu Picchu, pueden confirmarse hasta 5 días antes.</li>
+        <li>Puno, Arequipa e Ica: 20 días antes; grupos de más de 15 personas, 30 días antes.</li>
+        <li>Lima y Tumbes: 10 días antes; grupos de más de 15 personas, 20 días antes.</li>
+        <li>La confirmación requiere el pago o depósito de garantía y el voucher correspondiente. El código de reserva se enviará por WhatsApp, correo u otro medio acordado.</li>
+        <li>El cliente dispone de 48 horas desde la recepción del voucher para realizar observaciones. Después de ese plazo, o iniciado el servicio, se entiende que existe conformidad.</li>
       </ul>
 
-      <h2>5. Menores de Edad</h2>
-      <p>
-        Los menores de edad deben estar acompañados por un adulto responsable. Para menores viajando con un solo progenitor o tutor, se puede requerir documentación adicional.
-      </p>
+      <h3>Datos requeridos</h3>
+      <p>Enviar el comprobante y los siguientes datos a reservas@likeinhouseperu.com o por WhatsApp al +51 969 815 462 / 991 835 431:</p>
+      <ul>
+        <li>Tour o servicio, fecha de viaje y número de pasajeros.</li>
+        <li>Nombre completo, procedencia, pasaporte del pasajero principal y teléfono de contacto.</li>
+        <li>Nombre del agente o asesor de viajes.</li>
+      </ul>
 
-      <h2>6. Seguro y Salud</h2>
-      <p>
-        Like In House no es responsable de accidentes, enfermedades o pérdida de equipaje durante los tours. Recomendamos ampliamente contratar un seguro de viaje que cubra asistencia médica y repatriación.
-      </p>
+      <h2>Políticas de pago</h2>
+      <ul>
+        <li>El depósito de garantía es del 50% del costo total por persona.</li>
+        <li>El saldo debe pagarse hasta 2 días antes del inicio del servicio.</li>
+        <li>Para grupos de más de 8 personas: 50% a 60 días, 20% a 30 días y saldo a 2 días.</li>
+        <li>Las reservas realizadas con menos de 7 días de anticipación requieren el pago del 100%.</li>
+        <li>No se otorga crédito. El incumplimiento del pago final puede ocasionar la cancelación sin reembolso.</li>
+        <li>El cliente asume los gastos de transacción, las comisiones bancarias y las diferencias de tipo de cambio.</li>
+        <li>Los pagos con tarjeta nacional tienen un recargo del 5% y los internacionales del 5.20%, según el canal de pago.</li>
+      </ul>
 
-      <h2>7. Fotografías y Material Audiovisual</h2>
-      <p>
-        Al participar en nuestros tours autorizas a Like In House a utilizar fotografías y videos en los que aparezcas para fines promocionales, a menos que indiques expresamente lo contrario.
-      </p>
+      <h3>Medios de pago</h3>
+      <p>Aceptamos tarjetas Visa, MasterCard, American Express y Diners Club, depósitos y transferencias bancarias, Yape, Plin, QR y POS. Los costos de transacción son asumidos por el cliente.</p>
 
-      <h2>8. Ley Aplicable</h2>
-      <p>
-        Estos términos se rigen por las leyes de la República del Perú. Cualquier controversia será resuelta ante los tribunales de la ciudad del Cusco.
-      </p>
+      <h3>Datos de nuestras cuentas bancarias</h3>
+      <ul>
+        <li><strong>Interbank, cuenta corriente:</strong> soles 2003004327053; CCI soles 00320000300432705334; dólares 2003004327060; CCI dólares 00320000300432706039.</li>
+        <li><strong>BCP, cuenta negocios:</strong> soles 19214745438080; CCI soles 00219211474543808037.</li>
+        <li>En ambos casos, el titular es LIKE IN HOUSE SRL.</li>
+      </ul>
 
-      <h2>9. Contacto</h2>
-      <p>
-        Para consultas sobre estos términos puedes escribirnos a{" "}
-        <a href="mailto:info@likeinhouse.com">info@likeinhouse.com</a> o
-        comunicarte a través de WhatsApp al <strong>+51 913 406 888</strong>.
-      </p>
+      <h3>Condiciones para rutas cortas en Lima</h3>
+      <ul>
+        <li>Las tarifas están expresadas en dólares, son netas y no incluyen IGV. Para solicitar boleta o factura se agrega 18%.</li>
+        <li>No aplican a feriados; en Semana Santa, fiestas patrias, Navidad y Año Nuevo se agrega 15%.</li>
+        <li>Los city tours se confirman con un mínimo de 2 pasajeros, excepto Lima Colonial y Moderna, Circuito Mágico del Agua y Pachacámac.</li>
+        <li>Los recojos se realizan en hoteles céntricos de Barranco, Miraflores y San Isidro, según el tour. Los horarios son referenciales y se confirman la noche anterior.</li>
+        <li>El pasajero debe esperar en el lobby desde la hora indicada; la tolerancia es de 5 minutos.</li>
+        <li>Las anulaciones y reprogramaciones se aceptan hasta 20 horas antes, excepto Pachacámac, City con cena show y Pachacámac con caballos de paso, que requieren 36 horas.</li>
+        <li>Para gestionar una reserva se requieren nombres, documento, fecha, idioma, dirección del hotel y cualquier indicación necesaria para operar el servicio.</li>
+      </ul>
+
+      <h2>Responsabilidades y condiciones</h2>
+      <ul>
+        <li>El pasajero debe contar con pasaporte, visas, seguro, vacunas y demás documentos vigentes.</li>
+        <li>Debe informar cualquier condición médica, especialmente si visitará lugares sobre los 4,000 m s. n. m.</li>
+        <li>La agencia puede modificar itinerarios por seguridad, clima, fuerza mayor, huelgas o situaciones políticas.</li>
+        <li>No somos responsables por pérdida de objetos, vuelos, hospedajes, viajes, accidentes o gastos adicionales ocasionados por hechos fuera de nuestro control.</li>
+        <li>Los niños de hasta 5 años no pagan si viajan en brazos de un adulto, excepto en Machu Picchu, donde pagan desde los 3 años. Existen tarifas diferenciadas para niños de 3 a 11 años y juniors de 11 a 17 años.</li>
+      </ul>
+
+      <h2>Igualdad e inclusión</h2>
+      <p>Promovemos un entorno libre de discriminación, acoso y violencia por género, orientación sexual, identidad, edad, discapacidad, etnia, religión o condición social. Las denuncias serán atendidas de forma confidencial, inmediata y justa.</p>
+
+      <h2>Contacto</h2>
+      <p>Para consultas puedes escribirnos a <a href="mailto:reservas@likeinhouseperu.com">reservas@likeinhouseperu.com</a> o comunicarte por WhatsApp al <strong>+51 913 406 888</strong>.</p>
     </article>
   );
 }
@@ -127,65 +146,56 @@ function TerminosEs() {
 function TerminosEn() {
   return (
     <article className="prose prose-gray max-w-none prose-headings:font-heading prose-a:text-brand-orange">
-      <h1>Terms and Conditions</h1>
+      <h1>Policies, Terms and Conditions</h1>
       <p className="lead">
-        Welcome to Like In House. By booking our tourism services, you accept the following terms and conditions.
+        Please review and accept our policies, terms and conditions before booking our tourism services.
       </p>
 
-      <h2>1. Bookings and Payments</h2>
+      <h2>Services and bookings</h2>
       <p>
-        A deposit of 30% of the total tour cost is required to confirm a booking. The remaining balance must be paid at least 48 hours before the tour start date.
+        Bookings are confirmed once the required payment or guarantee deposit is received. Confirmation deadlines vary by destination: Cusco requires 60 days, Puno, Arequipa and Ica 20 days, and Lima and Tumbes 10 days. Larger groups require additional notice.
       </p>
       <p>
-        Payments can be made via bank transfer, credit/debit card through our platform, or cash at our office.
+        We accept cards, bank transfers, deposits, Yape, Plin, QR and POS. Transaction and banking fees, as well as exchange-rate differences, are paid by the customer.
       </p>
 
-      <h2>2. Cancellation Policy</h2>
-      <ul>
-        <li><strong>Cancellation more than 15 days in advance:</strong> 90% refund of the amount paid.</li>
-        <li><strong>Cancellation 8–15 days in advance:</strong> 50% refund of the amount paid.</li>
-        <li><strong>Cancellation less than 7 days:</strong> No refunds. Tour may be rescheduled subject to availability.</li>
-        <li><strong>No Show:</strong> No refund.</li>
-      </ul>
+      <h2>Cancellation policy</h2>
+      <p>Cancellation penalties depend on the destination and the notice period. See the complete <Link href="/politicas-cancelacion">Cancellation, Rescheduling and Refund Policy</Link>.</p>
 
-      <h2>3. Itinerary Changes</h2>
+      <h2>Itinerary changes and force majeure</h2>
       <p>
-        Like In House reserves the right to modify itineraries due to force majeure, adverse weather conditions, or factors beyond our control. Equivalent alternatives will be offered at no additional cost.
+        Like In House may modify, postpone, cancel or reschedule services because of weather, strikes, protests, natural disasters or other circumstances beyond its control, prioritizing passenger safety.
       </p>
 
-      <h2>4. Passenger Responsibilities</h2>
+      <h2>Passenger responsibilities</h2>
       <ul>
         <li>Arrive at the meeting point at the indicated time.</li>
         <li>Carry valid identity documents.</li>
         <li>Inform us in advance of relevant medical conditions.</li>
         <li>Follow guide instructions and tourist site regulations.</li>
-        <li>Purchase travel insurance (recommended).</li>
+        <li>Carry valid passports, visas, insurance and other required documents.</li>
+        <li>Inform us of relevant medical conditions, especially for high-altitude destinations.</li>
       </ul>
 
-      <h2>5. Minors</h2>
+      <h2>Minors and inclusion</h2>
       <p>
-        Minors must be accompanied by a responsible adult. Additional documentation may be required for minors traveling with only one parent or guardian.
+        Minors must travel with a parent or responsible adult and may need notarized authorization. We promote an environment free from discrimination, harassment and violence.
       </p>
 
-      <h2>6. Insurance and Health</h2>
+      <h2>Liability</h2>
       <p>
-        Like In House is not responsible for accidents, illness, or loss of luggage during tours. We strongly recommend purchasing travel insurance covering medical assistance and repatriation.
+        Like In House is not responsible for losses, accidents, illness, luggage, missed transport or additional expenses caused by events outside our control. Travel insurance is strongly recommended.
       </p>
 
-      <h2>7. Photos and Media</h2>
-      <p>
-        By participating in our tours you authorize Like In House to use photos and videos in which you appear for promotional purposes, unless you explicitly indicate otherwise.
-      </p>
-
-      <h2>8. Applicable Law</h2>
+      <h2>Applicable law</h2>
       <p>
         These terms are governed by the laws of the Republic of Peru. Any disputes will be resolved before the courts of the city of Cusco.
       </p>
 
-      <h2>9. Contact</h2>
+      <h2>Contact</h2>
       <p>
         For questions about these terms, write to{" "}
-        <a href="mailto:info@likeinhouse.com">info@likeinhouse.com</a> or
+        <a href="mailto:reservas@likeinhouseperu.com">reservas@likeinhouseperu.com</a> or
         contact us via WhatsApp at <strong>+51 913 406 888</strong>.
       </p>
     </article>

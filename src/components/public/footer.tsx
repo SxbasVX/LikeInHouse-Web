@@ -68,13 +68,13 @@ export function Footer() {
   // Links legales desde settings (externos o internos)
   const legalSettingsLinks = [
     { key: "codigoEsnnaUrl", label: isEs ? "Código ESNNA" : "ESNNA Code", icon: Shield },
-    { key: "politicasCancelacionUrl", label: isEs ? "Políticas de Cancelación" : "Cancellation Policy", icon: FileText },
   ];
 
   // Links estáticos siempre disponibles
   const staticLegalLinks = [
     { href: "/libro-reclamaciones", label: isEs ? "Libro de Reclamaciones" : "Complaint Book", icon: BookOpen },
     { href: "/terminos", label: isEs ? "Términos y Condiciones" : "Terms & Conditions", icon: ScrollText },
+    { href: "/politicas-cancelacion", label: isEs ? "Políticas de Cancelación" : "Cancellation Policy", icon: FileText },
     { href: "/privacidad", label: isEs ? "Privacidad y Protección de Datos" : "Privacy & Data Protection", icon: Lock },
   ];
 
