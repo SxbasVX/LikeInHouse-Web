@@ -156,7 +156,7 @@ export const getCachedTestimonials = unstable_cache(
             take: 10,
         });
     },
-    ["testimonials"],
+    ["testimonials-v2"],
     { revalidate: 600, tags: [CACHE_TAGS.content] }
 );
 

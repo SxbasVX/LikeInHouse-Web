@@ -52,9 +52,7 @@ export function TestimonialsSection({ testimonials, title, subtitle }: Testimoni
   const header = useScrollAnimation({ threshold: 0.2 });
   const cards = useStaggerAnimation({ threshold: 0.1 });
 
-  const avgRating = testimonials.length > 0
-    ? testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length
-    : 4.5;
+  const googleRating = 4.6;
 
   return (
     <section className="bg-[#1C0D0C] pt-0 pb-20 lg:pb-28 relative overflow-hidden">
@@ -79,13 +77,13 @@ export function TestimonialsSection({ testimonials, title, subtitle }: Testimoni
                   <Star
                     key={i}
                     className={`h-3 w-3 ${
-                      i < Math.round(avgRating) ? "fill-amber-400 text-amber-400" : "text-white/20"
+                      i < Math.round(googleRating) ? "fill-amber-400 text-amber-400" : "text-white/20"
                     }`}
                   />
                 ))}
               </div>
-              <span className="text-sm font-semibold text-white">{avgRating.toFixed(1)}</span>
-              <span className="text-xs text-white/40">· 42 {isEs ? "reseñas" : "reviews"}</span>
+                <span className="text-sm font-semibold text-white">{googleRating.toFixed(1)}</span>
+                <span className="text-xs text-white/40">· Google</span>
             </div>
             <h2 className="font-heading text-3xl font-light text-white sm:text-4xl lg:text-5xl tracking-tight leading-[1.1]">
               {isEs ? "Viajeros que " : "Travelers who "}
@@ -95,7 +93,7 @@ export function TestimonialsSection({ testimonials, title, subtitle }: Testimoni
             </h2>
           </div>
           <a
-            href="https://www.google.com/search?q=Like+In+House+Cusco+Peru"
+            href="https://maps.app.goo.gl/6rabtDimdxUo7ZsXA"
             target="_blank"
             rel="noopener noreferrer"
             className="shrink-0 inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-sm text-white/60 hover:text-white hover:border-white/30 transition-all"
