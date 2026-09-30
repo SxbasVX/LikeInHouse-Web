@@ -43,13 +43,25 @@ export default async function TerminosPage({
         </div>
       </div>
 
-      {/* Contenido */}
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white rounded-2xl shadow-sm p-8 lg:p-12">
-          {isEs ? <TerminosEs /> : <TerminosEn />}
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+          <iframe
+            src="/legal/terminos-condiciones.pdf"
+            title={isEs ? "Políticas, términos y condiciones" : "Policies, terms and conditions"}
+            className="h-[75vh] min-h-[560px] w-full"
+          />
+        </div>
+        <div className="mt-4 flex justify-end">
+          <a
+            href="/legal/terminos-condiciones.pdf"
+            download
+            className="text-sm font-semibold text-brand-orange hover:underline"
+          >
+            {isEs ? "Descargar PDF" : "Download PDF"}
+          </a>
         </div>
         <p className="text-center text-xs text-muted-foreground mt-6">
-          {isEs ? "Última actualización: enero 2025" : "Last updated: January 2025"}
+          {isEs ? "Documento original de Like In House" : "Original Like In House document"}
         </p>
       </div>
     </div>

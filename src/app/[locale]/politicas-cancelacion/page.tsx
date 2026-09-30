@@ -70,12 +70,25 @@ export default async function PoliticasCancelacionPage({
         </div>
       </div>
 
-      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="rounded-2xl bg-white p-6 shadow-sm sm:p-8 lg:p-12">
-          {isEs ? <CancellationPolicyEs /> : <CancellationPolicyEn />}
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+          <iframe
+            src="/legal/politicas-cancelacion.pdf"
+            title={isEs ? "Políticas de cancelación, reprogramaciones y reembolso" : "Cancellation, rescheduling and refund policy"}
+            className="h-[75vh] min-h-[560px] w-full"
+          />
+        </div>
+        <div className="mt-4 flex justify-end">
+          <a
+            href="/legal/politicas-cancelacion.pdf"
+            download
+            className="text-sm font-semibold text-brand-orange hover:underline"
+          >
+            {isEs ? "Descargar PDF" : "Download PDF"}
+          </a>
         </div>
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          {isEs ? "Última actualización: septiembre 2026" : "Last updated: September 2026"}
+          {isEs ? "Documento original de Like In House" : "Original Like In House document"}
         </p>
       </div>
     </div>
