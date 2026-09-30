@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Link } from "@/i18n/routing";
 import { ArrowLeft } from "lucide-react";
 import { buildMetadata } from "@/lib/seo";
+import { LegalPdfViewer } from "@/components/public/legal-pdf-viewer";
 
 type CancellationRow = {
   period: string;
@@ -71,22 +72,11 @@ export default async function PoliticasCancelacionPage({
       </div>
 
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-          <iframe
-            src="/legal/politicas-cancelacion.pdf"
-            title={isEs ? "Políticas de cancelación, reprogramaciones y reembolso" : "Cancellation, rescheduling and refund policy"}
-            className="h-[75vh] min-h-[560px] w-full"
-          />
-        </div>
-        <div className="mt-4 flex justify-end">
-          <a
-            href="/legal/politicas-cancelacion.pdf"
-            download
-            className="text-sm font-semibold text-brand-orange hover:underline"
-          >
-            {isEs ? "Descargar PDF" : "Download PDF"}
-          </a>
-        </div>
+        <LegalPdfViewer
+          file="/legal/politicas-cancelacion.pdf"
+          title={isEs ? "Políticas de cancelación, reprogramaciones y reembolso" : "Cancellation, rescheduling and refund policy"}
+          downloadLabel={isEs ? "Descargar PDF" : "Download PDF"}
+        />
         <p className="mt-6 text-center text-xs text-muted-foreground">
           {isEs ? "Documento original de Like In House" : "Original Like In House document"}
         </p>

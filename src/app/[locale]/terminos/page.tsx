@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Link } from "@/i18n/routing";
 import { ArrowLeft } from "lucide-react";
 import { buildMetadata } from "@/lib/seo";
+import { LegalPdfViewer } from "@/components/public/legal-pdf-viewer";
 
 export async function generateMetadata({
   params,
@@ -44,22 +45,11 @@ export default async function TerminosPage({
       </div>
 
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-          <iframe
-            src="/legal/terminos-condiciones.pdf"
-            title={isEs ? "Políticas, términos y condiciones" : "Policies, terms and conditions"}
-            className="h-[75vh] min-h-[560px] w-full"
-          />
-        </div>
-        <div className="mt-4 flex justify-end">
-          <a
-            href="/legal/terminos-condiciones.pdf"
-            download
-            className="text-sm font-semibold text-brand-orange hover:underline"
-          >
-            {isEs ? "Descargar PDF" : "Download PDF"}
-          </a>
-        </div>
+        <LegalPdfViewer
+          file="/legal/terminos-condiciones.pdf"
+          title={isEs ? "Políticas, términos y condiciones" : "Policies, terms and conditions"}
+          downloadLabel={isEs ? "Descargar PDF" : "Download PDF"}
+        />
         <p className="text-center text-xs text-muted-foreground mt-6">
           {isEs ? "Documento original de Like In House" : "Original Like In House document"}
         </p>

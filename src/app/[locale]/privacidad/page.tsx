@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Link } from "@/i18n/routing";
 import { ArrowLeft } from "lucide-react";
 import { buildMetadata } from "@/lib/seo";
+import { LegalPdfViewer } from "@/components/public/legal-pdf-viewer";
 
 export async function generateMetadata({
   params,
@@ -43,13 +44,14 @@ export default async function PrivacidadPage({
         </div>
       </div>
 
-      {/* Contenido */}
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white rounded-2xl shadow-sm p-8 lg:p-12">
-          {isEs ? <PrivacidadEs /> : <PrivacidadEn />}
-        </div>
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <LegalPdfViewer
+          file="/legal/privacidad-proteccion-datos.pdf"
+          title={isEs ? "Política de Privacidad y Protección de Datos" : "Privacy & Data Protection Policy"}
+          downloadLabel={isEs ? "Descargar PDF" : "Download PDF"}
+        />
         <p className="text-center text-xs text-muted-foreground mt-6">
-          {isEs ? "Última actualización: enero 2025" : "Last updated: January 2025"}
+          {isEs ? "Documento original de Like In House" : "Original Like In House document"}
         </p>
       </div>
     </div>
