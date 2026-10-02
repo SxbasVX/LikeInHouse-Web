@@ -26,7 +26,10 @@ export class GeminiProvider implements AIProvider {
       usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number };
     };
     const candidate = payload.candidates?.[0];
-    if (!candidate || (candidate.finishReason && candidate.finishReason !== "STOP")) throw new ProviderError(this.name, null, false);
+    if (!candidate) throw new ProviderError(this.name, null, false);
+    if (candidate.finishReason && candidate.finishReason !== "STOP") {
+      throw new Error(`Gemini cortó la respuesta (${candidate.finishReason}). Reduce el tamaño del catálogo o aumenta el límite de salida.`);
+    }
     const text = candidate.content?.parts?.filter((p) => p.text && !p.thought).map((p) => p.text).join("");
     if (!text) throw new ProviderError(this.name, null, false);
     return providerResult(this.name, text, payload.usageMetadata?.promptTokenCount,

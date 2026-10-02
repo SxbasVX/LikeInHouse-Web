@@ -7,12 +7,14 @@ export class ProviderError extends Error {
   }
 }
 
+const PROVIDER_TIMEOUT_MS = 180_000;
+
 export async function providerFetch(provider: string, url: string, init: RequestInit, signal?: AbortSignal): Promise<Response> {
   for (let attempt = 0; attempt < 3; attempt++) {
     signal?.throwIfAborted();
     let response: Response;
     try {
-      response = await fetch(url, { ...init, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(70_000)]) : AbortSignal.timeout(70_000) });
+      response = await fetch(url, { ...init, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(PROVIDER_TIMEOUT_MS)]) : AbortSignal.timeout(PROVIDER_TIMEOUT_MS) });
     } catch {
       throw new ProviderError(provider, null, true);
     }
