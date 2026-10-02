@@ -5,8 +5,20 @@ import { validateCatalogTour } from "./validator";
 import { findDuplicateMatches } from "./duplicates";
 import { GeminiProvider } from "./providers/gemini";
 import { OpenAIProvider } from "./providers/openai";
+import { AnthropicProvider } from "./providers/anthropic";
 import { getProviderSelection } from "./providers/router";
 import type { AIProvider } from "./providers/types";
+
+function createProvider(name: AIProvider["name"]): AIProvider {
+  switch (name) {
+    case "gemini":
+      return new GeminiProvider();
+    case "openai":
+      return new OpenAIProvider();
+    case "anthropic":
+      return new AnthropicProvider();
+  }
+}
 
 export async function processCatalogPdf(filename: string, pdf: Buffer, userId: string) {
   const importRecord = await db.catalogImport.create({
@@ -19,7 +31,7 @@ export async function processCatalogPdf(filename: string, pdf: Buffer, userId: s
     const selection = getProviderSelection();
     const providers: AIProvider[] = [selection.primary, selection.fallback]
       .filter((name, index, values) => values.indexOf(name) === index)
-      .map((name) => name === "openai" ? new OpenAIProvider() : new GeminiProvider());
+      .map(createProvider);
     let extraction;
     let lastError: unknown;
     for (const candidateProvider of providers) {

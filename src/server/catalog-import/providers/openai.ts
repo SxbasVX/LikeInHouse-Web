@@ -36,18 +36,7 @@ export class OpenAIProvider implements AIProvider {
         }],
         text: {
           format: {
-            type: "json_schema",
-            name: "catalog_extraction",
-            strict: true,
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              required: ["sourceDocument", "tours"],
-              properties: {
-                sourceDocument: { type: "string" },
-                tours: { type: "array", items: { type: "object", additionalProperties: true } },
-              },
-            },
+            type: "json_object",
           },
         },
       }),
