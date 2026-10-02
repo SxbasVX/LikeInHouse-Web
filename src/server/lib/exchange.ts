@@ -5,6 +5,7 @@ import {
   type CurrencyCode,
   type ExchangeRates,
 } from "@/lib/currency";
+import { getCachedSettings } from "@/server/lib/cache";
 
 /**
  * Tipos de cambio del servidor.
@@ -21,7 +22,8 @@ import {
  * El TC interbancario (SUNAT, open.er-api) no es el que acaba pagando el
  * cliente: su banco o su tarjeta le aplican su propio spread, así que el
  * precio que veía en soles quedaba por debajo de lo que realmente le
- * descontaban. Este margen acerca la cifra mostrada a la real.
+ * descontaban. Este margen acerca la cifra mostrada a la real. PEN queda
+ * excluido para mostrar exactamente la tasa oficial de SUNAT.
  *
  * Es un margen de VISUALIZACIÓN: el cobro sigue siendo el importe en USD, de
  * modo que esto nunca puede hacer que se cobre de más. Se aplica a todas las
@@ -37,9 +39,9 @@ export function getMarkupPercent(): number {
   return Math.min(raw, 20);
 }
 
-/** Aplica el margen a una tasa USD→moneda. El dólar nunca lleva margen. */
+/** Aplica el margen a una tasa USD→moneda. USD y PEN nunca llevan margen. */
 function withMarkup(rate: number, currency: CurrencyCode): number {
-  if (currency === "USD") return 1;
+  if (currency === "USD" || currency === "PEN") return currency === "USD" ? 1 : rate;
   return rate * (1 + getMarkupPercent() / 100);
 }
 
@@ -50,8 +52,30 @@ function withMarkup(rate: number, currency: CurrencyCode): number {
  * banco convierte, así que es la cifra más cercana a lo que verá en su
  * estado de cuenta. El "compra" subestimaría el precio mostrado.
  */
-export async function getUsdToPenRate(): Promise<number> {
+export type PenRateSource = "SUNAT" | "manual" | "fallback";
+
+interface ExchangeConfig {
+  enabled: boolean;
+  mode: "SUNAT" | "MANUAL";
+  manualRate?: number;
+}
+
+async function getExchangeConfig(): Promise<ExchangeConfig> {
+  const settings = await getCachedSettings();
+  const enabled = settings.currencyDisplayEnabled !== false && settings.currencyDisplayEnabled !== "false";
+  const mode = settings.penExchangeRateMode === "MANUAL" ? "MANUAL" : "SUNAT";
+  const manualRate = Number(settings.penExchangeRate);
+
+  return {
+    enabled,
+    mode,
+    manualRate: isFinite(manualRate) && manualRate > 0 ? manualRate : undefined,
+  };
+}
+
+export async function getUsdToPenRate(manualRate?: number): Promise<number> {
   const FALLBACK = parseFloat(process.env.USD_TO_PEN_RATE_FALLBACK || String(FALLBACK_RATES.PEN));
+  if (manualRate !== undefined) return manualRate;
   try {
     const res = await fetch("https://api.apis.net.pe/v1/tipo-cambio-sunat", {
       next: { revalidate: 14400 }, // caché Next.js: 4 horas
@@ -94,12 +118,14 @@ async function fetchOpenRates(): Promise<ExchangeRates> {
 
 export interface ExchangeRatesResult {
   base: "USD";
+  /** Si es false, la web muestra únicamente la moneda base (USD). */
+  enabled: boolean;
   /** Tasas YA con el margen aplicado: son las que ve el pasajero. */
   rates: Record<CurrencyCode, number>;
   /** Margen aplicado, en porcentaje. */
   markupPercent: number;
   /** Origen efectivo de cada tasa, para diagnosticar en producción. */
-  sources: { pen: "SUNAT" | "fallback"; others: "open.er-api.com" | "fallback" };
+  sources: { pen: PenRateSource; others: "open.er-api.com" | "fallback" };
   fetchedAt: string;
 }
 
@@ -109,7 +135,11 @@ export interface ExchangeRatesResult {
  * esperan los clientes peruanos; el resto, del proveedor general.
  */
 export async function getExchangeRates(): Promise<ExchangeRatesResult> {
-  const [penRate, openRates] = await Promise.all([getUsdToPenRate(), fetchOpenRates()]);
+  const config = await getExchangeConfig();
+  const [penRate, openRates] = await Promise.all([
+    getUsdToPenRate(config.mode === "MANUAL" ? config.manualRate : undefined),
+    fetchOpenRates(),
+  ]);
 
   const rates = { ...FALLBACK_RATES } as Record<CurrencyCode, number>;
   for (const [code, value] of Object.entries(openRates)) {
@@ -122,14 +152,20 @@ export async function getExchangeRates(): Promise<ExchangeRatesResult> {
     rates[code] = withMarkup(rates[code], code);
   }
 
-  const penFromFallback = penRate === parseFloat(process.env.USD_TO_PEN_RATE_FALLBACK || String(FALLBACK_RATES.PEN));
+  const fallbackRate = parseFloat(process.env.USD_TO_PEN_RATE_FALLBACK || String(FALLBACK_RATES.PEN));
+  const penSource: PenRateSource = config.mode === "MANUAL"
+    ? "manual"
+    : penRate === fallbackRate
+      ? "fallback"
+      : "SUNAT";
 
   return {
     base: "USD",
+    enabled: config.enabled,
     rates,
     markupPercent: getMarkupPercent(),
     sources: {
-      pen: penFromFallback ? "fallback" : "SUNAT",
+      pen: penSource,
       others: Object.keys(openRates).length > 0 ? "open.er-api.com" : "fallback",
     },
     fetchedAt: new Date().toISOString(),
@@ -144,7 +180,6 @@ export async function getExchangeRates(): Promise<ExchangeRatesResult> {
  */
 export async function getRateFor(currency: CurrencyCode): Promise<number> {
   if (currency === "USD") return 1;
-  if (currency === "PEN") return withMarkup(await getUsdToPenRate(), "PEN");
   const { rates } = await getExchangeRates();
   return rates[currency] ?? withMarkup(FALLBACK_RATES[currency], currency);
 }

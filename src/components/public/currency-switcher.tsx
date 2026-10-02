@@ -25,7 +25,9 @@ import { cn } from "@/lib/utils";
 export function CurrencySwitcher({ variant = "light" }: { variant?: "light" | "dark" }) {
   const locale = useLocale();
   const isEs = locale === "es";
-  const { currency, setCurrency } = useCurrency();
+  const { currency, setCurrency, currencyEnabled } = useCurrency();
+
+  if (!currencyEnabled) return null;
 
   // Mismo lenguaje visual que los demás desplegables del navbar ("Tours ⌄",
   // "Airbnb ⌄"): código de moneda + chevron. Un icono de monedas a 16px se

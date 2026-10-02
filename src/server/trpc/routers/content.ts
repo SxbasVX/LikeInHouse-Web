@@ -318,6 +318,35 @@ export const contentRouter = router({
       return result;
     }),
 
+  exchangeSettingsUpdate: roleProtectedProcedure(["ADMIN"])
+    .input(z.object({
+      enabled: z.boolean(),
+      mode: z.enum(["SUNAT", "MANUAL"]),
+      manualRate: z.number().positive().max(100).optional(),
+    }).superRefine((input, ctx) => {
+      if (input.mode === "MANUAL" && input.manualRate === undefined) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["manualRate"], message: "Ingresa un tipo de cambio manual válido" });
+      }
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const values = [
+        { key: "currencyDisplayEnabled", value: input.enabled },
+        { key: "penExchangeRateMode", value: input.mode },
+        { key: "penExchangeRate", value: input.manualRate ?? 0 },
+      ];
+      await ctx.db.$transaction(
+        values.map(({ key, value }) =>
+          ctx.db.setting.upsert({
+            where: { key },
+            create: { key, value },
+            update: { value },
+          })
+        )
+      );
+      revalidateTag(CACHE_TAGS.settings);
+      return { success: true };
+    }),
+
   // ===== Mensajes de Contacto =====
   contactList: adminOrSales
     .input(z.object({

@@ -59,7 +59,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { Switch } from "@/components/ui/switch";
-import { AlertCircle, CreditCard, Bell, Home as HomeIcon } from "lucide-react";
+import { AlertCircle, CreditCard, Bell, Home as HomeIcon, RefreshCw } from "lucide-react";
 import { parseAirbnbListings, type AirbnbListing } from "@/lib/airbnb";
 
 const TiptapEditor = dynamic(() => import("@/components/ui/tiptap-editor").then(m => ({ default: m.TiptapEditor })), { ssr: false });
@@ -1230,7 +1230,12 @@ const PREDEFINED_SETTINGS = [
   { key: "codigoEsnnaUrl", label: "Código ESNNA (URL)", placeholder: "https://..." },
 ] as const;
 
-const DEPRECATED_SETTING_KEYS = new Set(["proteccionDatosUrl"]);
+const DEPRECATED_SETTING_KEYS = new Set([
+  "proteccionDatosUrl",
+  "currencyDisplayEnabled",
+  "penExchangeRateMode",
+  "penExchangeRate",
+]);
 
 const CERTIFICATIONS = [
   { slot: 1, name: "Mincetur",        description: "Ministerio de Comercio Exterior y Turismo" },
@@ -1348,6 +1353,11 @@ function SettingsSection() {
         getSettingValue={getSettingValue}
         onSave={handleQuickSave}
         isPending={upsertSetting.isPending}
+      />
+
+      <ExchangeRateSettings
+        getSettingValue={getSettingValue}
+        onSaved={refetch}
       />
 
       {/* Notificaciones WhatsApp a Dueños */}
@@ -1480,6 +1490,118 @@ function SettingsSection() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function ExchangeRateSettings({
+  getSettingValue,
+  onSaved,
+}: {
+  getSettingValue: (key: string) => string;
+  onSaved: () => void;
+}) {
+  const { toast } = useToast();
+  const [enabled, setEnabled] = useState(getSettingValue("currencyDisplayEnabled") !== "false");
+  const [mode, setMode] = useState<"SUNAT" | "MANUAL">(
+    getSettingValue("penExchangeRateMode") === "MANUAL" ? "MANUAL" : "SUNAT"
+  );
+  const [manualRate, setManualRate] = useState(getSettingValue("penExchangeRate"));
+  const update = trpc.content.exchangeSettingsUpdate.useMutation({
+    onSuccess: () => {
+      toast({ title: "Tipo de cambio actualizado" });
+      onSaved();
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const save = (next: { enabled?: boolean; mode?: "SUNAT" | "MANUAL"; manualRate?: string }) => {
+    const nextEnabled = next.enabled ?? enabled;
+    const nextMode = next.mode ?? mode;
+    const nextRate = next.manualRate ?? manualRate;
+    const parsedRate = nextRate ? Number(nextRate) : undefined;
+    if (nextMode === "MANUAL" && (!parsedRate || !isFinite(parsedRate) || parsedRate <= 0)) {
+      toast({ title: "Tipo de cambio inválido", description: "Ingresa un valor mayor que 0.", variant: "destructive" });
+      return;
+    }
+    update.mutate({ enabled: nextEnabled, mode: nextMode, manualRate: parsedRate });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Tipo de cambio y precios en soles</CardTitle>
+        <CardDescription>
+          Los precios se calculan internamente en USD. Aquí defines si se muestran convertidos a soles y de dónde sale la tasa.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between rounded-lg border p-4">
+          <div>
+            <p className="font-semibold">Mostrar conversión de moneda</p>
+            <p className="text-sm text-muted-foreground">
+              {enabled ? "La web permite ver precios en soles y otras monedas." : "La web mostrará los precios únicamente en USD."}
+            </p>
+          </div>
+          <Switch
+            checked={enabled}
+            onCheckedChange={(checked) => {
+              setEnabled(checked);
+              save({ enabled: checked });
+            }}
+            disabled={update.isPending}
+          />
+        </div>
+
+        <div className="space-y-3 rounded-lg border p-4">
+          <Label>Fuente del tipo de cambio USD → PEN</Label>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant={mode === "SUNAT" ? "default" : "outline"}
+              onClick={() => {
+                setMode("SUNAT");
+                save({ mode: "SUNAT" });
+              }}
+              disabled={update.isPending}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" /> SUNAT automático
+            </Button>
+            <Button
+              type="button"
+              variant={mode === "MANUAL" ? "default" : "outline"}
+              onClick={() => setMode("MANUAL")}
+              disabled={update.isPending}
+            >
+              Editar manualmente
+            </Button>
+          </div>
+          {mode === "MANUAL" && (
+            <div className="flex items-end gap-2">
+              <div className="max-w-xs flex-1 space-y-2">
+                <Label htmlFor="manual-pen-rate">1 USD equivale a (S/)</Label>
+                <Input
+                  id="manual-pen-rate"
+                  type="number"
+                  min="0.01"
+                  max="100"
+                  step="0.001"
+                  value={manualRate}
+                  onChange={(event) => setManualRate(event.target.value)}
+                />
+              </div>
+              <Button type="button" onClick={() => save({ mode: "MANUAL" })} disabled={update.isPending}>
+                <Save className="mr-2 h-4 w-4" /> Guardar tasa
+              </Button>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            SUNAT usa el tipo de cambio venta y se actualiza automáticamente. El valor manual se conserva hasta volver a SUNAT.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

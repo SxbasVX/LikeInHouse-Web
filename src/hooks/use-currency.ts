@@ -33,12 +33,12 @@ export function useCurrency() {
   const suggestCurrency = useCurrencyStore((s) => s.suggestCurrency);
 
   // Antes de hidratar se muestra USD, que es lo que renderizó el servidor.
-  const currency: CurrencyCode = hydrated ? stored : BASE_CURRENCY;
-
   const { data } = trpc.public.exchangeRates.useQuery(undefined, {
     staleTime: 4 * 60 * 60 * 1000, // 4 h, igual que la caché del servidor
     refetchOnWindowFocus: false,
   });
+  const currencyEnabled = data?.enabled !== false;
+  const currency: CurrencyCode = hydrated && currencyEnabled ? stored : BASE_CURRENCY;
   const rates = data?.rates as ExchangeRates | undefined;
 
   // Sugerencia por país: sólo la primera vez y sólo si no eligió nada.
@@ -87,6 +87,7 @@ export function useCurrency() {
     isConverted: currency !== BASE_CURRENCY,
     rates,
     rate: rates?.[currency] ?? (currency === BASE_CURRENCY ? 1 : undefined),
+    currencyEnabled,
     convert,
     display,
     format,
