@@ -164,7 +164,7 @@ export function CatalogImportAccess() {
               </CldUploadWidget>
             </div>
             <Button type="submit" disabled={(!file && !uploadedPdf) || uploading}>
-              {uploading ? "Analizando con Gemini..." : "Analizar catálogo"}
+              {uploading ? "Analizando catálogo..." : "Analizar catálogo"}
             </Button>
           </form>
           {result && (

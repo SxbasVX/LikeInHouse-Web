@@ -20,6 +20,12 @@ function createProvider(name: AIProvider["name"]): AIProvider {
   }
 }
 
+function isProviderConfigured(name: AIProvider["name"]): boolean {
+  if (name === "gemini") return Boolean(process.env.GEMINI_API_KEY);
+  if (name === "openai") return Boolean(process.env.OPENAI_API_KEY);
+  return Boolean(process.env.ANTHROPIC_API_KEY);
+}
+
 export async function processCatalogPdf(filename: string, pdf: Buffer, userId: string) {
   const importRecord = await db.catalogImport.create({
     data: { filename, status: "PROCESSING", createdById: userId },
@@ -29,11 +35,12 @@ export async function processCatalogPdf(filename: string, pdf: Buffer, userId: s
 
   try {
     const selection = getProviderSelection();
-    const providers: AIProvider[] = [selection.primary, selection.fallback]
+    const configuredNames = [selection.primary, selection.fallback]
       .filter((name, index, values) => values.indexOf(name) === index)
-      .map(createProvider);
+      .filter(isProviderConfigured);
+    const providers = configuredNames.map(createProvider);
     let extraction;
-    let lastError: unknown;
+    const providerErrors: string[] = [];
     for (const candidateProvider of providers) {
       const providerStartedAt = Date.now();
       try {
@@ -54,7 +61,9 @@ export async function processCatalogPdf(filename: string, pdf: Buffer, userId: s
         });
         break;
       } catch (error) {
-        lastError = error;
+        providerErrors.push(
+          `${candidateProvider.name}: ${error instanceof Error ? error.message : "Error del proveedor"}`,
+        );
         await db.aIProviderOperation.create({
           data: {
             importId: importRecord.id,
@@ -70,7 +79,19 @@ export async function processCatalogPdf(filename: string, pdf: Buffer, userId: s
       }
     }
     if (!selectedProvider || !extraction) {
-      throw lastError instanceof Error ? lastError : new Error("Ningún proveedor IA pudo procesar el catálogo.");
+      const missingPrimaryKey = selection.primary === "gemini" && !process.env.GEMINI_API_KEY
+        ? "GEMINI_API_KEY no está configurada."
+        : selection.primary === "openai" && !process.env.OPENAI_API_KEY
+          ? "OPENAI_API_KEY no está configurada."
+          : selection.primary === "anthropic" && !process.env.ANTHROPIC_API_KEY
+            ? "ANTHROPIC_API_KEY no está configurada."
+            : undefined;
+      throw new Error(
+        missingPrimaryKey ??
+        (providerErrors.length > 0
+          ? `No se pudo procesar el catálogo. ${providerErrors.join(" | ")}`
+          : "Ningún proveedor IA configurado pudo procesar el catálogo."),
+      );
     }
     const provider = selectedProvider;
 
