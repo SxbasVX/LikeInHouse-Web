@@ -16,6 +16,7 @@ enum UserRole {
   ADMIN
   SALES
   MARKETING
+  DEVELOPER
 }
 
 model User {
@@ -34,6 +35,8 @@ model User {
   reservations Reservation[]
   accounts     Account[]
   sessions     Session[]
+  catalogImports CatalogImport[] @relation("CatalogImportCreator")
+  resolvedImportIssues ImportIssue[] @relation("ImportIssueResolver")
 }
 
 model Account {
@@ -140,6 +143,8 @@ model Tour {
   departures     TourDeparture[]
   reservations   Reservation[]
   quotationItems QuotationItem[]
+  catalogImportsExisting CatalogImportTour[] @relation("CatalogImportExistingTour")
+  catalogImportsCreated CatalogImportTour[] @relation("CatalogImportCreatedTour")
 
   @@index([status, isFeatured])
   @@index([destination])
@@ -703,6 +708,122 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([userId])
   @@index([createdAt])
+}
+
+enum CatalogImportStatus {
+  UPLOADED
+  PROCESSING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+enum CatalogImportTourStatus {
+  EXTRACTED
+  VALIDATED
+  READY
+  NEEDS_REVIEW
+  DUPLICATE
+  BLOCKED
+  DRAFT_CREATED
+  FAILED
+}
+
+enum ImportIssueType {
+  DATA_REVIEW
+  CONTRADICTION
+  MISSING_REQUIRED
+  INVALID_VALUE
+  POSSIBLE_DUPLICATE
+  PROVIDER_ERROR
+}
+
+model CatalogImport {
+  id             String             @id @default(cuid())
+  filename       String
+  status         CatalogImportStatus @default(UPLOADED)
+  totalTours     Int                @default(0)
+  readyCount     Int                @default(0)
+  duplicateCount Int                @default(0)
+  reviewCount    Int                @default(0)
+  blockedCount   Int                @default(0)
+  createdCount   Int                @default(0)
+  createdById    String
+  createdBy      User               @relation("CatalogImportCreator", fields: [createdById], references: [id])
+  tours          CatalogImportTour[]
+  operations     AIProviderOperation[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([createdById])
+  @@index([status, createdAt])
+}
+
+model CatalogImportTour {
+  id              String                @id @default(cuid())
+  importId        String
+  import          CatalogImport          @relation(fields: [importId], references: [id], onDelete: Cascade)
+  status          CatalogImportTourStatus @default(EXTRACTED)
+  tourDataJson    Json
+  sourceDocument  String
+  sourcePages     Int[]
+  existingTourId  String?
+  existingTour    Tour?                 @relation("CatalogImportExistingTour", fields: [existingTourId], references: [id])
+  createdTourId   String?
+  createdTour     Tour?                 @relation("CatalogImportCreatedTour", fields: [createdTourId], references: [id])
+  providerUsed    String?
+  modelUsed       String?
+  confidence      Decimal?              @db.Decimal(5, 4)
+  issues          ImportIssue[]
+  operations      AIProviderOperation[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([importId, status])
+  @@index([existingTourId])
+  @@index([createdTourId])
+}
+
+model ImportIssue {
+  id             String              @id @default(cuid())
+  importTourId   String
+  importTour     CatalogImportTour   @relation(fields: [importTourId], references: [id], onDelete: Cascade)
+  type           ImportIssueType
+  field          String?
+  valueA         String?
+  valueB         String?
+  reason         String              @db.Text
+  sourcePages    Int[]
+  resolved       Boolean             @default(false)
+  resolvedById   String?
+  resolvedBy     User?               @relation("ImportIssueResolver", fields: [resolvedById], references: [id])
+  resolvedAt     DateTime?
+  createdAt      DateTime            @default(now())
+
+  @@index([importTourId, resolved])
+  @@index([resolvedById])
+}
+
+model AIProviderOperation {
+  id            String             @id @default(cuid())
+  importId      String
+  import        CatalogImport       @relation(fields: [importId], references: [id], onDelete: Cascade)
+  importTourId  String?
+  importTour    CatalogImportTour?  @relation(fields: [importTourId], references: [id], onDelete: Cascade)
+  provider      String
+  model         String
+  operation     String
+  success       Boolean
+  fallbackUsed  Boolean             @default(false)
+  latencyMs     Int?
+  inputTokens   Int?
+  outputTokens  Int?
+  estimatedCost Decimal?             @db.Decimal(12, 6)
+  error         String?              @db.Text
+  createdAt     DateTime             @default(now())
+
+  @@index([importId, createdAt])
+  @@index([importTourId])
 }
 
 model EmailTemplate {

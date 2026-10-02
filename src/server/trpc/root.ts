@@ -14,6 +14,7 @@ import { paymentLinkRouter } from "./routers/paymentLink";
 import { documentRouter } from "./routers/document";
 import { culqiChargeRouter } from "./routers/culqi-charge";
 import { complaintRouter } from "./routers/complaint";
+import { catalogImportRouter } from "./routers/catalog-import";
 
 export const appRouter = router({
   auth: authRouter,
@@ -31,6 +32,7 @@ export const appRouter = router({
   docs: documentRouter,
   culqiCharge: culqiChargeRouter,
   complaint: complaintRouter,
+  catalogImport: catalogImportRouter,
 });
 
 export type AppRouter = typeof appRouter;
