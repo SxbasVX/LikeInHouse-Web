@@ -14,8 +14,45 @@ export function CatalogImportAccess() {
   const [authorizedSecret, setAuthorizedSecret] = useState("");
   const [authorized, setAuthorized] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<{ totalTours: number; readyCount: number; reviewCount: number; duplicateCount: number } | null>(null);
+  const [result, setResult] = useState<{
+    id: string;
+    totalTours: number;
+    readyCount: number;
+    reviewCount: number;
+    duplicateCount: number;
+    tours: Array<{
+      id: string;
+      status: string;
+      createdTourId?: string | null;
+      sourcePages: number[];
+      tourDataJson: { nameEs?: string | null; destination?: string | null };
+    }>;
+  } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const createDraft = trpc.catalogImport.createDraft.useMutation({
+    onSuccess: (created, variables) => {
+      setResult((current) => current
+        ? {
+            ...current,
+            tours: current.tours.map((tour) => tour.id === variables.importTourId
+              ? { ...tour, status: "DRAFT_CREATED", createdTourId: created.id }
+              : tour),
+          }
+        : current);
+      toast({ title: "Borrador creado", description: "El tour fue creado como DRAFT y no se publicó." });
+    },
+    onError: (error) => {
+      toast({
+        title: "No se pudo crear el borrador",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  const history = trpc.catalogImport.history.useQuery(
+    { secret: authorizedSecret, limit: 10 },
+    { enabled: authorized && !!authorizedSecret },
+  );
   const access = trpc.catalogImport.access.useMutation({
     onSuccess: () => {
       setAuthorizedSecret(secret);
@@ -54,7 +91,7 @@ export function CatalogImportAccess() {
                   headers: { "x-catalog-import-secret": authorizedSecret },
                   body,
                 });
-                const payload = await response.json() as { import?: typeof result; error?: string };
+                const payload = await response.json() as { import?: NonNullable<typeof result>; error?: string };
                 if (!response.ok || !payload.import) {
                   throw new Error(payload.error ?? "No se pudo procesar el catálogo.");
                 }
@@ -85,11 +122,60 @@ export function CatalogImportAccess() {
             </Button>
           </form>
           {result && (
-            <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-4 text-sm sm:grid-cols-4">
-              <div><strong>{result.totalTours}</strong><span className="block text-muted-foreground">Detectados</span></div>
-              <div><strong>{result.readyCount}</strong><span className="block text-muted-foreground">Listos</span></div>
-              <div><strong>{result.reviewCount}</strong><span className="block text-muted-foreground">En revisión</span></div>
-              <div><strong>{result.duplicateCount}</strong><span className="block text-muted-foreground">Duplicados</span></div>
+            <>
+              <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-4 text-sm sm:grid-cols-4">
+                <div><strong>{result.totalTours}</strong><span className="block text-muted-foreground">Detectados</span></div>
+                <div><strong>{result.readyCount}</strong><span className="block text-muted-foreground">Listos</span></div>
+                <div><strong>{result.reviewCount}</strong><span className="block text-muted-foreground">En revisión</span></div>
+                <div><strong>{result.duplicateCount}</strong><span className="block text-muted-foreground">Duplicados</span></div>
+              </div>
+              <div className="divide-y rounded-lg border">
+                {result.tours.map((tour) => (
+                  <div key={tour.id} className="flex items-center justify-between gap-4 p-3 text-sm">
+                    <div>
+                      <p className="font-medium">{tour.tourDataJson.nameEs ?? "Tour sin nombre"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {tour.tourDataJson.destination ?? "Destino no indicado"} · páginas {tour.sourcePages.join(", ")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-muted px-2 py-1 text-xs">{tour.status}</span>
+                      {tour.status === "READY" && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={createDraft.isPending}
+                          onClick={() => createDraft.mutate({
+                            secret: authorizedSecret,
+                            importTourId: tour.id,
+                          })}
+                        >
+                          Crear borrador
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {history.data && history.data.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Importaciones anteriores</h3>
+              <div className="divide-y rounded-lg border text-sm">
+                {history.data.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-4 p-3">
+                    <div>
+                      <p className="font-medium">{item.filename}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.totalTours} detectados · {item.createdCount} borradores creados
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-muted px-2 py-1 text-xs">{item.status}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           <p className="text-xs text-muted-foreground">

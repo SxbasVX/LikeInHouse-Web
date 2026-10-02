@@ -21,6 +21,7 @@ export class AIProviderRouter {
     if (!provider) {
       throw new Error(`El proveedor IA '${name}' no está configurado.`);
     }
+
     return provider;
   }
 

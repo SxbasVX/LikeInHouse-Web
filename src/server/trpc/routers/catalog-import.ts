@@ -22,6 +22,44 @@ export const catalogImportRouter = router({
     return { enabled: true };
   }),
 
+  history: developerProcedure
+    .input(z.object({
+      secret: z.string().min(1).max(256),
+      limit: z.number().int().min(1).max(50).default(20),
+    }))
+    .query(async ({ ctx, input }) => {
+      assertCatalogImportSecret(input.secret);
+      return ctx.db.catalogImport.findMany({
+        orderBy: { createdAt: "desc" },
+        take: input.limit,
+        select: {
+          id: true,
+          filename: true,
+          status: true,
+          totalTours: true,
+          readyCount: true,
+          reviewCount: true,
+          duplicateCount: true,
+          createdCount: true,
+          createdAt: true,
+          tours: {
+            orderBy: { createdAt: "asc" },
+            select: {
+              id: true,
+              status: true,
+              sourceDocument: true,
+              sourcePages: true,
+              tourDataJson: true,
+              existingTourId: true,
+              createdTourId: true,
+              confidence: true,
+              issues: { where: { resolved: false }, select: { type: true, field: true, reason: true } },
+            },
+          },
+        },
+      });
+    }),
+
   validateCandidate: developerProcedure
     .input(z.object({ secret: z.string().min(1).max(256), candidate: z.unknown() }))
     .mutation(async ({ input }) => {

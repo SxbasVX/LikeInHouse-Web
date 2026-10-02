@@ -4,18 +4,63 @@ import { catalogExtractionSchema } from "./schemas";
 import { validateCatalogTour } from "./validator";
 import { findDuplicateMatches } from "./duplicates";
 import { GeminiProvider } from "./providers/gemini";
+import { OpenAIProvider } from "./providers/openai";
+import { getProviderSelection } from "./providers/router";
+import type { AIProvider } from "./providers/types";
 
 export async function processCatalogPdf(filename: string, pdf: Buffer, userId: string) {
   const importRecord = await db.catalogImport.create({
     data: { filename, status: "PROCESSING", createdById: userId },
   });
   const startedAt = Date.now();
+  let selectedProvider: AIProvider | undefined;
 
   try {
-    const provider = new GeminiProvider();
-    const extraction = catalogExtractionSchema.parse(
-      await provider.analyzeCatalog({ filename, pdf })
-    );
+    const selection = getProviderSelection();
+    const providers: AIProvider[] = [selection.primary, selection.fallback]
+      .filter((name, index, values) => values.indexOf(name) === index)
+      .map((name) => name === "openai" ? new OpenAIProvider() : new GeminiProvider());
+    let extraction;
+    let lastError: unknown;
+    for (const candidateProvider of providers) {
+      const providerStartedAt = Date.now();
+      try {
+        extraction = catalogExtractionSchema.parse(
+          await candidateProvider.analyzeCatalog({ filename, pdf })
+        );
+        selectedProvider = candidateProvider;
+        await db.aIProviderOperation.create({
+          data: {
+            importId: importRecord.id,
+            provider: candidateProvider.name,
+            model: candidateProvider.model,
+            operation: "catalog_extraction",
+            success: true,
+            fallbackUsed: candidateProvider.name !== selection.primary,
+            latencyMs: Date.now() - providerStartedAt,
+          },
+        });
+        break;
+      } catch (error) {
+        lastError = error;
+        await db.aIProviderOperation.create({
+          data: {
+            importId: importRecord.id,
+            provider: candidateProvider.name,
+            model: candidateProvider.model,
+            operation: "catalog_extraction",
+            success: false,
+            fallbackUsed: candidateProvider.name !== selection.primary,
+            latencyMs: Date.now() - providerStartedAt,
+            error: error instanceof Error ? error.message : "Error del proveedor",
+          },
+        });
+      }
+    }
+    if (!selectedProvider || !extraction) {
+      throw lastError instanceof Error ? lastError : new Error("Ningún proveedor IA pudo procesar el catálogo.");
+    }
+    const provider = selectedProvider;
 
     await db.$transaction(async (tx) => {
       for (const candidate of extraction.tours) {
@@ -62,17 +107,6 @@ export async function processCatalogPdf(filename: string, pdf: Buffer, userId: s
         });
       }
 
-      await tx.aIProviderOperation.create({
-        data: {
-          importId: importRecord.id,
-          provider: provider.name,
-          model: provider.model,
-          operation: "catalog_extraction",
-          success: true,
-          latencyMs: Date.now() - startedAt,
-        },
-      });
-
       const counts = await tx.catalogImportTour.groupBy({
         by: ["status"],
         where: { importId: importRecord.id },
@@ -101,8 +135,8 @@ export async function processCatalogPdf(filename: string, pdf: Buffer, userId: s
       db.aIProviderOperation.create({
         data: {
           importId: importRecord.id,
-          provider: "gemini",
-          model: "gemini-2.5-flash",
+          provider: selectedProvider?.name ?? "unknown",
+          model: selectedProvider?.model ?? "unknown",
           operation: "catalog_extraction",
           success: false,
           latencyMs: Date.now() - startedAt,
