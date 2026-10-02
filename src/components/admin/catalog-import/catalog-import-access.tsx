@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { trpc } from "@/lib/trpc";
+import { CldUploadWidget } from "next-cloudinary";
 
 export function CatalogImportAccess() {
   const { toast } = useToast();
@@ -14,6 +15,7 @@ export function CatalogImportAccess() {
   const [authorizedSecret, setAuthorizedSecret] = useState("");
   const [authorized, setAuthorized] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [uploadedPdf, setUploadedPdf] = useState<{ url: string; filename: string } | null>(null);
   const [result, setResult] = useState<{
     id: string;
     totalTours: number;
@@ -80,18 +82,35 @@ export function CatalogImportAccess() {
             className="space-y-4"
             onSubmit={async (event) => {
               event.preventDefault();
-              if (!file) return;
+              if (!file && !uploadedPdf) return;
               setUploading(true);
               setResult(null);
-              const body = new FormData();
-              body.append("file", file);
               try {
                 const response = await fetch("/api/admin/catalog-import/upload", {
                   method: "POST",
-                  headers: { "x-catalog-import-secret": authorizedSecret },
-                  body,
+                  headers: {
+                    "x-catalog-import-secret": authorizedSecret,
+                    ...(uploadedPdf ? { "Content-Type": "application/json" } : {}),
+                  },
+                  body: uploadedPdf
+                    ? JSON.stringify({ fileUrl: uploadedPdf.url, filename: uploadedPdf.filename })
+                    : (() => {
+                        const body = new FormData();
+                        body.append("file", file!);
+                        return body;
+                      })(),
                 });
-                const payload = await response.json() as { import?: NonNullable<typeof result>; error?: string };
+                const responseText = await response.text();
+                let payload: { import?: NonNullable<typeof result>; error?: string } = {};
+                try {
+                  payload = JSON.parse(responseText) as typeof payload;
+                } catch {
+                  throw new Error(
+                    response.status === 413
+                      ? "El servidor rechazó el tamaño de la solicitud. Usa la carga directa del PDF."
+                      : `El servidor respondió con un error (${response.status}).`,
+                  );
+                }
                 if (!response.ok || !payload.import) {
                   throw new Error(payload.error ?? "No se pudo procesar el catálogo.");
                 }
@@ -116,8 +135,35 @@ export function CatalogImportAccess() {
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                 disabled={uploading}
               />
+              <CldUploadWidget
+                onSuccess={(uploadResult) => {
+                  const info = uploadResult.info as { secure_url?: string; original_filename?: string };
+                  if (info.secure_url) {
+                    setUploadedPdf({
+                      url: info.secure_url,
+                      filename: `${info.original_filename ?? "catalogo"}.pdf`,
+                    });
+                    setFile(null);
+                  }
+                }}
+                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "agencia_tours_dev"}
+                options={{
+                  maxFiles: 1,
+                  sources: ["local"],
+                  clientAllowedFormats: ["pdf"],
+                  maxFileSize: 20_000_000,
+                  resourceType: "raw",
+                  folder: "likesinhouse/catalog-imports",
+                }}
+              >
+                {({ open }) => (
+                  <Button type="button" variant="outline" onClick={() => open()} disabled={uploading}>
+                    {uploadedPdf ? `PDF cargado: ${uploadedPdf.filename}` : "Cargar PDF grande"}
+                  </Button>
+                )}
+              </CldUploadWidget>
             </div>
-            <Button type="submit" disabled={!file || uploading}>
+            <Button type="submit" disabled={(!file && !uploadedPdf) || uploading}>
               {uploading ? "Analizando con Gemini..." : "Analizar catálogo"}
             </Button>
           </form>
