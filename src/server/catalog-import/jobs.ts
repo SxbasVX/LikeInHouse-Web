@@ -25,7 +25,11 @@ export async function runCatalogJob(importId: string, suppliedPdf?: Buffer): Pro
     const pdf = record.extractionJson ? Buffer.alloc(0) : suppliedPdf ?? (record.sourceUrl ? await downloadCatalogPdf(record.sourceUrl) : null);
     if (!pdf) throw new Error("Debes volver a adjuntar el PDF original.");
     await processCatalogPdf(record.filename, pdf, record.createdById, record.id);
-  } catch {
-    await db.catalogImport.update({ where: { id: importId }, data: { status: "FAILED", completedAt: new Date(), lastError: "No se pudo abrir el PDF o el acceso fue revocado. Comprueba el archivo y la configuración." } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Error desconocido al procesar el documento.";
+    await db.catalogImport.update({
+      where: { id: importId },
+      data: { status: "FAILED", completedAt: new Date(), lastError: message.slice(0, 1000) },
+    });
   }
 }
