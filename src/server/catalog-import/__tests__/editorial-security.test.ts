@@ -97,8 +97,8 @@ describe("bounded PDF downloads", () => {
   });
   it("enforces the actual size even without Content-Length", async () => {
     vi.stubEnv("CLOUDINARY_CLOUD_NAME", "our-cloud");
-    const stream = new ReadableStream({ start(controller) { controller.enqueue(new Uint8Array(20 * 1024 * 1024 + 1)); controller.close(); } });
+    const stream = new ReadableStream({ start(controller) { controller.enqueue(new Uint8Array(5 * 1024 * 1024 + 1)); controller.close(); } });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(stream)));
-    await expect(downloadCatalogPdf("https://res.cloudinary.com/our-cloud/raw/upload/likesinhouse/catalog-imports/puno.pdf")).rejects.toThrow("20 MB");
+    await expect(downloadCatalogPdf("https://res.cloudinary.com/our-cloud/raw/upload/likesinhouse/catalog-imports/puno.pdf")).rejects.toThrow("5 MB");
   });
 });

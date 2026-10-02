@@ -36,7 +36,7 @@ export async function POST(request: Request) {
         importId = record.id;
       } else {
         const body = bodySchema.parse(raw);
-        if (!allowedDocumentUrl(body.fileUrl) || !body.filename.toLowerCase().endsWith(".pdf")) return NextResponse.json({ error: "Selecciona un PDF de la carpeta de catálogos de Cloudinary." }, { status: 400 });
+        if (!allowedDocumentUrl(body.fileUrl) || !body.filename.toLowerCase().endsWith(".pdf")) return NextResponse.json({ error: "La URL del PDF almacenado no es válida." }, { status: 400 });
         const pending = await db.catalogImport.count({ where: { createdById: user.id, status: { in: ["UPLOADED", "PROCESSING"] } } });
         if (pending >= 5) return NextResponse.json({ error: "Máximo cinco documentos pendientes." }, { status: 429 });
         const record = await db.catalogImport.create({ data: { filename: body.filename, sourceUrl: body.fileUrl, createdById: user.id, status: "UPLOADED" } });
@@ -45,8 +45,7 @@ export async function POST(request: Request) {
     } else {
       const form = await request.formData(), file = form.get("file");
       if (!(file instanceof File) || !file.name.toLowerCase().endsWith(".pdf") || file.type !== "application/pdf") return NextResponse.json({ error: "Adjunta un PDF válido." }, { status: 400 });
-      // Larger PDFs go directly to Cloudinary, avoiding the hosting request limit.
-      if (file.size > Math.min(MAX_PDF_BYTES, 3 * 1024 * 1024)) return NextResponse.json({ error: "Usa la carga directa para PDFs mayores de 3 MB." }, { status: 413 });
+      if (file.size > MAX_PDF_BYTES) return NextResponse.json({ error: "El PDF no puede superar 5 MB." }, { status: 413 });
       pdf = Buffer.from(await file.arrayBuffer()); assertPdf(pdf);
       const record = await db.catalogImport.create({ data: { filename: file.name, createdById: user.id, status: "UPLOADED" } });
       importId = record.id;

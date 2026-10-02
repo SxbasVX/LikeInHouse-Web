@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CldUploadWidget } from "next-cloudinary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +17,6 @@ export function CatalogImportAccess() {
   const [secret, setSecret] = useState("");
   const [authorized, setAuthorized] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
-  const [remoteFiles, setRemoteFiles] = useState<Array<{ url: string; filename: string }>>([]);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const status = trpc.catalogImport.status.useQuery(undefined, { retry: false });
@@ -51,29 +49,18 @@ export function CatalogImportAccess() {
     return data;
   }
   async function start() {
-    if (files.length + remoteFiles.length > 5) { toast({ title: "Selecciona hasta cinco PDFs", variant: "destructive" }); return; }
+    if (files.length > 5) { toast({ title: "Selecciona hasta cinco PDFs", variant: "destructive" }); return; }
     setBusy(true);
     let failed = 0;
-    const failedLocal: File[] = [], failedRemote: typeof remoteFiles = [];
+    const failedLocal: File[] = [];
     for (const file of files) {
       try {
-        const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-        if (!cloud) throw new Error("La carga directa no está configurada.");
         const form = new FormData(); form.append("file", file);
-        form.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "agencia_tours_dev");
-        form.append("folder", "likesinhouse/catalog-imports");
-        const uploaded = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloud)}/raw/upload`, { method: "POST", body: form });
-        const data = await uploaded.json();
-        if (!uploaded.ok || !data.secure_url) throw new Error("No se pudo cargar el PDF. Comprueba el preset de Cloudinary.");
-        await send({ fileUrl: data.secure_url, filename: file.name });
+        await send(form);
       }
       catch (error) { failed++; failedLocal.push(file); toast({ title: file.name, description: String(error), variant: "destructive" }); }
     }
-    for (const file of remoteFiles) {
-      try { await send({ fileUrl: file.url, filename: file.filename }); }
-      catch (error) { failed++; failedRemote.push(file); toast({ title: file.filename, description: String(error), variant: "destructive" }); }
-    }
-    setFiles(failedLocal); setRemoteFiles(failedRemote); setBusy(false);
+    setFiles(failedLocal); setBusy(false);
     await history.refetch();
     if (!failed) toast({ title: "Importación iniciada", description: "Cada documento se procesa de forma independiente. Los resultados aparecerán aquí." });
   }
@@ -84,9 +71,9 @@ export function CatalogImportAccess() {
     finally { setBusy(false); }
   }
   function pick(incoming: File[]) {
-    const valid = incoming.filter((file) => file.name.toLowerCase().endsWith(".pdf") && file.size <= 20 * 1024 * 1024);
-    if (valid.length !== incoming.length) toast({ title: "Solo PDFs de hasta 20 MB", variant: "destructive" });
-    setFiles((current) => [...current, ...valid].slice(0, Math.max(0, 5 - remoteFiles.length)));
+    const valid = incoming.filter((file) => file.name.toLowerCase().endsWith(".pdf") && file.size <= 5 * 1024 * 1024);
+    if (valid.length !== incoming.length) toast({ title: "Solo PDFs de hasta 5 MB", variant: "destructive" });
+    setFiles((current) => [...current, ...valid].slice(0, 5));
   }
 
   if (!authorized) return <Card className="max-w-md"><CardHeader><CardTitle>Verificación adicional</CardTitle></CardHeader><CardContent>
@@ -102,17 +89,12 @@ export function CatalogImportAccess() {
     <div className="flex justify-between gap-3"><p className="text-sm text-muted-foreground">{status.data?.providers.map((p) => `${p.name} (${p.model})`).join(" · ") || "Configura un proveedor IA antes de analizar."}</p><Button variant="outline" onClick={() => logout.mutate()}>Cerrar acceso</Button></div>
     <Card><CardHeader><CardTitle>Seleccionar catálogos PDF</CardTitle></CardHeader><CardContent className="space-y-4">
       <div className="rounded-lg border-2 border-dashed p-6 text-center" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); if (!busy) pick(Array.from(e.dataTransfer.files)); }}>
-        <p className="mb-3 text-sm">Arrastra hasta cinco PDFs. Máximo 20 MB por documento.</p>
+        <p className="mb-3 text-sm">Arrastra hasta cinco PDFs. Máximo 5 MB por documento.</p>
         <Input aria-label="Seleccionar PDFs" type="file" multiple accept="application/pdf,.pdf" disabled={busy} onChange={(e) => { pick(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
-        <p className="mt-2 text-xs text-muted-foreground">Los PDFs se cargan directamente para admitir archivos grandes.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Los PDFs se envían directamente al importador y no se guardan en Cloudinary.</p>
       </div>
-      <CldUploadWidget uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "agencia_tours_dev"}
-        options={{ maxFiles: 5, multiple: true, sources: ["local"], clientAllowedFormats: ["pdf"], maxFileSize: 20 * 1024 * 1024, resourceType: "raw", folder: "likesinhouse/catalog-imports" }}
-        onSuccess={(result) => { const info = result.info as { secure_url?: string; original_filename?: string }; if (info.secure_url) setRemoteFiles((current) => [...current, { url: info.secure_url!, filename: `${(info.original_filename ?? "catalogo").replace(/\.pdf$/i, "")}.pdf` }].slice(0, Math.max(0, 5 - files.length))); }}>
-        {({ open }) => <Button variant="outline" disabled={busy} onClick={() => open()}>Carga directa de PDFs</Button>}
-      </CldUploadWidget>
-      {[...files.map((f) => f.name), ...remoteFiles.map((f) => f.filename)].map((name, i) => <div key={`${name}-${i}`} className="flex items-center justify-between text-sm"><span>{name}</span><Button size="sm" variant="ghost" disabled={busy} onClick={() => { if (i < files.length) setFiles(files.filter((_, index) => index !== i)); else setRemoteFiles(remoteFiles.filter((_, index) => index !== i - files.length)); }}>Quitar</Button></div>)}
-      <Button disabled={busy || !files.length && !remoteFiles.length} onClick={start}>{busy ? "Iniciando…" : "Analizar catálogos"}</Button>
+      {files.map((file, i) => <div key={`${file.name}-${i}`} className="flex items-center justify-between text-sm"><span>{file.name}</span><Button size="sm" variant="ghost" disabled={busy} onClick={() => setFiles(files.filter((_, index) => index !== i))}>Quitar</Button></div>)}
+      <Button disabled={busy || !files.length} onClick={start}>{busy ? "Iniciando…" : "Analizar catálogos"}</Button>
     </CardContent></Card>
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">{[["Documentos", jobs.length], ["Tours", jobs.reduce((n, j) => n + j.totalTours, 0)], ...["READY", "DUPLICATE_REVIEW", "DATA_REVIEW", "BLOCKED", "DRAFT_CREATED"].map((s) => [s, counts[s] ?? 0])].map(([label, count]) => <div key={String(label)} className="rounded-lg border p-3"><strong className="text-xl">{count}</strong><p className="break-words text-xs text-muted-foreground">{label}</p></div>)}</div>
     {history.isLoading && <p>Cargando historial…</p>}
