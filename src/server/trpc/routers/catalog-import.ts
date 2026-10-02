@@ -72,6 +72,84 @@ export const catalogImportRouter = router({
       };
     }),
 
+  updateCandidate: developerProcedure
+    .input(z.object({
+      secret: z.string().min(1).max(256),
+      importTourId: z.string().cuid(),
+      candidate: z.unknown(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      assertCatalogImportSecret(input.secret);
+      const candidate = catalogExtractionSchema.shape.tours.element.parse(input.candidate);
+      const importTour = await ctx.db.catalogImportTour.findUnique({
+        where: { id: input.importTourId },
+        select: { id: true, importId: true, existingTourId: true, createdTourId: true },
+      });
+      if (!importTour) throw new TRPCError({ code: "NOT_FOUND", message: "Candidato no encontrado." });
+      if (importTour.existingTourId || importTour.createdTourId) {
+        throw new TRPCError({ code: "CONFLICT", message: "No se puede editar un candidato ya asociado a un tour." });
+      }
+
+      const issues = validateCatalogTour(candidate);
+      const duplicates = await findDuplicateMatches(ctx.db, candidate);
+      const status = duplicates.length > 0
+        ? "DUPLICATE"
+        : issues.length > 0
+          ? "NEEDS_REVIEW"
+          : "READY";
+
+      await ctx.db.$transaction(async (tx) => {
+        await tx.catalogImportTour.update({
+          where: { id: importTour.id },
+          data: {
+            tourDataJson: candidate,
+            sourceDocument: candidate.sourceDocument,
+            sourcePages: candidate.sourcePages,
+            status,
+            existingTourId: duplicates[0]?.tourId ?? null,
+            confidence: duplicates.length > 0 ? duplicates[0].score : issues.length > 0 ? 0.5 : 0.9,
+          },
+        });
+        await tx.importIssue.deleteMany({ where: { importTourId: importTour.id } });
+        await tx.importIssue.createMany({
+          data: [
+            ...issues.map((issue) => ({
+              importTourId: importTour.id,
+              type: issue.type,
+              field: issue.field,
+              reason: issue.reason,
+              sourcePages: issue.sourcePages,
+            })),
+            ...duplicates.slice(0, 3).map((match) => ({
+              importTourId: importTour.id,
+              type: "POSSIBLE_DUPLICATE" as const,
+              field: "tour",
+              valueA: match.tourId,
+              reason: match.reasons.join(" "),
+              sourcePages: candidate.sourcePages,
+            })),
+          ],
+        });
+        const counts = await tx.catalogImportTour.groupBy({
+          by: ["status"],
+          where: { importId: importTour.importId },
+          _count: true,
+        });
+        const count = (status: string) => counts.find((item) => item.status === status)?._count ?? 0;
+        await tx.catalogImport.update({
+          where: { id: importTour.importId },
+          data: {
+            readyCount: count("READY"),
+            duplicateCount: count("DUPLICATE"),
+            reviewCount: count("NEEDS_REVIEW"),
+            blockedCount: count("BLOCKED"),
+          },
+        });
+      });
+
+      return { status, issues, duplicateMatches: duplicates };
+    }),
+
   duplicateMatches: developerProcedure
     .input(z.object({ secret: z.string().min(1).max(256), candidate: z.unknown() }))
     .query(async ({ ctx, input }) => {

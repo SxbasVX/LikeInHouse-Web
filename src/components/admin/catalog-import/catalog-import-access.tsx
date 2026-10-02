@@ -9,6 +9,19 @@ import { useToast } from "@/hooks/use-toast";
 import { trpc } from "@/lib/trpc";
 import { CldUploadWidget } from "next-cloudinary";
 
+type CandidateData = Record<string, unknown> & {
+  nameEs?: string | null;
+  nameEn?: string | null;
+  category?: string | null;
+  destination?: string | null;
+  shortDescEs?: string | null;
+  shortDescEn?: string | null;
+  longDescEs?: string | null;
+  longDescEn?: string | null;
+  durationDays?: number | null;
+  durationNights?: number | null;
+};
+
 export function CatalogImportAccess() {
   const { toast } = useToast();
   const [secret, setSecret] = useState("");
@@ -27,10 +40,12 @@ export function CatalogImportAccess() {
       status: string;
       createdTourId?: string | null;
       sourcePages: number[];
-      tourDataJson: { nameEs?: string | null; destination?: string | null };
+      tourDataJson: CandidateData;
+      issues: Array<{ type: string; field?: string | null; reason: string }>;
     }>;
   } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const createDraft = trpc.catalogImport.createDraft.useMutation({
     onSuccess: (created, variables) => {
       setResult((current) => current
@@ -50,6 +65,31 @@ export function CatalogImportAccess() {
         variant: "destructive",
       });
     },
+  });
+  const updateCandidate = trpc.catalogImport.updateCandidate.useMutation({
+    onSuccess: (updated, variables) => {
+      setResult((current) => current
+        ? {
+            ...current,
+            tours: current.tours.map((tour) => tour.id === variables.importTourId
+              ? {
+                  ...tour,
+                  status: updated.status,
+                  issues: updated.issues,
+                  tourDataJson: variables.candidate as CandidateData,
+                }
+              : tour),
+          }
+        : current);
+      setEditingId(null);
+      toast({
+        title: updated.status === "READY" ? "Candidato listo" : "Candidato actualizado",
+        description: updated.status === "READY"
+          ? "Ya puedes crear el borrador."
+          : "Aún requiere revisión.",
+      });
+    },
+    onError: (error) => toast({ title: "No se pudo revalidar", description: error.message, variant: "destructive" }),
   });
   const history = trpc.catalogImport.history.useQuery(
     { secret: authorizedSecret, limit: 10 },
@@ -111,6 +151,8 @@ export function CatalogImportAccess() {
                       : `El servidor respondió con un error (${response.status}).`,
                   );
                 }
+
+
                 if (!response.ok || !payload.import) {
                   throw new Error(payload.error ?? "No se pudo procesar el catálogo.");
                 }
@@ -177,7 +219,8 @@ export function CatalogImportAccess() {
               </div>
               <div className="divide-y rounded-lg border">
                 {result.tours.map((tour) => (
-                  <div key={tour.id} className="flex items-center justify-between gap-4 p-3 text-sm">
+                  <div key={tour.id} className="space-y-3 p-3 text-sm">
+                    <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="font-medium">{tour.tourDataJson.nameEs ?? "Tour sin nombre"}</p>
                       <p className="text-xs text-muted-foreground">
@@ -200,7 +243,31 @@ export function CatalogImportAccess() {
                           Crear borrador
                         </Button>
                       )}
+                      {tour.status === "NEEDS_REVIEW" && (
+                        <Button type="button" size="sm" variant="outline" onClick={() => setEditingId(editingId === tour.id ? null : tour.id)}>
+                          {editingId === tour.id ? "Cerrar" : "Revisar"}
+                        </Button>
+                      )}
                     </div>
+                  </div>
+                    {tour.issues.length > 0 && (
+                      <div className="rounded-md bg-amber-50 p-2 text-xs text-amber-900">
+                        {tour.issues.map((issue, index) => (
+                          <p key={`${issue.field}-${index}`}>• {issue.field ?? "dato"}: {issue.reason}</p>
+                        ))}
+                      </div>
+                    )}
+                    {editingId === tour.id && (
+                      <CandidateEditor
+                        candidate={tour.tourDataJson}
+                        disabled={updateCandidate.isPending}
+                        onSave={(candidate) => updateCandidate.mutate({
+                          secret: authorizedSecret,
+                          importTourId: tour.id,
+                          candidate,
+                        })}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
@@ -263,5 +330,75 @@ export function CatalogImportAccess() {
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+function CandidateEditor({
+  candidate,
+  disabled,
+  onSave,
+}: {
+  candidate: CandidateData;
+  disabled: boolean;
+  onSave: (candidate: CandidateData) => void;
+}) {
+  const [draft, setDraft] = useState<CandidateData>(candidate);
+  const setValue = (field: string, value: string | number | null) => {
+    setDraft((current) => ({ ...current, [field]: value }));
+  };
+  const textField = (field: keyof CandidateData, label: string) => (
+    <div className="space-y-1">
+      <Label htmlFor={`candidate-${String(field)}`}>{label}</Label>
+      <Input
+        id={`candidate-${String(field)}`}
+        value={typeof draft[field] === "string" ? draft[field] as string : ""}
+        onChange={(event) => setValue(String(field), event.target.value || null)}
+        disabled={disabled}
+      />
+    </div>
+  );
+
+  return (
+    <div className="space-y-3 rounded-md border bg-muted/20 p-3">
+      <p className="font-medium">Revisión manual</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {textField("nameEs", "Nombre en español")}
+        {textField("nameEn", "Nombre en inglés")}
+        {textField("category", "Categoría")}
+        {textField("destination", "Destino")}
+        {textField("shortDescEs", "Descripción corta (ES)")}
+        {textField("shortDescEn", "Descripción corta (EN)")}
+        {textField("longDescEs", "Descripción larga (ES)")}
+        {textField("longDescEn", "Descripción larga (EN)")}
+        <div className="space-y-1">
+          <Label htmlFor="candidate-durationDays">Días</Label>
+          <Input
+            id="candidate-durationDays"
+            type="number"
+            min="1"
+            value={draft.durationDays ?? ""}
+            onChange={(event) => setValue("durationDays", event.target.value ? Number(event.target.value) : null)}
+            disabled={disabled}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="candidate-durationNights">Noches</Label>
+          <Input
+            id="candidate-durationNights"
+            type="number"
+            min="0"
+            value={draft.durationNights ?? ""}
+            onChange={(event) => setValue("durationNights", event.target.value ? Number(event.target.value) : null)}
+            disabled={disabled}
+          />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Corrige solo con información confirmada en el PDF. Los precios, itinerario y condiciones se mantienen tal como fueron extraídos.
+      </p>
+      <Button type="button" size="sm" disabled={disabled} onClick={() => onSave(draft)}>
+        {disabled ? "Revalidando..." : "Guardar y revalidar"}
+      </Button>
+    </div>
   );
 }
