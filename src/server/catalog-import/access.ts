@@ -1,7 +1,7 @@
 import "server-only";
-import { timingSafeEqual } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import type { UserRole } from "@prisma/client";
+import { verifyCatalogImportSecret } from "./secret";
 
 export function isCatalogImportEnabled(): boolean {
   return process.env.ENABLE_CATALOG_IMPORT === "true";
@@ -23,16 +23,6 @@ export function assertCatalogImportRole(role: UserRole): void {
       message: "No tienes permisos para usar el importador de catálogos.",
     });
   }
-}
-
-export function verifyCatalogImportSecret(candidate: string): boolean {
-  const expected = process.env.CATALOG_IMPORT_SECRET;
-  if (!expected || !candidate) return false;
-
-  const candidateBuffer = Buffer.from(candidate);
-  const expectedBuffer = Buffer.from(expected);
-  return candidateBuffer.length === expectedBuffer.length &&
-    timingSafeEqual(candidateBuffer, expectedBuffer);
 }
 
 export function assertCatalogImportSecret(candidate: string): void {

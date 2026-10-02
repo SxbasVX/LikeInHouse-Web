@@ -11,9 +11,14 @@ import { trpc } from "@/lib/trpc";
 export function CatalogImportAccess() {
   const { toast } = useToast();
   const [secret, setSecret] = useState("");
+  const [authorizedSecret, setAuthorizedSecret] = useState("");
   const [authorized, setAuthorized] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [result, setResult] = useState<{ totalTours: number; readyCount: number; reviewCount: number; duplicateCount: number } | null>(null);
+  const [uploading, setUploading] = useState(false);
   const access = trpc.catalogImport.access.useMutation({
     onSuccess: () => {
+      setAuthorizedSecret(secret);
       setSecret("");
       setAuthorized(true);
     },
@@ -29,10 +34,69 @@ export function CatalogImportAccess() {
 
   if (authorized) {
     return (
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
-        La ruta privada está habilitada, pero el procesamiento de PDFs todavía no
-        está disponible. La carga y extracción se implementarán en la siguiente fase.
-      </div>
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>Analizar catálogo PDF</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form
+            className="space-y-4"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              if (!file) return;
+              setUploading(true);
+              setResult(null);
+              const body = new FormData();
+              body.append("file", file);
+              try {
+                const response = await fetch("/api/admin/catalog-import/upload", {
+                  method: "POST",
+                  headers: { "x-catalog-import-secret": authorizedSecret },
+                  body,
+                });
+                const payload = await response.json() as { import?: typeof result; error?: string };
+                if (!response.ok || !payload.import) {
+                  throw new Error(payload.error ?? "No se pudo procesar el catálogo.");
+                }
+                setResult(payload.import);
+              } catch (error) {
+                toast({
+                  title: "Error al analizar",
+                  description: error instanceof Error ? error.message : "Error desconocido.",
+                  variant: "destructive",
+                });
+              } finally {
+                setUploading(false);
+              }
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="catalog-pdf">Catálogo PDF (máximo 20 MB)</Label>
+              <Input
+                id="catalog-pdf"
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                disabled={uploading}
+              />
+            </div>
+            <Button type="submit" disabled={!file || uploading}>
+              {uploading ? "Analizando con Gemini..." : "Analizar catálogo"}
+            </Button>
+          </form>
+          {result && (
+            <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-4 text-sm sm:grid-cols-4">
+              <div><strong>{result.totalTours}</strong><span className="block text-muted-foreground">Detectados</span></div>
+              <div><strong>{result.readyCount}</strong><span className="block text-muted-foreground">Listos</span></div>
+              <div><strong>{result.reviewCount}</strong><span className="block text-muted-foreground">En revisión</span></div>
+              <div><strong>{result.duplicateCount}</strong><span className="block text-muted-foreground">Duplicados</span></div>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            El PDF es la única fuente de verdad. Los tours nunca se publican automáticamente.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
