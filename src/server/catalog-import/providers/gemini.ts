@@ -3,6 +3,11 @@ import { catalogExtractionSchema, type CatalogExtraction } from "../schemas";
 import type { AIProvider, CatalogAnalysisInput } from "./types";
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 
 function parseModelJson(text: string): CatalogExtraction {
   const cleaned = text.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
@@ -17,12 +22,10 @@ export class GeminiProvider implements AIProvider {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY no está configurada.");
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+    const request = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
           contents: [{
             parts: [
               {
@@ -67,12 +70,22 @@ Reglas: el PDF es la única fuente de verdad; no inventes, traduzcas solo de for
             responseMimeType: "application/json",
           },
         }),
-      }
-    );
+    };
+    let response: Response | undefined;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        request,
+      );
+      if (response.ok || !RETRYABLE_STATUS_CODES.has(response.status) || attempt === 2) break;
+      await wait(1500 * (attempt + 1));
+    }
 
-    if (!response.ok) {
-      const detail = await response.text();
-      throw new Error(`Gemini respondió ${response.status}: ${detail.slice(0, 500)}`);
+    if (!response || !response.ok) {
+      const detail = response ? await response.text() : "Sin respuesta del servicio.";
+      throw new Error(
+        `Gemini respondió ${response?.status ?? "sin estado"} después de reintentar: ${detail.slice(0, 500)}`,
+      );
     }
 
     const payload = await response.json() as {
