@@ -2,7 +2,7 @@ import "server-only";
 import { catalogExtractionSchema, type CatalogExtraction } from "../schemas";
 import type { AIProvider, CatalogAnalysisInput } from "./types";
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 function parseModelJson(text: string): CatalogExtraction {
   const cleaned = text.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
