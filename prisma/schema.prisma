@@ -741,6 +741,12 @@ enum ImportIssueType {
 model CatalogImport {
   id             String             @id @default(cuid())
   filename       String
+  sourceUrl      String?
+  attempts       Int                @default(0)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  lastError      String?            @db.Text
+  extractionJson Json?
   status         CatalogImportStatus @default(UPLOADED)
   totalTours     Int                @default(0)
   readyCount     Int                @default(0)
@@ -762,6 +768,7 @@ model CatalogImport {
 model CatalogImportTour {
   id              String                @id @default(cuid())
   importId        String
+  sourceIndex     Int?
   import          CatalogImport          @relation(fields: [importId], references: [id], onDelete: Cascade)
   status          CatalogImportTourStatus @default(EXTRACTED)
   tourDataJson    Json
@@ -780,6 +787,7 @@ model CatalogImportTour {
   updatedAt       DateTime              @updatedAt
 
   @@index([importId, status])
+  @@unique([importId, sourceIndex])
   @@index([existingTourId])
   @@index([createdTourId])
 }

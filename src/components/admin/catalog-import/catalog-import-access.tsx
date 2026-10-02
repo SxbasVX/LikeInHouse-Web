@@ -1,404 +1,133 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { CldUploadWidget } from "next-cloudinary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { trpc } from "@/lib/trpc";
-import { CldUploadWidget } from "next-cloudinary";
+import { useToast } from "@/hooks/use-toast";
+import { CatalogPreview } from "./catalog-preview";
 
-type CandidateData = Record<string, unknown> & {
-  nameEs?: string | null;
-  nameEn?: string | null;
-  category?: string | null;
-  destination?: string | null;
-  shortDescEs?: string | null;
-  shortDescEn?: string | null;
-  longDescEs?: string | null;
-  longDescEn?: string | null;
-  durationDays?: number | null;
-  durationNights?: number | null;
-};
+const statusLabels: Record<string, string> = { NEEDS_REVIEW: "DATA_REVIEW", DUPLICATE: "DUPLICATE_REVIEW" };
+export const displayStatus = (status: string) => statusLabels[status] ?? status;
 
 export function CatalogImportAccess() {
   const { toast } = useToast();
+  const utils = trpc.useUtils();
   const [secret, setSecret] = useState("");
-  const [authorizedSecret, setAuthorizedSecret] = useState("");
   const [authorized, setAuthorized] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const [uploadedPdf, setUploadedPdf] = useState<{ url: string; filename: string } | null>(null);
-  const [result, setResult] = useState<{
-    id: string;
-    totalTours: number;
-    readyCount: number;
-    reviewCount: number;
-    duplicateCount: number;
-    tours: Array<{
-      id: string;
-      status: string;
-      createdTourId?: string | null;
-      sourcePages: number[];
-      tourDataJson: CandidateData;
-      issues: Array<{ type: string; field?: string | null; reason: string }>;
-    }>;
-  } | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const createDraft = trpc.catalogImport.createDraft.useMutation({
-    onSuccess: (created, variables) => {
-      setResult((current) => current
-        ? {
-            ...current,
-            tours: current.tours.map((tour) => tour.id === variables.importTourId
-              ? { ...tour, status: "DRAFT_CREATED", createdTourId: created.id }
-              : tour),
-          }
-        : current);
-      toast({ title: "Borrador creado", description: "El tour fue creado como DRAFT y no se publicó." });
-    },
-    onError: (error) => {
-      toast({
-        title: "No se pudo crear el borrador",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  const updateCandidate = trpc.catalogImport.updateCandidate.useMutation({
-    onSuccess: (updated, variables) => {
-      setResult((current) => current
-        ? {
-            ...current,
-            tours: current.tours.map((tour) => tour.id === variables.importTourId
-              ? {
-                  ...tour,
-                  status: updated.status,
-                  issues: updated.issues,
-                  tourDataJson: variables.candidate as CandidateData,
-                }
-              : tour),
-          }
-        : current);
-      setEditingId(null);
-      toast({
-        title: updated.status === "READY" ? "Candidato listo" : "Candidato actualizado",
-        description: updated.status === "READY"
-          ? "Ya puedes crear el borrador."
-          : "Aún requiere revisión.",
-      });
-    },
-    onError: (error) => toast({ title: "No se pudo revalidar", description: error.message, variant: "destructive" }),
-  });
-  const history = trpc.catalogImport.history.useQuery(
-    { secret: authorizedSecret, limit: 10 },
-    { enabled: authorized && !!authorizedSecret },
-  );
+  const [files, setFiles] = useState<File[]>([]);
+  const [remoteFiles, setRemoteFiles] = useState<Array<{ url: string; filename: string }>>([]);
+  const [busy, setBusy] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const status = trpc.catalogImport.status.useQuery(undefined, { retry: false });
+  useEffect(() => { if (status.data) setAuthorized(true); }, [status.data]);
   const access = trpc.catalogImport.access.useMutation({
-    onSuccess: () => {
-      setAuthorizedSecret(secret);
-      setSecret("");
-      setAuthorized(true);
-    },
-    onError: (error) => {
-      setSecret("");
-      toast({
-        title: "Acceso denegado",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    onSuccess: async () => { setSecret(""); setAuthorized(true); await utils.catalogImport.status.invalidate(); },
+    onError: (error) => { setSecret(""); toast({ title: "Acceso denegado", description: error.message, variant: "destructive" }); },
   });
+  const logout = trpc.catalogImport.logout.useMutation({ onSuccess: () => { setAuthorized(false); utils.catalogImport.history.reset(); utils.catalogImport.preview.reset(); utils.catalogImport.status.reset(); } });
+  const history = trpc.catalogImport.history.useQuery({ limit: 20 }, {
+    enabled: authorized, retry: false,
+    refetchInterval: (query) => query.state.data?.some((job) => ["UPLOADED", "PROCESSING"].includes(job.status)) ? 3000 : false,
+  });
+  useEffect(() => { if (history.error?.data?.code === "UNAUTHORIZED") { setAuthorized(false); setSelected(null); } }, [history.error]);
+  useEffect(() => {
+    if (busy || !history.data || !authorized) return;
+    const active = history.data.filter((j) => j.status === "PROCESSING").length;
+    const queued = history.data.find((j) => j.status === "UPLOADED" && j.createdById === status.data?.userId && j.attempts < 3);
+    if (active < 2 && queued) void resume(queued.id);
+    // The history refresh advances queued documents as processing slots become free.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [history.data, authorized, status.data?.userId]);
 
-  if (authorized) {
-    return (
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Analizar catálogo PDF</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form
-            className="space-y-4"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              if (!file && !uploadedPdf) return;
-              setUploading(true);
-              setResult(null);
-              try {
-                const response = await fetch("/api/admin/catalog-import/upload", {
-                  method: "POST",
-                  headers: {
-                    "x-catalog-import-secret": authorizedSecret,
-                    ...(uploadedPdf ? { "Content-Type": "application/json" } : {}),
-                  },
-                  body: uploadedPdf
-                    ? JSON.stringify({ fileUrl: uploadedPdf.url, filename: uploadedPdf.filename })
-                    : (() => {
-                        const body = new FormData();
-                        body.append("file", file!);
-                        return body;
-                      })(),
-                });
-                const responseText = await response.text();
-                let payload: { import?: NonNullable<typeof result>; error?: string } = {};
-                try {
-                  payload = JSON.parse(responseText) as typeof payload;
-                } catch {
-                  throw new Error(
-                    response.status === 413
-                      ? "El servidor rechazó el tamaño de la solicitud. Usa la carga directa del PDF."
-                      : `El servidor respondió con un error (${response.status}).`,
-                  );
-                }
-
-
-                if (!response.ok || !payload.import) {
-                  throw new Error(payload.error ?? "No se pudo procesar el catálogo.");
-                }
-                setResult(payload.import);
-              } catch (error) {
-                toast({
-                  title: "Error al analizar",
-                  description: error instanceof Error ? error.message : "Error desconocido.",
-                  variant: "destructive",
-                });
-              } finally {
-                setUploading(false);
-              }
-            }}
-          >
-            <div className="space-y-2">
-              <Label htmlFor="catalog-pdf">Catálogo PDF (máximo 20 MB)</Label>
-              <Input
-                id="catalog-pdf"
-                type="file"
-                accept="application/pdf,.pdf"
-                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                disabled={uploading}
-              />
-              <CldUploadWidget
-                onSuccess={(uploadResult) => {
-                  const info = uploadResult.info as { secure_url?: string; original_filename?: string };
-                  if (info.secure_url) {
-                    setUploadedPdf({
-                      url: info.secure_url,
-                      filename: `${info.original_filename ?? "catalogo"}.pdf`,
-                    });
-                    setFile(null);
-                  }
-                }}
-                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "agencia_tours_dev"}
-                options={{
-                  maxFiles: 1,
-                  sources: ["local"],
-                  clientAllowedFormats: ["pdf"],
-                  maxFileSize: 20_000_000,
-                  resourceType: "raw",
-                  folder: "likesinhouse/catalog-imports",
-                }}
-              >
-                {({ open }) => (
-                  <Button type="button" variant="outline" onClick={() => open()} disabled={uploading}>
-                    {uploadedPdf ? `PDF cargado: ${uploadedPdf.filename}` : "Cargar PDF grande"}
-                  </Button>
-                )}
-              </CldUploadWidget>
-            </div>
-            <Button type="submit" disabled={(!file && !uploadedPdf) || uploading}>
-              {uploading ? "Analizando catálogo..." : "Analizar catálogo"}
-            </Button>
-          </form>
-          {result && (
-            <>
-              <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-4 text-sm sm:grid-cols-4">
-                <div><strong>{result.totalTours}</strong><span className="block text-muted-foreground">Detectados</span></div>
-                <div><strong>{result.readyCount}</strong><span className="block text-muted-foreground">Listos</span></div>
-                <div><strong>{result.reviewCount}</strong><span className="block text-muted-foreground">En revisión</span></div>
-                <div><strong>{result.duplicateCount}</strong><span className="block text-muted-foreground">Duplicados</span></div>
-              </div>
-              <div className="divide-y rounded-lg border">
-                {result.tours.map((tour) => (
-                  <div key={tour.id} className="space-y-3 p-3 text-sm">
-                    <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="font-medium">{tour.tourDataJson.nameEs ?? "Tour sin nombre"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {tour.tourDataJson.destination ?? "Destino no indicado"} · páginas {tour.sourcePages.join(", ")}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-muted px-2 py-1 text-xs">{tour.status}</span>
-                      {tour.status === "READY" && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={createDraft.isPending}
-                          onClick={() => createDraft.mutate({
-                            secret: authorizedSecret,
-                            importTourId: tour.id,
-                          })}
-                        >
-                          Crear borrador
-                        </Button>
-                      )}
-                      {tour.status === "NEEDS_REVIEW" && (
-                        <Button type="button" size="sm" variant="outline" onClick={() => setEditingId(editingId === tour.id ? null : tour.id)}>
-                          {editingId === tour.id ? "Cerrar" : "Revisar"}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                    {tour.issues.length > 0 && (
-                      <div className="rounded-md bg-amber-50 p-2 text-xs text-amber-900">
-                        {tour.issues.map((issue, index) => (
-                          <p key={`${issue.field}-${index}`}>• {issue.field ?? "dato"}: {issue.reason}</p>
-                        ))}
-                      </div>
-                    )}
-                    {editingId === tour.id && (
-                      <CandidateEditor
-                        candidate={tour.tourDataJson}
-                        disabled={updateCandidate.isPending}
-                        onSave={(candidate) => updateCandidate.mutate({
-                          secret: authorizedSecret,
-                          importTourId: tour.id,
-                          candidate,
-                        })}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-          {history.data && history.data.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">Importaciones anteriores</h3>
-              <div className="divide-y rounded-lg border text-sm">
-                {history.data.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-4 p-3">
-                    <div>
-                      <p className="font-medium">{item.filename}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.totalTours} detectados · {item.createdCount} borradores creados
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-muted px-2 py-1 text-xs">{item.status}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground">
-            El PDF es la única fuente de verdad. Los tours nunca se publican automáticamente.
-          </p>
-        </CardContent>
-      </Card>
-    );
+  async function send(body: FormData | object) {
+    const response = await fetch("/api/admin/catalog-import/upload", {
+      method: "POST", ...(body instanceof FormData ? { body } : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
+    });
+    const data = await response.json().catch(() => ({ error: "El servidor rechazó la carga. Usa la carga directa de PDFs." }));
+    if (!response.ok) throw new Error(data.error ?? "No se pudo iniciar la importación.");
+    return data;
+  }
+  async function start() {
+    if (files.length + remoteFiles.length > 5) { toast({ title: "Selecciona hasta cinco PDFs", variant: "destructive" }); return; }
+    setBusy(true);
+    let failed = 0;
+    const failedLocal: File[] = [], failedRemote: typeof remoteFiles = [];
+    for (const file of files) {
+      try {
+        const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+        if (!cloud) throw new Error("La carga directa no está configurada.");
+        const form = new FormData(); form.append("file", file);
+        form.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "agencia_tours_dev");
+        form.append("folder", "likesinhouse/catalog-imports");
+        const uploaded = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloud)}/raw/upload`, { method: "POST", body: form });
+        const data = await uploaded.json();
+        if (!uploaded.ok || !data.secure_url) throw new Error("No se pudo cargar el PDF. Comprueba el preset de Cloudinary.");
+        await send({ fileUrl: data.secure_url, filename: file.name });
+      }
+      catch (error) { failed++; failedLocal.push(file); toast({ title: file.name, description: String(error), variant: "destructive" }); }
+    }
+    for (const file of remoteFiles) {
+      try { await send({ fileUrl: file.url, filename: file.filename }); }
+      catch (error) { failed++; failedRemote.push(file); toast({ title: file.filename, description: String(error), variant: "destructive" }); }
+    }
+    setFiles(failedLocal); setRemoteFiles(failedRemote); setBusy(false);
+    await history.refetch();
+    if (!failed) toast({ title: "Importación iniciada", description: "Cada documento se procesa de forma independiente. Los resultados aparecerán aquí." });
+  }
+  async function resume(importId: string) {
+    setBusy(true);
+    try { await send({ importId }); await history.refetch(); }
+    catch (error) { toast({ title: "No se pudo iniciar", description: String(error), variant: "destructive" }); }
+    finally { setBusy(false); }
+  }
+  function pick(incoming: File[]) {
+    const valid = incoming.filter((file) => file.name.toLowerCase().endsWith(".pdf") && file.size <= 20 * 1024 * 1024);
+    if (valid.length !== incoming.length) toast({ title: "Solo PDFs de hasta 20 MB", variant: "destructive" });
+    setFiles((current) => [...current, ...valid].slice(0, Math.max(0, 5 - remoteFiles.length)));
   }
 
-  return (
-    <Card className="max-w-md">
-      <CardHeader>
-        <CardTitle>Verificación adicional</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form
-          className="space-y-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            access.mutate({ secret });
-          }}
-        >
-          <div className="space-y-2">
-            <Label htmlFor="catalog-import-secret">Código privado</Label>
-            <Input
-              id="catalog-import-secret"
-              type="password"
-              autoComplete="off"
-              value={secret}
-              onChange={(event) => setSecret(event.target.value)}
-              disabled={access.isPending}
-              required
-            />
-          </div>
-          <Button type="submit" disabled={access.isPending || !secret}>
-            {access.isPending ? "Verificando..." : "Ingresar"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
+  if (!authorized) return <Card className="max-w-md"><CardHeader><CardTitle>Verificación adicional</CardTitle></CardHeader><CardContent>
+    <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); access.mutate({ secret }); }}>
+      <label className="block space-y-2"><span>Código privado</span><Input type="password" autoComplete="off" value={secret} onChange={(e) => setSecret(e.target.value)} required maxLength={256} /></label>
+      <Button disabled={access.isPending || !secret}>{access.isPending ? "Verificando…" : "Ingresar"}</Button>
+    </form>
+  </CardContent></Card>;
 
-function CandidateEditor({
-  candidate,
-  disabled,
-  onSave,
-}: {
-  candidate: CandidateData;
-  disabled: boolean;
-  onSave: (candidate: CandidateData) => void;
-}) {
-  const [draft, setDraft] = useState<CandidateData>(candidate);
-  const setValue = (field: string, value: string | number | null) => {
-    setDraft((current) => ({ ...current, [field]: value }));
-  };
-  const textField = (field: keyof CandidateData, label: string) => (
-    <div className="space-y-1">
-      <Label htmlFor={`candidate-${String(field)}`}>{label}</Label>
-      <Input
-        id={`candidate-${String(field)}`}
-        value={typeof draft[field] === "string" ? draft[field] as string : ""}
-        onChange={(event) => setValue(String(field), event.target.value || null)}
-        disabled={disabled}
-      />
-    </div>
-  );
-
-  return (
-    <div className="space-y-3 rounded-md border bg-muted/20 p-3">
-      <p className="font-medium">Revisión manual</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {textField("nameEs", "Nombre en español")}
-        {textField("nameEn", "Nombre en inglés")}
-        {textField("category", "Categoría")}
-        {textField("destination", "Destino")}
-        {textField("shortDescEs", "Descripción corta (ES)")}
-        {textField("shortDescEn", "Descripción corta (EN)")}
-        {textField("longDescEs", "Descripción larga (ES)")}
-        {textField("longDescEn", "Descripción larga (EN)")}
-        <div className="space-y-1">
-          <Label htmlFor="candidate-durationDays">Días</Label>
-          <Input
-            id="candidate-durationDays"
-            type="number"
-            min="1"
-            value={draft.durationDays ?? ""}
-            onChange={(event) => setValue("durationDays", event.target.value ? Number(event.target.value) : null)}
-            disabled={disabled}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="candidate-durationNights">Noches</Label>
-          <Input
-            id="candidate-durationNights"
-            type="number"
-            min="0"
-            value={draft.durationNights ?? ""}
-            onChange={(event) => setValue("durationNights", event.target.value ? Number(event.target.value) : null)}
-            disabled={disabled}
-          />
-        </div>
+  const jobs = history.data ?? [];
+  const counts = jobs.flatMap((job) => job.tours).reduce<Record<string, number>>((acc, tour) => { const s = displayStatus(tour.status); acc[s] = (acc[s] ?? 0) + 1; return acc; }, {});
+  return <div className="space-y-6">
+    <div className="flex justify-between gap-3"><p className="text-sm text-muted-foreground">{status.data?.providers.map((p) => `${p.name} (${p.model})`).join(" · ") || "Configura un proveedor IA antes de analizar."}</p><Button variant="outline" onClick={() => logout.mutate()}>Cerrar acceso</Button></div>
+    <Card><CardHeader><CardTitle>Seleccionar catálogos PDF</CardTitle></CardHeader><CardContent className="space-y-4">
+      <div className="rounded-lg border-2 border-dashed p-6 text-center" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); if (!busy) pick(Array.from(e.dataTransfer.files)); }}>
+        <p className="mb-3 text-sm">Arrastra hasta cinco PDFs. Máximo 20 MB por documento.</p>
+        <Input aria-label="Seleccionar PDFs" type="file" multiple accept="application/pdf,.pdf" disabled={busy} onChange={(e) => { pick(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
+        <p className="mt-2 text-xs text-muted-foreground">Los PDFs se cargan directamente para admitir archivos grandes.</p>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Corrige solo con información confirmada en el PDF. Los precios, itinerario y condiciones se mantienen tal como fueron extraídos.
-      </p>
-      <Button type="button" size="sm" disabled={disabled} onClick={() => onSave(draft)}>
-        {disabled ? "Revalidando..." : "Guardar y revalidar"}
-      </Button>
-    </div>
-  );
+      <CldUploadWidget uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "agencia_tours_dev"}
+        options={{ maxFiles: 5, multiple: true, sources: ["local"], clientAllowedFormats: ["pdf"], maxFileSize: 20 * 1024 * 1024, resourceType: "raw", folder: "likesinhouse/catalog-imports" }}
+        onSuccess={(result) => { const info = result.info as { secure_url?: string; original_filename?: string }; if (info.secure_url) setRemoteFiles((current) => [...current, { url: info.secure_url!, filename: `${(info.original_filename ?? "catalogo").replace(/\.pdf$/i, "")}.pdf` }].slice(0, Math.max(0, 5 - files.length))); }}>
+        {({ open }) => <Button variant="outline" disabled={busy} onClick={() => open()}>Carga directa de PDFs</Button>}
+      </CldUploadWidget>
+      {[...files.map((f) => f.name), ...remoteFiles.map((f) => f.filename)].map((name, i) => <div key={`${name}-${i}`} className="flex items-center justify-between text-sm"><span>{name}</span><Button size="sm" variant="ghost" disabled={busy} onClick={() => { if (i < files.length) setFiles(files.filter((_, index) => index !== i)); else setRemoteFiles(remoteFiles.filter((_, index) => index !== i - files.length)); }}>Quitar</Button></div>)}
+      <Button disabled={busy || !files.length && !remoteFiles.length} onClick={start}>{busy ? "Iniciando…" : "Analizar catálogos"}</Button>
+    </CardContent></Card>
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">{[["Documentos", jobs.length], ["Tours", jobs.reduce((n, j) => n + j.totalTours, 0)], ...["READY", "DUPLICATE_REVIEW", "DATA_REVIEW", "BLOCKED", "DRAFT_CREATED"].map((s) => [s, counts[s] ?? 0])].map(([label, count]) => <div key={String(label)} className="rounded-lg border p-3"><strong className="text-xl">{count}</strong><p className="break-words text-xs text-muted-foreground">{label}</p></div>)}</div>
+    {history.isLoading && <p>Cargando historial…</p>}
+    {history.error && <p role="alert" className="text-destructive">{history.error.message}</p>}
+    {jobs.map((job) => <Card key={job.id}><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><div><CardTitle className="text-lg">{job.filename}</CardTitle><p className="mt-1 text-xs text-muted-foreground">{job.status} · {job.totalTours} tours · intento {job.attempts}/3</p></div>
+      {["UPLOADED", "FAILED", "PARTIAL"].includes(job.status) && job.attempts < 3 && <Button variant="outline" size="sm" disabled={busy} onClick={() => resume(job.id)}>{job.status === "UPLOADED" ? "Procesar" : "Reanudar"}</Button>}
+    </div></CardHeader><CardContent className="space-y-4">
+      {job.lastError && <p role="alert" className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">{job.lastError}</p>}
+      {job.status === "PROCESSING" && <p className="text-sm" role="status">Analizando y validando. Puedes cerrar esta página y volver al historial.</p>}
+      <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b">{["Tour", "Fuente", "Estado", "Coincidencia", "Incidencias", "Acción"].map((h) => <th key={h} className="p-2">{h}</th>)}</tr></thead><tbody>
+        {job.tours.map((tour) => { const raw = tour.tourDataJson as Record<string, unknown>; return <tr key={tour.id} className="border-b"><td className="p-2">{String(raw?.nameEs ?? "Candidato sin nombre")}</td><td className="p-2 text-xs">{tour.sourceDocument}<br />Páginas {tour.sourcePages.join(", ") || "por revisar"}</td><td className="p-2 text-xs">{displayStatus(tour.status)}</td><td className="p-2">{tour.confidence == null ? "—" : `${Math.round(Number(tour.confidence) * 100)}%`}</td><td className="p-2">{tour.issues.length}</td><td className="p-2"><Button size="sm" variant="outline" onClick={() => setSelected(tour.id)}>Ver / revisar</Button></td></tr>; })}
+      </tbody></table></div>
+      {job.operations.length > 0 && <details><summary className="cursor-pointer text-sm">Uso de IA y operaciones</summary><div className="mt-2 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr>{["Proveedor / modelo", "Operación", "Entrada", "Salida", "Total", "Tiempo", "Fallback", "Costo estimado USD"].map((h) => <th key={h} className="p-2">{h}</th>)}</tr></thead><tbody>{job.operations.map((op, i) => <tr key={i}><td className="p-2">{op.provider} / {op.model}</td><td className="p-2">{op.operation} · {op.success ? "OK" : op.error || "Error"}</td><td className="p-2">{op.inputTokens ?? "—"}</td><td className="p-2">{op.outputTokens ?? "—"}</td><td className="p-2">{op.inputTokens != null && op.outputTokens != null ? op.inputTokens + op.outputTokens : "—"}</td><td className="p-2">{op.latencyMs == null ? "—" : `${(op.latencyMs / 1000).toFixed(1)} s`}</td><td className="p-2">{op.fallbackUsed ? "Sí" : "No"}</td><td className="p-2">{op.estimatedCost == null ? "Sin tarifa configurada" : Number(op.estimatedCost).toFixed(6)}</td></tr>)}</tbody></table></div></details>}
+    </CardContent></Card>)}
+    {!history.isLoading && !jobs.length && <p className="text-sm text-muted-foreground">Todavía no hay importaciones.</p>}
+    {selected && <CatalogPreview importTourId={selected} onClose={() => setSelected(null)} onChanged={() => { void history.refetch(); }} />}
+  </div>;
 }

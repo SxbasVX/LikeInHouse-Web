@@ -63,12 +63,14 @@ const roleLabels: Record<string, string> = {
   ADMIN: "Administrador",
   SALES: "Ventas",
   MARKETING: "Marketing",
+  DEVELOPER: "Developer (importador privado)",
 };
 
 const roleColors: Record<string, string> = {
   ADMIN: "bg-brand-orange/15 text-brand-orange",
   SALES: "bg-brand-teal/15 text-brand-darkTeal",
   MARKETING: "bg-brand-darkTeal/15 text-brand-darkTeal",
+  DEVELOPER: "bg-brand-teal/15 text-brand-darkTeal",
 };
 
 export default function UsuariosPage() {
@@ -198,6 +200,7 @@ export default function UsuariosPage() {
                     <SelectItem value="ADMIN">Administrador</SelectItem>
                     <SelectItem value="SALES">Ventas</SelectItem>
                     <SelectItem value="MARKETING">Marketing</SelectItem>
+                    <SelectItem value="DEVELOPER">Developer (importador privado)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -210,7 +213,7 @@ export default function UsuariosPage() {
                 onClick={() =>
                   createUser.mutate({
                     ...form,
-                    role: form.role as "ADMIN" | "SALES" | "MARKETING",
+                    role: form.role as "ADMIN" | "SALES" | "MARKETING" | "DEVELOPER",
                   })
                 }
                 disabled={
@@ -383,6 +386,7 @@ export default function UsuariosPage() {
                     <SelectItem value="ADMIN">Administrador</SelectItem>
                     <SelectItem value="SALES">Ventas</SelectItem>
                     <SelectItem value="MARKETING">Marketing</SelectItem>
+                    <SelectItem value="DEVELOPER">Developer (importador privado)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -411,7 +415,7 @@ export default function UsuariosPage() {
                   id: editUser.id,
                   name: editUser.name,
                   email: editUser.email,
-                  role: editUser.role as "ADMIN" | "SALES" | "MARKETING",
+                  role: editUser.role as "ADMIN" | "SALES" | "MARKETING" | "DEVELOPER",
                   password: editUser.password || undefined,
                 });
               }}

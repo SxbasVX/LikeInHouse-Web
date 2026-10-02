@@ -2,6 +2,7 @@ import { describe, expect, it, afterEach } from "vitest";
 import { verifyCatalogImportSecret } from "../secret";
 import { validateCatalogTour } from "../validator";
 import type { CatalogTourCandidate } from "../schemas";
+import { readyCandidate } from "./fixtures";
 
 const originalSecret = process.env.CATALOG_IMPORT_SECRET;
 
@@ -73,6 +74,6 @@ describe("AI Catalog Importer", () => {
   });
 
   it("acepta candidatos completos con precio USD", () => {
-    expect(validateCatalogTour(candidate)).toHaveLength(0);
+    expect(validateCatalogTour(readyCandidate())).toHaveLength(0);
   });
 });

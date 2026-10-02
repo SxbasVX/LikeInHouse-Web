@@ -8,10 +8,10 @@ export default async function CatalogImportPage() {
 
   const session = await auth();
   if (!session?.user) redirect("/admin/login");
-  if (session.user.role !== "DEVELOPER" && session.user.role !== "ADMIN") redirect("/admin");
+  if (session.user.role !== "DEVELOPER") redirect("/admin");
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-8">
       <div>
         <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">
           AI Catalog Importer

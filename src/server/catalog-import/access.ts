@@ -2,6 +2,8 @@ import "server-only";
 import { TRPCError } from "@trpc/server";
 import type { UserRole } from "@prisma/client";
 import { verifyCatalogImportSecret } from "./secret";
+import { cookies } from "next/headers";
+import { CATALOG_ACCESS_COOKIE, verifyAccessGrant } from "./secret";
 
 export function isCatalogImportEnabled(): boolean {
   return process.env.ENABLE_CATALOG_IMPORT === "true";
@@ -17,11 +19,19 @@ export function assertCatalogImportEnabled(): void {
 }
 
 export function assertCatalogImportRole(role: UserRole): void {
-  if (role !== "DEVELOPER" && role !== "ADMIN") {
+  if (role !== "DEVELOPER") {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "No tienes permisos para usar el importador de catálogos.",
     });
+  }
+}
+
+export async function assertCatalogImportGrant(userId: string): Promise<void> {
+  assertCatalogImportEnabled();
+  const jar = await cookies();
+  if (!verifyAccessGrant(jar.get(CATALOG_ACCESS_COOKIE)?.value, userId)) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Introduce el código privado para autorizar esta sesión." });
   }
 }
 

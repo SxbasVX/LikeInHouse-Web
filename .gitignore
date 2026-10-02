@@ -43,3 +43,5 @@ Thumbs.db
 
 # Docker installer (no subir al repo)
 Docker Desktop Installer.exe
+# Private catalog QA artifacts
+.qa/

@@ -52,7 +52,10 @@ export default async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
       }
       // Verify user has an admin role (ADMIN, SALES, or MARKETING)
-      const validAdminRoles = ["ADMIN", "SALES", "MARKETING"];
+      if (token.role === "DEVELOPER" && !pathname.startsWith("/admin/dev/catalog-import")) {
+        return NextResponse.redirect(new URL("/admin/dev/catalog-import", request.url));
+      }
+      const validAdminRoles = ["ADMIN", "SALES", "MARKETING", ...(pathname.startsWith("/admin/dev/catalog-import") ? ["DEVELOPER"] : [])];
       if (!token.role || !validAdminRoles.includes(token.role as string)) {
         const loginUrl = new URL("/admin/login", request.url);
         return NextResponse.redirect(loginUrl);

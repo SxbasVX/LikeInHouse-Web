@@ -21,14 +21,14 @@ const userCreateSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: passwordSchema,
-  role: z.enum(["ADMIN", "SALES", "MARKETING"]).default("SALES"),
+  role: z.enum(["ADMIN", "SALES", "MARKETING", "DEVELOPER"]).default("SALES"),
 });
 
 const userUpdateSchema = z.object({
   id: z.string(),
   name: z.string().min(2).optional(),
   email: z.string().email().optional(),
-  role: z.enum(["ADMIN", "SALES", "MARKETING"]).optional(),
+  role: z.enum(["ADMIN", "SALES", "MARKETING", "DEVELOPER"]).optional(),
   isActive: z.boolean().optional(),
   password: passwordSchema.optional(),
 });
