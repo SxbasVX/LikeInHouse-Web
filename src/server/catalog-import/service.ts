@@ -140,23 +140,24 @@ export async function processCatalogPdf(filename: string, pdf: Buffer, userId: s
         });
       }
 
-      const counts = await tx.catalogImportTour.groupBy({
-        by: ["status"],
-        where: { importId: importRecord.id },
-        _count: true,
-      });
-      const count = (status: string) => counts.find((item) => item.status === status)?._count ?? 0;
-      await tx.catalogImport.update({
-        where: { id: importRecord.id },
-        data: {
-          status: "COMPLETED",
-          totalTours: extraction.tours.length,
-          readyCount: count("READY"),
-          duplicateCount: count("DUPLICATE"),
-          reviewCount: count("NEEDS_REVIEW"),
-          blockedCount: count("BLOCKED"),
-        },
-      });
+    }, { timeout: 30_000, maxWait: 10_000 });
+
+    const counts = await db.catalogImportTour.groupBy({
+      by: ["status"],
+      where: { importId: importRecord.id },
+      _count: true,
+    });
+    const count = (status: string) => counts.find((item) => item.status === status)?._count ?? 0;
+    await db.catalogImport.update({
+      where: { id: importRecord.id },
+      data: {
+        status: "COMPLETED",
+        totalTours: extraction.tours.length,
+        readyCount: count("READY"),
+        duplicateCount: count("DUPLICATE"),
+        reviewCount: count("NEEDS_REVIEW"),
+        blockedCount: count("BLOCKED"),
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error desconocido durante la extracción.";

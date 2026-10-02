@@ -145,7 +145,7 @@ export const catalogImportRouter = router({
             blockedCount: count("BLOCKED"),
           },
         });
-      });
+      }, { timeout: 15_000, maxWait: 10_000 });
 
       return { status, issues, duplicateMatches: duplicates };
     }),
