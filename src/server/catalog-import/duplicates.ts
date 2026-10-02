@@ -10,6 +10,19 @@ function normalize(value: string | null): string {
     .trim();
 }
 
+function nameSimilarity(left: string, right: string): number {
+  if (!left || !right) return 0;
+  if (left === right) return 1;
+  if (left.includes(right) || right.includes(left)) return 0.85;
+
+  const leftTokens = new Set(left.split(" ").filter((token) => token.length > 2));
+  const rightTokens = new Set(right.split(" ").filter((token) => token.length > 2));
+  if (leftTokens.size < 2 || rightTokens.size === 0) return 0;
+
+  const overlap = [...leftTokens].filter((token) => rightTokens.has(token)).length;
+  return overlap / Math.min(leftTokens.size, rightTokens.size);
+}
+
 export interface DuplicateMatch {
   tourId: string;
   score: number;
@@ -40,9 +53,13 @@ export async function findDuplicateMatches(
     const reasons: string[] = [];
     let score = 0;
     const tourNames = [normalize(tour.nameEs), normalize(tour.nameEn)];
-    if (names.some((name) => tourNames.includes(name))) {
+    const similarity = Math.max(...names.flatMap((name) => tourNames.map((tourName) => nameSimilarity(name, tourName))));
+    if (similarity === 1) {
       score += 0.8;
       reasons.push("El nombre coincide exactamente.");
+    } else if (similarity >= 0.75) {
+      score += 0.7;
+      reasons.push("El nombre coincide aunque contiene una descripción ampliada.");
     }
     if (candidate.destination && normalize(tour.destination) === normalize(candidate.destination)) {
       score += 0.15;
