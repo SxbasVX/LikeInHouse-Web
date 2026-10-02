@@ -13,7 +13,8 @@ export function allowedDocumentUrl(value: string): boolean {
 export async function downloadCatalogPdf(sourceUrl: string): Promise<Buffer> {
   if (!allowedDocumentUrl(sourceUrl)) throw new Error("Origen del documento no permitido.");
   const response = await fetch(sourceUrl, { redirect: "error", signal: AbortSignal.timeout(25_000) });
-  if (!response.ok || !response.body) throw new Error("No se pudo descargar el PDF.");
+  if (!response.ok) throw new Error(`Cloudinary rechazó el PDF (HTTP ${response.status}).`);
+  if (!response.body) throw new Error("Cloudinary respondió sin contenido.");
   if (Number(response.headers.get("content-length") ?? 0) > MAX_PDF_BYTES) {
     await response.body.cancel(); throw new Error("El PDF supera 20 MB.");
   }
