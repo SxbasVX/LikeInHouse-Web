@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOutToLogin } from "@/lib/auth-client";
 import { LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
@@ -206,7 +206,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
         isPending={signingOut}
         onConfirm={() => {
           setSigningOut(true);
-          signOut({ callbackUrl: "/admin/login" });
+          void signOutToLogin();
         }}
       />
     </>

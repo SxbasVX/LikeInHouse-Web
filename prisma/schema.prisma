@@ -23,7 +23,10 @@ model User {
   id           String    @id @default(cuid())
   name         String
   email        String    @unique
-  passwordHash String
+  // Legacy NextAuth hash, copied into Account (providerId "credential") by the Better Auth migration. Not read anymore.
+  passwordHash String?
+  emailVerified Boolean  @default(false)
+  image        String?
   role         UserRole  @default(SALES)
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
@@ -39,30 +42,51 @@ model User {
   resolvedImportIssues ImportIssue[] @relation("ImportIssueResolver")
 }
 
+// Better Auth tables. Email/password logins live in Account with providerId "credential"
+// (accountId = user id, password = bcrypt hash). Sessions are database rows: deleting them signs the user out.
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  @@unique([provider, providerAccountId])
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 // ============================================================

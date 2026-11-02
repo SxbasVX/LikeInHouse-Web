@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { useState } from "react";
+import { signOutToLogin } from "@/lib/auth-client";
+import { ChangePasswordDialog } from "@/components/admin/change-password-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, ChevronRight, Home } from "lucide-react";
+import { LogOut, ChevronRight, Home, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getBreadcrumbs } from "@/components/admin/nav-config";
 
@@ -23,6 +26,7 @@ interface AdminHeaderProps {
 export function AdminHeader({ user }: AdminHeaderProps) {
   const pathname = usePathname();
   const crumbs = getBreadcrumbs(pathname);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const initials = user.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -81,16 +85,22 @@ export function AdminHeader({ user }: AdminHeaderProps) {
             {user.name}
           </span>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem className="gap-2" onSelect={() => setPasswordOpen(true)}>
+            <KeyRound className="h-4 w-4" />
+            Cambiar mi contraseña
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             className="gap-2 text-destructive focus:text-destructive"
-            onClick={() => signOut({ callbackUrl: "/admin/login" })}
+            onClick={() => void signOutToLogin()}
           >
             <LogOut className="h-4 w-4" />
             Cerrar sesión
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
     </header>
   );
 }

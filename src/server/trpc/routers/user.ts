@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { hash } from "bcryptjs";
 import { router, roleProtectedProcedure } from "../trpc";
 import { createAuditLog } from "@/server/lib/audit";
+import { revokeUserSessions, setCredentialPassword } from "@/server/lib/auth";
 
 const adminOnly = roleProtectedProcedure(["ADMIN"]);
 
@@ -19,7 +19,7 @@ const passwordSchema = z.string()
 
 const userCreateSchema = z.object({
   name: z.string().min(2),
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email(),
   password: passwordSchema,
   role: z.enum(["ADMIN", "SALES", "MARKETING", "DEVELOPER"]).default("SALES"),
 });
@@ -27,7 +27,7 @@ const userCreateSchema = z.object({
 const userUpdateSchema = z.object({
   id: z.string(),
   name: z.string().min(2).optional(),
-  email: z.string().email().optional(),
+  email: z.string().trim().toLowerCase().email().optional(),
   role: z.enum(["ADMIN", "SALES", "MARKETING", "DEVELOPER"]).optional(),
   isActive: z.boolean().optional(),
   password: passwordSchema.optional(),
@@ -53,7 +53,7 @@ export const userRouter = router({
             isActive: true,
             lastLoginAt: true,
             createdAt: true,
-            _count: { select: { reservations: true, quotations: true } },
+            _count: { select: { reservations: true, quotations: true, sessions: { where: { expiresAt: { gt: new Date() } } } } },
           },
         }),
         ctx.db.user.count(),
@@ -81,23 +81,13 @@ export const userRouter = router({
         });
       }
 
-      const passwordHash = await hash(input.password, 12);
-
-      return ctx.db.user.create({
-        data: {
-          name: input.name,
-          email: input.email,
-          passwordHash,
-          role: input.role,
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          isActive: true,
-          createdAt: true,
-        },
+      return ctx.db.$transaction(async (tx) => {
+        const created = await tx.user.create({
+          data: { name: input.name, email: input.email, role: input.role },
+          select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+        });
+        await setCredentialPassword(tx, created.id, input.password);
+        return created;
       });
     }),
 
@@ -109,12 +99,6 @@ export const userRouter = router({
       const user = await ctx.db.user.findUnique({ where: { id } });
       if (!user) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Usuario no encontrado" });
-      }
-
-      const updateData: Record<string, unknown> = { ...data };
-
-      if (password) {
-        updateData.passwordHash = await hash(password, 12);
       }
 
       if (data.email && data.email !== user.email) {
@@ -129,18 +113,26 @@ export const userRouter = router({
         }
       }
 
-      return ctx.db.user.update({
-        where: { id },
-        data: updateData,
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          isActive: true,
-          createdAt: true,
-        },
+      const updated = await ctx.db.$transaction(async (tx) => {
+        if (password) await setCredentialPassword(tx, id, password);
+        return tx.user.update({
+          where: { id },
+          data,
+          select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+        });
       });
+      // A new password or a deactivation must end every open session right away; role changes apply on the next request anyway.
+      if (password || data.isActive === false) await revokeUserSessions(id);
+      if (password) createAuditLog({ userId: ctx.user.id, action: "UPDATE", entity: "User", entityId: id, changes: { passwordReset: true } });
+      return updated;
+    }),
+
+  revokeSessions: adminOnly
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { count } = await revokeUserSessions(input.id);
+      createAuditLog({ userId: ctx.user.id, action: "UPDATE", entity: "User", entityId: input.id, changes: { sessionsRevoked: count } });
+      return { revoked: count };
     }),
 
   toggleActive: adminOnly
@@ -155,6 +147,7 @@ export const userRouter = router({
         where: { id: input.id },
         data: { isActive: !user.isActive },
       });
+      if (!updated.isActive) await revokeUserSessions(input.id);
 
       // Audit user activation/deactivation
       const adminId = ctx.user.id;

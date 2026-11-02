@@ -53,6 +53,7 @@ import {
   MoreHorizontal,
   Pencil,
   UserX,
+  LogOut,
   UserCheck,
   Trash2,
   Shield,
@@ -154,6 +155,16 @@ export default function UsuariosPage() {
       toast({ title: "Estado actualizado" });
       refetch();
       setDeactivateUser(null);
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
+    },
+  });
+
+  const revokeSessions = trpc.user.revokeSessions.useMutation({
+    onSuccess: ({ revoked }) => {
+      toast({ title: revoked ? `Se cerraron ${revoked} sesión(es)` : "No tenía sesiones abiertas", description: revoked ? "Tendrá que volver a iniciar sesión." : undefined });
+      refetch();
     },
     onError: (error) => {
       toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
@@ -352,6 +363,11 @@ export default function UsuariosPage() {
                           minute: "2-digit",
                         })
                         : "Nunca"}
+                      {user._count.sessions > 0 && (
+                        <span className="mt-0.5 block text-xs text-brand-darkTeal">
+                          {user._count.sessions} sesión(es) abierta(s)
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">{user._count.reservations}</TableCell>
                     <TableCell className="hidden lg:table-cell">{user._count.quotations}</TableCell>
@@ -396,6 +412,12 @@ export default function UsuariosPage() {
                                 <UserCheck className="mr-2 h-4 w-4" /> Activar
                               </>
                             )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={user._count.sessions === 0 || revokeSessions.isPending}
+                            onClick={() => revokeSessions.mutate({ id: user.id })}
+                          >
+                            <LogOut className="mr-2 h-4 w-4" /> Cerrar sesiones
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setDeleteId(user.id)}

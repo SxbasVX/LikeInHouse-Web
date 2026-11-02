@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,13 +35,12 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirect: false,
-      });
-      if (result?.error) {
-        setError("Credenciales incorrectas. Verifica tu email y contraseña.");
+      const { error: failure } = await authClient.signIn.email({ email: data.email, password: data.password });
+      if (failure) {
+        // A deactivated account gets the same message as a wrong password, so accounts can't be probed.
+        setError(failure.status === 429
+          ? "Demasiados intentos. Espera 15 minutos e inténtalo de nuevo."
+          : "Credenciales incorrectas. Verifica tu email y contraseña.");
       } else {
         router.push("/admin");
         router.refresh();

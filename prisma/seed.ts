@@ -54,32 +54,36 @@ async function main() {
   const passwordVendedor = await hash("vendedor123", 12);
   const passwordMarketing = await hash("marketing123", 12);
 
+  // Better Auth reads email/password logins from Account (providerId "credential", accountId = user id).
+  const credential = (userId: string, password: string) =>
+    prisma.account.create({ data: { providerId: "credential", accountId: userId, userId, password } });
+
   const admin = await prisma.user.create({
     data: {
       name: "Administrador",
       email: "admin@agencia.com",
-      passwordHash: passwordAdmin,
       role: "ADMIN",
     },
   });
+  await credential(admin.id, passwordAdmin);
 
-  await prisma.user.create({
+  const vendedor = await prisma.user.create({
     data: {
       name: "Carlos Vendedor",
       email: "vendedor@agencia.com",
-      passwordHash: passwordVendedor,
       role: "SALES",
     },
   });
+  await credential(vendedor.id, passwordVendedor);
 
-  await prisma.user.create({
+  const marketing = await prisma.user.create({
     data: {
       name: "Maria Marketing",
       email: "marketing@agencia.com",
-      passwordHash: passwordMarketing,
       role: "MARKETING",
     },
   });
+  await credential(marketing.id, passwordMarketing);
 
   console.log("  3 usuarios creados");
 

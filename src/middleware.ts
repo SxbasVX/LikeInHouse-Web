@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getSessionCookie } from "better-auth/cookies";
 import createMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
 
@@ -11,11 +11,6 @@ const ADMIN_HOSTNAME = process.env.ADMIN_HOSTNAME || "panel.likeinhouseperu.com"
 // Admin routes that don't require authentication
 const PUBLIC_ADMIN_PATHS = ["/admin/login"];
 
-// Cookie name must match the one in auth.ts config
-const SESSION_COOKIE_NAME =
-  process.env.NODE_ENV === "production"
-    ? "__Secure-next-auth.session-token"
-    : "next-auth.session-token";
 
 export default async function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl;
@@ -41,25 +36,10 @@ export default async function middleware(request: NextRequest) {
   if (pathname.startsWith("/admin") && (isDedicatedAdminHost || isVercelHost || isDevHost)) {
     // Auth check: protect all admin routes except login
     const isPublicAdminPath = PUBLIC_ADMIN_PATHS.some((p) => pathname === p);
-    if (!isPublicAdminPath) {
-      const token = await getToken({
-        req: request,
-        cookieName: SESSION_COOKIE_NAME,
-        secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-      });
-      if (!token || !token.id) {
-        const loginUrl = new URL("/admin/login", request.url);
-        return NextResponse.redirect(loginUrl);
-      }
-      // Verify user has an admin role (ADMIN, SALES, or MARKETING)
-      if (token.role === "DEVELOPER" && !pathname.startsWith("/admin/dev/catalog-import")) {
-        return NextResponse.redirect(new URL("/admin/dev/catalog-import", request.url));
-      }
-      const validAdminRoles = ["ADMIN", "SALES", "MARKETING", ...(pathname.startsWith("/admin/dev/catalog-import") ? ["DEVELOPER"] : [])];
-      if (!token.role || !validAdminRoles.includes(token.role as string)) {
-        const loginUrl = new URL("/admin/login", request.url);
-        return NextResponse.redirect(loginUrl);
-      }
+    // Only a quick "has a session cookie" redirect. The real check (session still valid, account active,
+    // current role) runs against the database in each layout, page and API, so admin changes apply at once.
+    if (!isPublicAdminPath && !getSessionCookie(request)) {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
     }
     return NextResponse.next();
   }

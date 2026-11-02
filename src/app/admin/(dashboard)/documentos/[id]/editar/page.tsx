@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/server/lib/db";
+import { requireRole } from "@/server/lib/auth";
 import { DocumentForm } from "@/components/admin/document-form";
 
 export const metadata = { title: "Editar Documento | Admin" };
@@ -9,6 +10,8 @@ export default async function EditarDocumentoPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // Same role as document.update; this page reads the database directly.
+  await requireRole(["ADMIN"]);
   const { id } = await params;
   const doc = await db.document.findUnique({ where: { id } });
   if (!doc) notFound();

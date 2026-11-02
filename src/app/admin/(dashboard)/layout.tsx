@@ -13,6 +13,10 @@ export default async function DashboardLayout({
   if (!session?.user) {
     redirect("/admin/login");
   }
+  // DEVELOPER accounts only use the private catalog importer.
+  if (session.user.role === "DEVELOPER") {
+    redirect("/admin/dev/catalog-import");
+  }
 
   return (
     <div className="flex h-screen bg-[hsl(26,44%,94%)] lg:gap-3 lg:p-3">
