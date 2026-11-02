@@ -81,7 +81,7 @@ export default function DocumentosPage() {
           ) : (
             <div className="divide-y">
               {docs.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
+                <div key={doc.id} className="flex flex-col gap-3 p-4 hover:bg-muted/30 transition-colors sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                       {doc.type === "PDF" ? (
@@ -95,20 +95,30 @@ export default function DocumentosPage() {
                       <p className="text-sm text-muted-foreground truncate">/docs/{doc.slug}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-4">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0 sm:ml-4">
                     <Badge variant={doc.type === "PDF" ? "secondary" : "outline"}>
-                      {doc.type}
+                      {doc.type === "PDF" ? "PDF" : "Contenido"}
                     </Badge>
                     <Badge variant={doc.isPublished ? "default" : "secondary"}>
                       {doc.isPublished ? "Publicado" : "Borrador"}
                     </Badge>
                     <Button variant="ghost" size="icon" asChild>
-                      <a href={`/docs/${doc.slug}`} target="_blank" rel="noopener noreferrer">
+                      <a
+                        href={`/docs/${doc.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Ver documento ${doc.titleEs} en el sitio (pestaña nueva)`}
+                        title="Ver en el sitio"
+                      >
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     </Button>
                     <Button variant="ghost" size="icon" asChild>
-                      <Link href={`/admin/documentos/${doc.id}/editar`}>
+                      <Link
+                        href={`/admin/documentos/${doc.id}/editar`}
+                        aria-label={`Editar documento ${doc.titleEs}`}
+                        title="Editar"
+                      >
                         <Pencil className="h-4 w-4" />
                       </Link>
                     </Button>
@@ -119,6 +129,7 @@ export default function DocumentosPage() {
                       onClick={() => setDeleteTarget({ id: doc.id, title: doc.titleEs, slug: doc.slug })}
                       disabled={deleteMut.isPending}
                       aria-label={`Eliminar documento ${doc.titleEs}`}
+                      title="Eliminar"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

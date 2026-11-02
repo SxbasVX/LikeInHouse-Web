@@ -30,6 +30,7 @@ import { BarChart3, TrendingUp, DollarSign, ShoppingCart } from "lucide-react";
 import { PageHeader } from "@/components/admin/page-header";
 import { ErrorState } from "@/components/admin/list-states";
 import { formatMoney } from "@/lib/format";
+import { trafficSourceLabel } from "@/lib/status";
 
 const SOURCE_COLORS: Record<string, string> = {
   instagram: "bg-pink-100 text-pink-800",
@@ -48,7 +49,7 @@ function SourceBadge({ source }: { source: string }) {
       variant="secondary"
       className={SOURCE_COLORS[source] || "bg-gray-100 text-gray-800"}
     >
-      {source}
+      {trafficSourceLabel(source)}
     </Badge>
   );
 }
@@ -61,22 +62,22 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Analytics de Marketing"
+        title="Analytics"
         subtitle="Atribución de fuentes de tráfico y rendimiento de campañas"
         actions={
         <Select
           value={String(days)}
           onValueChange={(val) => setDays(Number(val))}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]" aria-label="Periodo">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="7">Ultimos 7 dias</SelectItem>
-            <SelectItem value="30">Ultimos 30 dias</SelectItem>
-            <SelectItem value="90">Ultimos 90 dias</SelectItem>
-            <SelectItem value="180">Ultimos 6 meses</SelectItem>
-            <SelectItem value="365">Ultimo ano</SelectItem>
+            <SelectItem value="7">Últimos 7 días</SelectItem>
+            <SelectItem value="30">Últimos 30 días</SelectItem>
+            <SelectItem value="90">Últimos 90 días</SelectItem>
+            <SelectItem value="180">Últimos 6 meses</SelectItem>
+            <SelectItem value="365">Último año</SelectItem>
           </SelectContent>
         </Select>
         }
@@ -104,17 +105,17 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardDescription>Total Ordenes</CardDescription>
+                <CardDescription>Total de órdenes</CardDescription>
                 <ShoppingCart className="h-5 w-5 text-brand-teal" />
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold">{data.totalOrders}</p>
-                <p className="text-xs text-muted-foreground mt-1">Ultimos {data.days} dias</p>
+                <p className="text-xs text-muted-foreground mt-1">Últimos {data.days} días</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardDescription>Revenue Total</CardDescription>
+                <CardDescription>Ingresos totales</CardDescription>
                 <DollarSign className="h-5 w-5 text-brand-orange" />
               </CardHeader>
               <CardContent>
@@ -124,12 +125,12 @@ export default function AnalyticsPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardDescription>Fuentes Activas</CardDescription>
+                <CardDescription>Fuentes activas</CardDescription>
                 <TrendingUp className="h-5 w-5 text-brand-darkTeal" />
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold">{data.firstSourceStats.length}</p>
-                <p className="text-xs text-muted-foreground mt-1">Canales con ordenes</p>
+                <p className="text-xs text-muted-foreground mt-1">Canales con órdenes</p>
               </CardContent>
             </Card>
           </div>
@@ -141,24 +142,24 @@ export default function AnalyticsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
-                  Por Primera Fuente
+                  Por primera fuente
                 </CardTitle>
                 <CardDescription>
-                  Primer canal que trajo al visitante (first-touch)
+                  Primer canal que trajo al visitante (primer contacto)
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {data.firstSourceStats.length === 0 ? (
                   <p className="text-center py-8 font-serif italic text-brand-teal">
-                    Sin datos de fuentes aun
+                    Sin datos de fuentes aún
                   </p>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Fuente</TableHead>
-                        <TableHead className="text-right">Ordenes</TableHead>
-                        <TableHead className="text-right">Revenue</TableHead>
+                        <TableHead className="text-right">Órdenes</TableHead>
+                        <TableHead className="text-right">Ingresos</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -180,24 +181,24 @@ export default function AnalyticsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
-                  Por Ultima Fuente
+                  Por última fuente
                 </CardTitle>
                 <CardDescription>
-                  Ultimo canal antes de la compra (last-touch)
+                  Último canal antes de la compra (último contacto)
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {data.lastSourceStats.length === 0 ? (
                   <p className="text-center py-8 font-serif italic text-brand-teal">
-                    Sin datos de fuentes aun
+                    Sin datos de fuentes aún
                   </p>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Fuente</TableHead>
-                        <TableHead className="text-right">Ordenes</TableHead>
-                        <TableHead className="text-right">Revenue</TableHead>
+                        <TableHead className="text-right">Órdenes</TableHead>
+                        <TableHead className="text-right">Ingresos</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -220,24 +221,24 @@ export default function AnalyticsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                Por Campana
+                Por campaña
               </CardTitle>
               <CardDescription>
-                Rendimiento por campana de marketing (utm_campaign)
+                Rendimiento por campaña de marketing (utm_campaign)
               </CardDescription>
             </CardHeader>
             <CardContent>
               {data.campaignStats.length === 0 ? (
                 <p className="text-center py-8 font-serif italic text-brand-teal">
-                  Sin datos de campanas aun
+                  Sin datos de campañas aún
                 </p>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Campana</TableHead>
-                      <TableHead className="text-right">Ordenes</TableHead>
-                      <TableHead className="text-right">Revenue</TableHead>
+                      <TableHead>Campaña</TableHead>
+                      <TableHead className="text-right">Órdenes</TableHead>
+                      <TableHead className="text-right">Ingresos</TableHead>
                       <TableHead className="text-right">Promedio</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -245,7 +246,7 @@ export default function AnalyticsPage() {
                     {data.campaignStats.map((row) => (
                       <TableRow key={row.campaign}>
                         <TableCell>
-                          <span className="font-mono text-sm">{row.campaign}</span>
+                          <span className="font-mono text-sm">{row.campaign === "organic" ? "Sin campaña (orgánico)" : row.campaign}</span>
                         </TableCell>
                         <TableCell className="text-right font-medium">{row.orders}</TableCell>
                         <TableCell className="text-right font-medium">{formatMoney(row.revenue, "USD")}</TableCell>

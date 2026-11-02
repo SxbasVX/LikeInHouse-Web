@@ -48,14 +48,14 @@ const statCards = (stats: any) => [
     subtitle: `${stats.totalClients} clientes`,
     icon: FileText,
     accent: "border-t-brand-darkRed",
-    iconBg: "bg-brand-darkRed/8",
+    iconBg: "bg-brand-darkRed/10",
     iconColor: "text-brand-darkRed",
   },
 ];
 
 function StatSkeleton() {
   return (
-    <Card className="rounded-2xl border-brand-darkRed/8">
+    <Card className="rounded-2xl border-brand-darkRed/10">
       <CardContent className="pt-6">
         <Skeleton className="h-5 w-32 mb-3" />
         <Skeleton className="h-10 w-16 mb-2" />
@@ -94,7 +94,7 @@ export default function DashboardPage() {
       </div>
 
       {error && (
-        <Card className="rounded-2xl border-brand-darkRed/8">
+        <Card className="rounded-2xl border-brand-darkRed/10">
           <ErrorState title="No se pudieron cargar los datos del panel" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
         </Card>
       )}
@@ -108,7 +108,7 @@ export default function DashboardPage() {
               return (
                 <Card
                   key={card.title}
-                  className={`rounded-2xl border-brand-darkRed/8 border-t-4 ${card.accent} shadow-sm hover:shadow-md transition-shadow`}
+                  className={`rounded-2xl border-brand-darkRed/10 border-t-4 ${card.accent} shadow-sm hover:shadow-md transition-shadow`}
                 >
                   <CardContent className="pt-5 pb-4">
                     <div className="flex items-start justify-between mb-3">
@@ -129,8 +129,8 @@ export default function DashboardPage() {
 
       {/* Recent Reservations */}
       {stats && (
-        <Card className="rounded-2xl border-brand-darkRed/8 shadow-sm">
-          <CardHeader className="pb-3 border-b border-brand-darkRed/6">
+        <Card className="rounded-2xl border-brand-darkRed/10 shadow-sm">
+          <CardHeader className="pb-3 border-b border-brand-darkRed/5">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="font-heading text-xl text-brand-darkRed">
@@ -157,7 +157,7 @@ export default function DashboardPage() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-brand-darkRed/6 hover:bg-transparent">
+                  <TableRow className="border-brand-darkRed/5 hover:bg-transparent">
                     <TableHead className="font-heading text-xs tracking-wider text-brand-darkRed/60 uppercase">Código</TableHead>
                     <TableHead className="font-heading text-xs tracking-wider text-brand-darkRed/60 uppercase">Cliente</TableHead>
                     <TableHead className="font-heading text-xs tracking-wider text-brand-darkRed/60 uppercase">Tour</TableHead>

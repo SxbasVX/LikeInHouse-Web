@@ -91,3 +91,47 @@ export function statusOptions<D extends StatusDomain>(domain: D): { value: Statu
     label: style.label,
   }));
 }
+
+/** Etiquetas de otros enums que se muestran en el panel (no son estados, pero tampoco deben verse crudos). */
+const RESERVATION_ORIGIN_LABELS: Record<string, string> = {
+  WEB: "Web",
+  MANUAL: "Manual",
+  QUOTATION: "Cotización",
+  PAYMENT_LINK: "Link de pago",
+};
+
+const TRAFFIC_SOURCE_LABELS: Record<string, string> = {
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  facebook: "Facebook",
+  google: "Google",
+  twitter: "X / Twitter",
+  youtube: "YouTube",
+  direct: "Directo",
+  referral: "Referido",
+  organic: "Orgánico",
+};
+
+export function reservationOriginLabel(origin: string | null | undefined): string {
+  if (!origin) return "—";
+  return RESERVATION_ORIGIN_LABELS[origin] ?? origin;
+}
+
+/** Fuente de tráfico ("direct", "google"...) legible; valores desconocidos (utm libres) se muestran tal cual. */
+export function trafficSourceLabel(source: string | null | undefined): string {
+  if (!source) return "—";
+  return TRAFFIC_SOURCE_LABELS[source] ?? source;
+}
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  CULQI_CARD: "Tarjeta (Culqi)",
+  CULQI_YAPE: "Yape (Culqi)",
+  PAYPAL: "PayPal",
+  BANK_TRANSFER: "Transferencia",
+  CASH: "Efectivo",
+};
+
+export function paymentMethodLabel(method: string | null | undefined): string {
+  if (!method) return "—";
+  return PAYMENT_METHOD_LABELS[method] ?? method;
+}

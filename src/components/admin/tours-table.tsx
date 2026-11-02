@@ -93,12 +93,12 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
           <TableRow>
             <TableHead>Tour</TableHead>
             <TableHead>Destino</TableHead>
-            <TableHead>Duracion</TableHead>
-            <TableHead>Tipo</TableHead>
+            <TableHead className="hidden lg:table-cell">Duración</TableHead>
+            <TableHead className="hidden lg:table-cell">Tipo</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Precio (USD)</TableHead>
-            <TableHead>Reservas</TableHead>
-            <TableHead className="w-10"></TableHead>
+            <TableHead className="hidden lg:table-cell">Reservas</TableHead>
+            <TableHead className="w-10"><span className="sr-only">Acciones</span></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -134,15 +134,15 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
                       <p className="text-xs text-muted-foreground">{tour.category}</p>
                     </div>
                     {tour.isFeatured && (
-                      <Star className="h-4 w-4 fill-brand-orange text-brand-orange" />
+                      <Star className="h-4 w-4 fill-brand-orange text-brand-orange" aria-label="Destacado" />
                     )}
                   </div>
                 </TableCell>
                 <TableCell>{tour.destination}</TableCell>
-                <TableCell>{tour.durationDays > 0 ? `${tour.durationDays}D/${tour.durationNights}N` : `${tour.durationHours || 0}h`}</TableCell>
-                <TableCell>
+                <TableCell className="hidden lg:table-cell">{tour.durationDays > 0 ? `${tour.durationDays}D/${tour.durationNights}N` : `${tour.durationHours || 0}h`}</TableCell>
+                <TableCell className="hidden lg:table-cell">
                   <Badge variant={tour.tourType === "BOOKABLE" ? "default" : "outline"}>
-                    {tour.tourType === "BOOKABLE" ? "Comprable" : "Info"}
+                    {tour.tourType === "BOOKABLE" ? "Comprable" : "Informativo"}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -157,11 +157,17 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
                       })()
                     : "-"}
                 </TableCell>
-                <TableCell>{tour._count.reservations}</TableCell>
+                <TableCell className="hidden lg:table-cell">{tour._count.reservations}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        aria-label={`Acciones para ${tour.nameEs}`}
+                        title="Acciones"
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -223,8 +229,8 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
           <DialogHeader>
             <DialogTitle>Eliminar tour</DialogTitle>
             <DialogDescription>
-              Esta accion no se puede deshacer. Se eliminara el tour y todos sus
-              datos asociados (itinerario, precios, imagenes, fechas de salida).
+              Esta acción no se puede deshacer. Se eliminará el tour y todos sus
+              datos asociados (itinerario, precios, imágenes, fechas de salida).
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

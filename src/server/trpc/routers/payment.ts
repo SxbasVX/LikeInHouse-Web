@@ -12,18 +12,29 @@ const paymentListSchema = z.object({
   limit: z.number().min(1).max(100).default(10),
   status: z.enum(["PENDING", "PROCESSING", "COMPLETED", "FAILED", "REFUNDED"]).optional(),
   method: z.enum(["CULQI_CARD", "CULQI_YAPE", "PAYPAL", "BANK_TRANSFER", "CASH"]).optional(),
+  search: z.string().trim().max(100).optional(),
 });
 
 export const paymentRouter = router({
   list: adminOrSales
     .input(paymentListSchema)
     .query(async ({ ctx, input }) => {
-      const { page, limit, status, method } = input;
+      const { page, limit, status, method, search } = input;
       const skip = (page - 1) * limit;
 
       const where = {
         ...(status && { status }),
         ...(method && { method }),
+        // Búsqueda por código de reserva o nombre del cliente
+        ...(search && {
+          reservation: {
+            OR: [
+              { referenceCode: { contains: search, mode: "insensitive" as const } },
+              { client: { firstName: { contains: search, mode: "insensitive" as const } } },
+              { client: { lastName: { contains: search, mode: "insensitive" as const } } },
+            ],
+          },
+        }),
       };
 
       const [payments, total] = await Promise.all([

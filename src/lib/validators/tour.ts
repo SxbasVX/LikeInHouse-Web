@@ -6,7 +6,8 @@ import { z } from "zod";
 
 export const tourListInputSchema = z.object({
   page: z.number().int().positive().default(1),
-  limit: z.number().int().positive().max(50).default(10),
+  // 200: los selectores de tours del panel piden la lista completa en una sola página.
+  limit: z.number().int().positive().max(200).default(10),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
   search: z.string().optional(),
   isFeatured: z.boolean().optional(),
@@ -22,9 +23,9 @@ export type TourListInput = z.infer<typeof tourListInputSchema>;
 
 const itineraryDaySchema = z.object({
   dayNumber: z.number().int().positive(),
-  titleEs: z.string().min(1, "Titulo requerido"),
+  titleEs: z.string().min(1, "Título requerido"),
   titleEn: z.string().min(1, "Title required"),
-  descriptionEs: z.string().min(1, "Descripcion requerida"),
+  descriptionEs: z.string().min(1, "Descripción requerida"),
   descriptionEn: z.string().min(1, "Description required"),
 });
 

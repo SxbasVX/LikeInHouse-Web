@@ -79,6 +79,16 @@ const roleColors: Record<string, string> = {
   DEVELOPER: "bg-brand-teal/15 text-brand-darkTeal",
 };
 
+/** Mismas reglas que `passwordSchema` del router de usuarios, para avisar antes de enviar. */
+function passwordIssues(password: string): string[] {
+  const issues: string[] = [];
+  if (password.length < 8) issues.push("al menos 8 caracteres");
+  if (!/[A-Z]/.test(password)) issues.push("una mayúscula");
+  if (!/[a-z]/.test(password)) issues.push("una minúscula");
+  if (!/[0-9]/.test(password)) issues.push("un número");
+  return issues;
+}
+
 export default function UsuariosPage() {
   const [page, setPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -99,6 +109,14 @@ export default function UsuariosPage() {
     password: "",
     role: "SALES",
   });
+
+  const createPasswordIssues = form.password ? passwordIssues(form.password) : [];
+  const createMissing = [
+    !form.name.trim() && "nombre",
+    !form.email.trim() && "email",
+    !form.password && "contraseña",
+  ].filter(Boolean) as string[];
+  const editPasswordIssues = editUser?.password ? passwordIssues(editUser.password) : [];
 
   const resetForm = () =>
     setForm({ name: "", email: "", password: "", role: "SALES" });
@@ -172,35 +190,49 @@ export default function UsuariosPage() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
-                <Label>Nombre *</Label>
+                <Label htmlFor="new-user-name">Nombre *</Label>
                 <Input
+                  id="new-user-name"
                   value={form.name}
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Email *</Label>
+                <Label htmlFor="new-user-email">Email *</Label>
                 <Input
+                  id="new-user-email"
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Contraseña *</Label>
+                <Label htmlFor="new-user-password">Contraseña *</Label>
                 <Input
+                  id="new-user-password"
                   type="password"
+                  autoComplete="new-password"
+                  aria-describedby="new-user-password-hint"
+                  aria-invalid={createPasswordIssues.length > 0}
                   value={form.password}
                   onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
                 />
+                <p
+                  id="new-user-password-hint"
+                  className={createPasswordIssues.length > 0 ? "text-xs text-destructive" : "text-xs text-muted-foreground"}
+                >
+                  {createPasswordIssues.length > 0
+                    ? `Falta: ${createPasswordIssues.join(", ")}.`
+                    : "Mínimo 8 caracteres, con mayúscula, minúscula y número."}
+                </p>
               </div>
               <div className="space-y-2">
-                <Label>Rol</Label>
+                <Label htmlFor="new-user-role">Rol</Label>
                 <Select
                   value={form.role}
                   onValueChange={(val) => setForm((p) => ({ ...p, role: val }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="new-user-role">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -212,6 +244,11 @@ export default function UsuariosPage() {
                 </Select>
               </div>
             </div>
+            {createMissing.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Completa {createMissing.join(", ")} para crear el usuario.
+              </p>
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
                 Cancelar
@@ -225,9 +262,8 @@ export default function UsuariosPage() {
                 }
                 disabled={
                   createUser.isPending ||
-                  !form.name ||
-                  !form.email ||
-                  !form.password
+                  createMissing.length > 0 ||
+                  createPasswordIssues.length > 0
                 }
               >
                 {createUser.isPending ? (
@@ -281,20 +317,20 @@ export default function UsuariosPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead className="hidden md:table-cell">Email</TableHead>
                   <TableHead>Rol</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Último acceso</TableHead>
-                  <TableHead>Reservas</TableHead>
-                  <TableHead>Cotizaciones</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead className="hidden lg:table-cell">Último acceso</TableHead>
+                  <TableHead className="hidden lg:table-cell">Reservas</TableHead>
+                  <TableHead className="hidden lg:table-cell">Cotizaciones</TableHead>
+                  <TableHead className="w-[50px]"><span className="sr-only">Acciones</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.users.map((user: User) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell className="hidden md:table-cell">{user.email}</TableCell>
                     <TableCell>
                       <Badge className={roleColors[user.role] || ""} variant="secondary">
                         <Shield className="mr-1 h-3 w-3" />
@@ -306,7 +342,7 @@ export default function UsuariosPage() {
                         {user.isActive ? "Activo" : "Inactivo"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm">
+                    <TableCell className="hidden lg:table-cell text-sm">
                       {user.lastLoginAt
                         ? formatDateTime(user.lastLoginAt, {
                           day: "2-digit",
@@ -317,12 +353,17 @@ export default function UsuariosPage() {
                         })
                         : "Nunca"}
                     </TableCell>
-                    <TableCell>{user._count.reservations}</TableCell>
-                    <TableCell>{user._count.quotations}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{user._count.reservations}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{user._count.quotations}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Acciones para ${user.name}`}
+                            title="Acciones"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -392,8 +433,9 @@ export default function UsuariosPage() {
           {editUser && (
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
-                <Label>Nombre</Label>
+                <Label htmlFor="edit-user-name">Nombre</Label>
                 <Input
+                  id="edit-user-name"
                   value={editUser.name}
                   onChange={(e) =>
                     setEditUser((p) => (p ? { ...p, name: e.target.value } : null))
@@ -401,8 +443,9 @@ export default function UsuariosPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label htmlFor="edit-user-email">Email</Label>
                 <Input
+                  id="edit-user-email"
                   type="email"
                   value={editUser.email}
                   onChange={(e) =>
@@ -411,14 +454,14 @@ export default function UsuariosPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Rol</Label>
+                <Label htmlFor="edit-user-role">Rol</Label>
                 <Select
                   value={editUser.role}
                   onValueChange={(val) =>
                     setEditUser((p) => (p ? { ...p, role: val } : null))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="edit-user-role">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -430,9 +473,13 @@ export default function UsuariosPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Nueva contraseña (dejar vacío para mantener)</Label>
+                <Label htmlFor="edit-user-password">Nueva contraseña (dejar vacío para mantener)</Label>
                 <Input
+                  id="edit-user-password"
                   type="password"
+                  autoComplete="new-password"
+                  aria-describedby="edit-user-password-hint"
+                  aria-invalid={editPasswordIssues.length > 0}
                   value={editUser.password || ""}
                   onChange={(e) =>
                     setEditUser((p) =>
@@ -440,6 +487,14 @@ export default function UsuariosPage() {
                     )
                   }
                 />
+                <p
+                  id="edit-user-password-hint"
+                  className={editPasswordIssues.length > 0 ? "text-xs text-destructive" : "text-xs text-muted-foreground"}
+                >
+                  {editPasswordIssues.length > 0
+                    ? `Falta: ${editPasswordIssues.join(", ")}.`
+                    : "Mínimo 8 caracteres, con mayúscula, minúscula y número."}
+                </p>
               </div>
             </div>
           )}
@@ -458,7 +513,7 @@ export default function UsuariosPage() {
                   password: editUser.password || undefined,
                 });
               }}
-              disabled={updateUser.isPending}
+              disabled={updateUser.isPending || editPasswordIssues.length > 0}
             >
               {updateUser.isPending ? (
                 <>

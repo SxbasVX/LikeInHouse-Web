@@ -53,7 +53,7 @@ import { Pagination } from "@/components/admin/pagination";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/admin/list-states";
 import { formatDate, formatMoney } from "@/lib/format";
-import { statusLabel, statusOptions } from "@/lib/status";
+import { reservationOriginLabel, statusLabel, statusOptions, trafficSourceLabel } from "@/lib/status";
 import { formatTrpcError } from "@/lib/trpc-error";
 import {
   Search,
@@ -133,11 +133,12 @@ export default function ReservasPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-6">
-            <div className="relative flex-1">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap mb-6">
+            <div className="relative flex-1 min-w-0 sm:min-w-[240px]">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por código, cliente o tour..."
+                aria-label="Buscar reservas"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -153,7 +154,7 @@ export default function ReservasPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-44" aria-label="Filtrar por estado">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
@@ -182,16 +183,16 @@ export default function ReservasPage() {
                   <TableRow>
                     <TableHead>Código</TableHead>
                     <TableHead>Cliente</TableHead>
-                    <TableHead>Tour</TableHead>
-                    <TableHead>Fecha Salida</TableHead>
-                    <TableHead>Personas</TableHead>
+                    <TableHead className="hidden md:table-cell">Tour</TableHead>
+                    <TableHead>Fecha salida</TableHead>
+                    <TableHead className="hidden lg:table-cell">Personas</TableHead>
                     <TableHead>Monto</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead>Origen</TableHead>
-                    <TableHead>Fuente</TableHead>
-                    <TableHead>Campaña</TableHead>
-                    <TableHead>Voucher</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="hidden xl:table-cell">Origen</TableHead>
+                    <TableHead className="hidden xl:table-cell">Fuente</TableHead>
+                    <TableHead className="hidden xl:table-cell">Campaña</TableHead>
+                    <TableHead className="hidden sm:table-cell">Voucher</TableHead>
+                    <TableHead className="w-[50px]"><span className="sr-only">Acciones</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -210,11 +211,11 @@ export default function ReservasPage() {
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell>{reservation.tour.nameEs}</TableCell>
+                      <TableCell className="hidden md:table-cell">{reservation.tour.nameEs}</TableCell>
                       <TableCell>
                         {reservationDateStr(reservation) || "Sin fecha"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         {reservation.adults}A {reservation.children > 0 ? `+ ${reservation.children}N` : ""}
                       </TableCell>
                       <TableCell className="font-medium">
@@ -223,25 +224,25 @@ export default function ReservasPage() {
                       <TableCell>
                         <StatusBadge domain="reservation" status={reservation.status} />
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{reservation.origin}</Badge>
+                      <TableCell className="hidden xl:table-cell">
+                        <Badge variant="outline">{reservationOriginLabel(reservation.origin)}</Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         {(reservation as any).firstSource && (reservation as any).firstSource !== "direct" ? (
                           <div className="text-xs space-y-0.5">
-                            <div><span className="text-muted-foreground">1st:</span> <Badge variant="secondary" className="text-xs px-1.5 py-0">{(reservation as any).firstSource}</Badge></div>
+                            <div><span className="text-muted-foreground">Primer contacto:</span> <Badge variant="secondary" className="text-xs px-1.5 py-0">{trafficSourceLabel((reservation as any).firstSource)}</Badge></div>
                             {(reservation as any).lastSource && (reservation as any).lastSource !== (reservation as any).firstSource && (
-                              <div><span className="text-muted-foreground">Last:</span> <Badge variant="secondary" className="text-xs px-1.5 py-0">{(reservation as any).lastSource}</Badge></div>
+                              <div><span className="text-muted-foreground">Último contacto:</span> <Badge variant="secondary" className="text-xs px-1.5 py-0">{trafficSourceLabel((reservation as any).lastSource)}</Badge></div>
                             )}
                           </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground">{(reservation as any).firstSource || "—"}</span>
+                          <span className="text-xs text-muted-foreground">{trafficSourceLabel((reservation as any).firstSource)}</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <span className="text-xs">{(reservation as any).utmCampaign || "—"}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <DownloadPDFButton
                           isEs={true}
                           variant="ghost"
@@ -276,7 +277,12 @@ export default function ReservasPage() {
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Acciones para la reserva ${reservation.referenceCode}`}
+                              title="Acciones"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>

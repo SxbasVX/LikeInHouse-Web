@@ -91,6 +91,12 @@ export default function ClientesPage() {
     notes: "",
   });
 
+  const createMissing = [
+    !form.firstName.trim() && "nombre",
+    !form.lastName.trim() && "apellido",
+    !form.email.trim() && "email",
+  ].filter(Boolean) as string[];
+
   const resetForm = () =>
     setForm({ email: "", firstName: "", lastName: "", phone: "", country: "", language: "es", notes: "" });
 
@@ -166,7 +172,7 @@ export default function ClientesPage() {
     onChange: (field: string, value: string) => void;
   }) => (
     <div className="grid gap-4 py-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="firstName">Nombre *</Label>
           <Input
@@ -193,7 +199,7 @@ export default function ClientesPage() {
           onChange={(e) => onChange("email", e.target.value)}
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="phone">Teléfono</Label>
           <Input
@@ -214,7 +220,7 @@ export default function ClientesPage() {
       <div className="space-y-2">
         <Label htmlFor="language">Idioma</Label>
         <Select value={values.language} onValueChange={(val) => onChange("language", val)}>
-          <SelectTrigger>
+          <SelectTrigger id="language">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -252,19 +258,22 @@ export default function ClientesPage() {
               <DialogTitle>Nuevo Cliente</DialogTitle>
               <DialogDescription>Registra un nuevo cliente</DialogDescription>
             </DialogHeader>
-            <ClientFormFields
-              values={form}
-              onChange={(field, value) => setForm((prev) => ({ ...prev, [field]: value }))}
-            />
+            {ClientFormFields({
+              values: form,
+              onChange: (field, value) => setForm((prev) => ({ ...prev, [field]: value })),
+            })}
+            {createMissing.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Completa {createMissing.join(", ")} para crear el cliente.
+              </p>
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
                 Cancelar
               </Button>
               <Button
                 onClick={handleCreate}
-                disabled={
-                  createClient.isPending || !form.email || !form.firstName || !form.lastName
-                }
+                disabled={createClient.isPending || createMissing.length > 0}
               >
                 {createClient.isPending ? "Guardando..." : "Crear"}
               </Button>
@@ -287,6 +296,7 @@ export default function ClientesPage() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nombre, email o teléfono..."
+                aria-label="Buscar clientes"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -313,13 +323,13 @@ export default function ClientesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Cliente</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Teléfono</TableHead>
-                    <TableHead>País</TableHead>
-                    <TableHead>Idioma</TableHead>
-                    <TableHead>Reservas</TableHead>
-                    <TableHead>Cotizaciones</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="hidden md:table-cell">Email</TableHead>
+                    <TableHead className="hidden lg:table-cell">Teléfono</TableHead>
+                    <TableHead className="hidden lg:table-cell">País</TableHead>
+                    <TableHead className="hidden xl:table-cell">Idioma</TableHead>
+                    <TableHead className="hidden lg:table-cell">Reservas</TableHead>
+                    <TableHead className="hidden xl:table-cell">Cotizaciones</TableHead>
+                    <TableHead className="w-[50px]"><span className="sr-only">Acciones</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -328,8 +338,8 @@ export default function ClientesPage() {
                       <TableCell className="font-medium">
                         {client.firstName} {client.lastName}
                       </TableCell>
-                      <TableCell>{client.email}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">{client.email}</TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         {client.phone ? (
                           <span className="flex items-center gap-1">
                             <Phone className="h-3 w-3" /> {client.phone}
@@ -338,7 +348,7 @@ export default function ClientesPage() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         {client.country ? (
                           <span className="flex items-center gap-1">
                             <Globe className="h-3 w-3" /> {client.country}
@@ -347,17 +357,22 @@ export default function ClientesPage() {
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <Badge variant="outline">
                           {client.language === "es" ? "ES" : "EN"}
                         </Badge>
                       </TableCell>
-                      <TableCell>{client._count.reservations}</TableCell>
-                      <TableCell>{client._count.quotations}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{client._count.reservations}</TableCell>
+                      <TableCell className="hidden xl:table-cell">{client._count.quotations}</TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Acciones para ${client.firstName} ${client.lastName}`}
+                              title="Acciones"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -414,8 +429,8 @@ export default function ClientesPage() {
             <DialogTitle>Editar Cliente</DialogTitle>
           </DialogHeader>
           {editClient && (
-            <ClientFormFields
-              values={{
+            ClientFormFields({
+              values: {
                 email: editClient.email,
                 firstName: editClient.firstName,
                 lastName: editClient.lastName,
@@ -423,11 +438,10 @@ export default function ClientesPage() {
                 country: editClient.country || "",
                 language: editClient.language,
                 notes: editClient.notes || "",
-              }}
-              onChange={(field, value) =>
-                setEditClient((prev) => (prev ? { ...prev, [field]: value } : null))
-              }
-            />
+              },
+              onChange: (field, value) =>
+                setEditClient((prev) => (prev ? { ...prev, [field]: value } : null)),
+            })
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditClient(null)}>

@@ -104,29 +104,29 @@ export default function LoginPage() {
         >
           {/* Círculos decorativos (solo CSS, sin filtros) */}
           <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/10" />
-          <div className="absolute -bottom-20 -left-12 w-64 h-64 rounded-full bg-white/8" />
-          <div className="absolute top-1/2 -right-10 w-36 h-36 rounded-full bg-white/8" />
+          <div className="absolute -bottom-20 -left-12 w-64 h-64 rounded-full bg-white/10" />
+          <div className="absolute top-1/2 -right-10 w-36 h-36 rounded-full bg-white/10" />
 
           <div className="relative z-10 space-y-4">
-            <div className="flex items-center gap-1.5 text-white/60 text-xs font-semibold uppercase tracking-widest">
+            <div className="flex items-center gap-1.5 text-white/85 text-xs font-semibold uppercase tracking-widest">
               <MapPin className="h-3.5 w-3.5" />
               Agencia de turismo · Perú
             </div>
             <h2 className="font-heading text-2xl font-bold text-white leading-snug">
               Gestiona tu agencia desde un solo lugar
             </h2>
-            <p className="text-white/65 text-sm leading-relaxed">
+            <p className="text-white/85 text-sm leading-relaxed">
               Tours, reservas, clientes y pagos. Todo centralizado.
             </p>
           </div>
 
-          <p className="relative z-10 text-white/35 text-[11px]">
+          <p className="relative z-10 text-white/75 text-[11px]">
             Hecho por Vyper Design
           </p>
         </div>
 
         {/* Panel derecho — fondo sólido oscuro, sin backdrop-blur */}
-        <div className="flex-1 bg-[#111111] border-l border-white/8 p-8 flex flex-col justify-center">
+        <div className="flex-1 bg-[#111111] border-l border-white/10 p-8 flex flex-col justify-center">
 
           {/* Logo mobile */}
           <div className="md:hidden mb-6 flex justify-center">
@@ -143,7 +143,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="flex items-start gap-3 rounded-xl bg-red-900/40 border border-red-500/30 p-4 text-sm text-red-200 mb-5">
+            <div role="alert" className="flex items-start gap-3 rounded-xl bg-red-900/40 border border-red-500/30 p-4 text-sm text-red-200 mb-5">
               <div className="h-1.5 w-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
               {error}
             </div>
@@ -152,17 +152,17 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
             <div className="space-y-1.5">
-              <label htmlFor="email" className="text-sm font-medium text-white/75">
+              <label htmlFor="email" className="text-sm font-medium text-white/85">
                 Correo electrónico
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/35" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" aria-hidden="true" />
                 <Input
                   id="email"
                   type="email"
                   autoComplete="email"
                   placeholder="admin@likeinhouse.com"
-                  className="h-11 pl-10 rounded-xl border-white/12 placeholder:text-white/30 focus:ring-0"
+                  className="h-11 pl-10 rounded-xl border-white/15 placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-0"
                   style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "#ffffff" }}
                   {...register("email")}
                 />
@@ -171,25 +171,27 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="password" className="text-sm font-medium text-white/75">
+              <label htmlFor="password" className="text-sm font-medium text-white/85">
                 Contraseña
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/35" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" aria-hidden="true" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="h-11 pl-10 pr-11 rounded-xl border-white/12 placeholder:text-white/30 focus:ring-0"
+                  className="h-11 pl-10 pr-11 rounded-xl border-white/15 placeholder:text-white/50 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-0"
                   style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "#ffffff" }}
                   {...register("password")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/35 hover:text-white/75 transition-colors"
-                  tabIndex={-1}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-white/60 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  aria-pressed={showPassword}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>

@@ -11,7 +11,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { formatDate, formatTimestampDate, formatMoney } from "@/lib/format";
-import { getStatusStyle } from "@/lib/status";
+import { getStatusStyle, reservationOriginLabel } from "@/lib/status";
 
 interface CalendarReservation {
   id: string;
@@ -105,82 +105,140 @@ export function BookingCalendar({ reservations, month, onMonthChange }: BookingC
 
   const monthLabel = month.toLocaleDateString("es-PE", { month: "long", year: "numeric" });
 
+  // Agenda para pantallas pequeñas: sólo los días del mes con reservas.
+  const agendaDays = useMemo(
+    () =>
+      days
+        .filter((d): d is Date => !!d && (byDate[dateKey(d)]?.length ?? 0) > 0)
+        .map((d) => ({ day: d, events: byDate[dateKey(d)] })),
+    [days, byDate]
+  );
+
   return (
     <>
       {/* Navigation */}
       <div className="flex items-center justify-between mb-4">
-        <Button variant="outline" size="icon" onClick={prevMonth}>
+        <Button variant="outline" size="icon" onClick={prevMonth} aria-label="Mes anterior" title="Mes anterior">
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <h2 className="text-lg font-semibold capitalize">{monthLabel}</h2>
-        <Button variant="outline" size="icon" onClick={nextMonth}>
+        <h2 className="text-lg font-semibold capitalize" aria-live="polite">{monthLabel}</h2>
+        <Button variant="outline" size="icon" onClick={nextMonth} aria-label="Mes siguiente" title="Mes siguiente">
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Day headers */}
-      <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-t-lg overflow-hidden">
-        {DAYS_ES.map((d) => (
-          <div key={d} className="bg-gray-50 py-2 text-center text-xs font-semibold text-gray-500">
-            {d}
-          </div>
-        ))}
+      {/* Agenda (móvil): la cuadrícula de 7 columnas no se lee en pantallas angostas */}
+      <div className="sm:hidden">
+        {agendaDays.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">No hay reservas este mes.</p>
+        ) : (
+          <ul className="space-y-4">
+            {agendaDays.map(({ day, events }) => {
+              const key = dateKey(day);
+              return (
+                <li key={key}>
+                  <h3
+                    className={`mb-1.5 text-sm font-semibold capitalize ${key === today ? "text-primary" : "text-gray-700"}`}
+                  >
+                    {day.toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
+                    {key === today && <span className="ml-2 text-xs font-medium normal-case">(hoy)</span>}
+                  </h3>
+                  <ul className="space-y-1.5">
+                    {events.map((r) => {
+                      const cfg = getStatusStyle("reservation", r.status);
+                      return (
+                        <li key={r.id}>
+                          <button
+                            type="button"
+                            onClick={() => setSelected(r)}
+                            className={`flex w-full items-start gap-2 rounded-md border px-3 py-2 text-left text-sm ${cfg.className}`}
+                          >
+                            <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${cfg.dot}`} aria-hidden="true" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block font-medium">{r.tour.nameEs}</span>
+                              <span className="block text-xs opacity-80">
+                                {r.client.firstName} {r.client.lastName} · {cfg.label}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-b-lg overflow-hidden">
-        {days.map((day, i) => {
-          if (!day) {
-            return <div key={`empty-${i}`} className="bg-gray-50 min-h-[100px]" />;
-          }
-
-          const key = dateKey(day);
-          const events = byDate[key] || [];
-          const isToday = key === today;
-
-          return (
-            <div
-              key={key}
-              className={`bg-white min-h-[100px] p-1.5 ${isToday ? "ring-2 ring-inset ring-primary/30" : ""}`}
-            >
-              <span
-                className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
-                  isToday ? "bg-primary text-primary-foreground" : "text-gray-700"
-                }`}
-              >
-                {day.getDate()}
-              </span>
-
-              <div className="mt-1 space-y-0.5">
-                {events.slice(0, 3).map((r) => {
-                  const cfg = getStatusStyle("reservation", r.status);
-                  return (
-                    <button
-                      key={r.id}
-                      onClick={() => setSelected(r)}
-                      className={`w-full text-left rounded px-1.5 py-0.5 text-[10px] font-medium truncate border ${cfg.className} hover:opacity-80 transition-opacity`}
-                    >
-                      <span className={`inline-block h-1.5 w-1.5 rounded-full mr-1 ${cfg.dot}`} />
-                      {r.tour.nameEs.slice(0, 15)}
-                    </button>
-                  );
-                })}
-                {events.length > 3 && (
-                  <span className="text-[10px] text-muted-foreground pl-1">
-                    +{events.length - 3} más
-                  </span>
-                )}
-              </div>
+      <div className="hidden sm:block">
+        {/* Day headers */}
+        <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-t-lg overflow-hidden">
+          {DAYS_ES.map((d) => (
+            <div key={d} className="bg-gray-50 py-2 text-center text-xs font-semibold text-gray-500">
+              {d}
             </div>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-b-lg overflow-hidden">
+          {days.map((day, i) => {
+            if (!day) {
+              return <div key={`empty-${i}`} className="bg-gray-50 min-h-[100px]" />;
+            }
+
+            const key = dateKey(day);
+            const events = byDate[key] || [];
+            const isToday = key === today;
+
+            return (
+              <div
+                key={key}
+                className={`bg-white min-h-[100px] p-1.5 ${isToday ? "ring-2 ring-inset ring-primary/30" : ""}`}
+              >
+                <span
+                  className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
+                    isToday ? "bg-primary text-primary-foreground" : "text-gray-700"
+                  }`}
+                >
+                  {day.getDate()}
+                </span>
+
+                <div className="mt-1 space-y-0.5">
+                  {events.slice(0, 3).map((r) => {
+                    const cfg = getStatusStyle("reservation", r.status);
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => setSelected(r)}
+                        title={`${r.tour.nameEs} — ${r.client.firstName} ${r.client.lastName} (${cfg.label})`}
+                        className={`w-full text-left rounded px-1.5 py-0.5 text-[10px] font-medium truncate border ${cfg.className} hover:opacity-80 transition-opacity`}
+                      >
+                        <span className={`inline-block h-1.5 w-1.5 rounded-full mr-1 ${cfg.dot}`} />
+                        {r.tour.nameEs.slice(0, 15)}
+                      </button>
+                    );
+                  })}
+                  {events.length > 3 && (
+                    <span className="text-[10px] text-muted-foreground pl-1">
+                      +{events.length - 3} más
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Detail modal */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Detalle de Reserva</DialogTitle>
+            <DialogTitle>Detalle de reserva</DialogTitle>
           </DialogHeader>
           {selected && (
             <div className="space-y-3">
@@ -211,12 +269,12 @@ export function BookingCalendar({ reservations, month, onMonthChange }: BookingC
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Origen</p>
-                  <p>{selected.origin}</p>
+                  <p>{reservationOriginLabel(selected.origin)}</p>
                 </div>
                 {(selected.departure || selected.travelDate) && (
                   <div>
                     <p className="text-muted-foreground text-xs">
-                      {selected.departure ? "Fecha Salida" : "Fecha solicitada"}
+                      {selected.departure ? "Fecha de salida" : "Fecha solicitada"}
                     </p>
                     <p>
                       {formatDate(selected.departure?.departureDate ?? selected.travelDate)}

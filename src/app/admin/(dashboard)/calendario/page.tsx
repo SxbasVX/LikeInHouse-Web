@@ -63,7 +63,7 @@ export default function CalendarioPage() {
 
   const { data: toursData } = trpc.tour.list.useQuery({
     page: 1,
-    limit: 50,
+    limit: 200,
     status: "PUBLISHED",
   });
 
@@ -110,16 +110,16 @@ export default function CalendarioPage() {
           <Card>
             <CardContent className="pt-4 pb-3">
               <p className="text-2xl font-bold">{formatTotals(stats.revenue)}</p>
-              <p className="text-xs font-serif italic text-brand-teal">Revenue estimado</p>
+              <p className="text-xs font-serif italic text-brand-teal">Ingresos estimados</p>
             </CardContent>
           </Card>
         </div>
       )}
 
       {/* Filters */}
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Select value={tourFilter} onValueChange={setTourFilter}>
-          <SelectTrigger className="w-[250px]">
+          <SelectTrigger className="w-full sm:w-[250px]" aria-label="Filtrar por tour">
             <SelectValue placeholder="Todos los tours" />
           </SelectTrigger>
           <SelectContent>
@@ -131,7 +131,7 @@ export default function CalendarioPage() {
         </Select>
 
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-44" aria-label="Filtrar por estado">
             <SelectValue placeholder="Todos los estados" />
           </SelectTrigger>
           <SelectContent>

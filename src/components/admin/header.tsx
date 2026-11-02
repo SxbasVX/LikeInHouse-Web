@@ -29,7 +29,7 @@ export function AdminHeader({ user }: AdminHeaderProps) {
     : "AD";
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-brand-darkRed/8 bg-white pl-16 pr-4 sm:pr-6 lg:pl-6 shadow-sm">
+    <header className="flex h-16 items-center justify-between border-b border-brand-darkRed/10 bg-white pl-16 pr-4 sm:pr-6 lg:pl-6 shadow-sm">
       {/* Breadcrumb (el <h1> lo pone cada página con PageHeader) */}
       <nav aria-label="Ruta de navegación" className="min-w-0">
         <ol className="flex min-w-0 items-center gap-1.5 text-sm">
@@ -69,9 +69,11 @@ export function AdminHeader({ user }: AdminHeaderProps) {
       <DropdownMenu>
         <DropdownMenuTrigger className={cn(
           "flex items-center gap-2.5 rounded-xl px-3 py-1.5",
-          "border border-transparent hover:border-brand-darkRed/10 hover:bg-brand-darkRed/4",
-          "transition-colors outline-none"
-        )}>
+          "border border-transparent hover:border-brand-darkRed/10 hover:bg-brand-darkRed/5",
+          "transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-orange"
+        )}
+          aria-label={`Menú de usuario${user.name ? ` (${user.name})` : ""}`}
+        >
           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-orange text-white text-[11px] font-bold shadow-sm shadow-brand-orange/30">
             {initials}
           </div>

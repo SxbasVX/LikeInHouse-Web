@@ -168,6 +168,7 @@ function ManageDestinationsDialog({
                   className="h-7 w-7"
                   disabled={inUse}
                   title={inUse ? "Tiene tours: cámbialos de ciudad antes de quitarla" : "Quitar"}
+                  aria-label={`Quitar ciudad ${d}`}
                   onClick={() => setDestinations(destinations.filter((x) => x !== d))}
                 >
                   <X className="h-4 w-4" />

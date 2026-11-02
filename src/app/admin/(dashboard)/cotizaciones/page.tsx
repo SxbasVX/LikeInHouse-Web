@@ -76,10 +76,10 @@ import {
 } from "lucide-react";
 
 // =============================================
-// Schema para crear cotizacion
+// Schema para crear cotización
 // =============================================
 const itemSchema = z.object({
-  descriptionEs: z.string().min(1, "Descripcion requerida"),
+  descriptionEs: z.string().min(1, "Descripción requerida"),
   descriptionEn: z.string().optional(),
   adults: z.number().min(1).default(1),
   children: z.number().min(0).default(0),
@@ -92,13 +92,13 @@ const createQuotationSchema = z.object({
   newClientName: z.string().optional(),
   newClientEmail: z.string().optional(),
   newClientPhone: z.string().optional(),
-  titleEs: z.string().min(1, "Titulo requerido"),
+  titleEs: z.string().min(1, "Título requerido"),
   titleEn: z.string().optional(),
   notesEs: z.string().optional(),
   currency: z.literal("USD"),
   validDays: z.number().min(1).default(15),
   depositPercent: z.number().min(0).max(100).optional(),
-  items: z.array(itemSchema).min(1, "Agrega al menos un item"),
+  items: z.array(itemSchema).min(1, "Agrega al menos un ítem"),
 });
 
 type CreateQuotationForm = z.infer<typeof createQuotationSchema>;
@@ -147,7 +147,7 @@ export default function CotizacionesPage() {
 
   const deleteQuotation = trpc.quotation.delete.useMutation({
     onSuccess: () => {
-      toast({ title: "Cotizacion eliminada" });
+      toast({ title: "Cotización eliminada" });
       refetch();
       setDeleteId(null);
     },
@@ -194,11 +194,12 @@ export default function CotizacionesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-6">
-            <div className="relative flex-1">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap mb-6">
+            <div className="relative flex-1 min-w-0 sm:min-w-[240px]">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por codigo, titulo o cliente..."
+                placeholder="Buscar por código, título o cliente..."
+                aria-label="Buscar cotizaciones"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -214,7 +215,7 @@ export default function CotizacionesPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-44" aria-label="Filtrar por estado">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
@@ -241,15 +242,15 @@ export default function CotizacionesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Codigo</TableHead>
+                    <TableHead>Código</TableHead>
                     <TableHead>Cliente</TableHead>
-                    <TableHead>Titulo</TableHead>
-                    <TableHead>Items</TableHead>
+                    <TableHead className="hidden md:table-cell">Título</TableHead>
+                    <TableHead className="hidden xl:table-cell">Ítems</TableHead>
                     <TableHead>Monto</TableHead>
-                    <TableHead>Valida hasta</TableHead>
+                    <TableHead className="hidden lg:table-cell">Válida hasta</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead>Creada por</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="hidden xl:table-cell">Creada por</TableHead>
+                    <TableHead className="w-[50px]"><span className="sr-only">Acciones</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -268,24 +269,29 @@ export default function CotizacionesPage() {
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell>{quotation.titleEs}</TableCell>
-                      <TableCell>{quotation._count.items}</TableCell>
+                      <TableCell className="hidden md:table-cell">{quotation.titleEs}</TableCell>
+                      <TableCell className="hidden xl:table-cell">{quotation._count.items}</TableCell>
                       <TableCell className="font-medium">
                         {formatMoney(quotation.totalAmount, quotation.currency)}
                       </TableCell>
-                      <TableCell className="text-sm">
+                      <TableCell className="hidden lg:table-cell text-sm">
                         {formatTimestampDate(quotation.validUntil)}
                       </TableCell>
                       <TableCell>
                         <StatusBadge domain="quotation" status={quotation.status} />
                       </TableCell>
-                      <TableCell className="text-sm">
+                      <TableCell className="hidden xl:table-cell text-sm">
                         {quotation.createdBy.name}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Acciones para la cotización ${quotation.referenceCode}`}
+                              title="Acciones"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -398,7 +404,13 @@ export default function CotizacionesPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                 <code className="flex-1 text-sm break-all">{linkDialog.url}</code>
-                <Button size="icon" variant="ghost" onClick={() => copyToClipboard(linkDialog.url)}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => copyToClipboard(linkDialog.url)}
+                  aria-label="Copiar link de pago"
+                  title="Copiar link"
+                >
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
@@ -482,9 +494,9 @@ export default function CotizacionesPage() {
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Eliminar cotizacion</DialogTitle>
+            <DialogTitle>Eliminar cotización</DialogTitle>
             <DialogDescription>
-              Estas seguro? Esta accion no se puede deshacer.
+              ¿Estás seguro? Esta acción no se puede deshacer.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -538,7 +550,7 @@ function CreateQuotationDialog({
 
   const createQuotation = trpc.quotation.create.useMutation({
     onSuccess: () => {
-      toast({ title: "Cotizacion creada exitosamente" });
+      toast({ title: "Cotización creada exitosamente" });
       onSuccess();
       reset();
       setClientMode("new");
@@ -644,9 +656,9 @@ function CreateQuotationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nueva Cotizacion</DialogTitle>
+          <DialogTitle>Nueva Cotización</DialogTitle>
           <DialogDescription>
-            Crea una cotizacion personalizada para un cliente
+            Crea una cotización personalizada para un cliente
           </DialogDescription>
         </DialogHeader>
 
@@ -654,7 +666,7 @@ function CreateQuotationDialog({
           {/* Cliente */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Cliente</Label>
+              <p className="text-base font-semibold">Cliente</p>
               <div className="flex gap-1">
                 <Button
                   type="button"
@@ -677,19 +689,19 @@ function CreateQuotationDialog({
 
             {clientMode === "new" ? (
               <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Nombre completo *</Label>
-                    <Input placeholder="Juan Perez" {...register("newClientName")} />
+                    <Label htmlFor="quote-new-client-name" className="text-xs">Nombre completo *</Label>
+                    <Input id="quote-new-client-name" placeholder="Juan Pérez" {...register("newClientName")} />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Email *</Label>
-                    <Input type="email" placeholder="cliente@email.com" {...register("newClientEmail")} />
+                    <Label htmlFor="quote-new-client-email" className="text-xs">Email *</Label>
+                    <Input id="quote-new-client-email" type="email" placeholder="cliente@email.com" {...register("newClientEmail")} />
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Telefono (opcional)</Label>
-                  <Input placeholder="+51 999 888 777" {...register("newClientPhone")} />
+                  <Label htmlFor="quote-new-client-phone" className="text-xs">Teléfono (opcional)</Label>
+                  <Input id="quote-new-client-phone" placeholder="+51 999 888 777" {...register("newClientPhone")} />
                 </div>
               </div>
             ) : (
@@ -697,7 +709,14 @@ function CreateQuotationDialog({
                 {selectedClientLabel ? (
                   <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50">
                     <span className="text-sm font-medium">{selectedClientLabel}</span>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => { setValue("clientId", ""); setSelectedClientLabel(""); setClientSearch(""); }}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setValue("clientId", ""); setSelectedClientLabel(""); setClientSearch(""); }}
+                      aria-label="Quitar cliente seleccionado"
+                      title="Quitar cliente"
+                    >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -705,6 +724,7 @@ function CreateQuotationDialog({
                   <>
                     <Input
                       placeholder="Buscar cliente por nombre o email..."
+                      aria-label="Buscar cliente"
                       value={clientSearch}
                       onChange={(e) => setClientSearch(e.target.value)}
                     />
@@ -729,7 +749,7 @@ function CreateQuotationDialog({
                     )}
                     {clientSearch && clientsData?.clients.length === 0 && (
                       <p className="text-sm text-muted-foreground px-1">
-                        No se encontro. <button type="button" className="text-primary underline" onClick={() => setClientMode("new")}>Crear nuevo cliente</button>
+                        No se encontró. <button type="button" className="text-primary underline" onClick={() => setClientMode("new")}>Crear nuevo cliente</button>
                       </p>
                     )}
                   </>
@@ -739,17 +759,17 @@ function CreateQuotationDialog({
             )}
           </div>
 
-          {/* Titulo y moneda */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 space-y-2">
-              <Label>Titulo *</Label>
-              <Input placeholder="Ej: Paquete Cusco + Machu Picchu 4D/3N" {...register("titleEs")} />
+          {/* Título y moneda */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2 space-y-2">
+              <Label htmlFor="quote-title">Título *</Label>
+              <Input id="quote-title" placeholder="Ej: Paquete Cusco + Machu Picchu 4D/3N" {...register("titleEs")} />
               {errors.titleEs && <span className="text-sm text-destructive">{errors.titleEs.message}</span>}
             </div>
             <div className="space-y-2">
-              <Label>Moneda</Label>
+              <Label htmlFor="quote-currency">Moneda</Label>
               <Select value={currency} onValueChange={(v) => setValue("currency", v as "USD")}>
-                <SelectTrigger>
+                <SelectTrigger id="quote-currency">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -759,29 +779,29 @@ function CreateQuotationDialog({
             </div>
           </div>
 
-          {/* Validez y deposito */}
+          {/* Validez y depósito */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Validez (dias)</Label>
-              <Input type="number" min={1} {...register("validDays", { valueAsNumber: true })} />
+              <Label htmlFor="quote-valid-days">Validez (días)</Label>
+              <Input id="quote-valid-days" type="number" min={1} {...register("validDays", { valueAsNumber: true })} />
             </div>
             <div className="space-y-2">
-              <Label>Deposito (%)</Label>
-              <Input type="number" min={0} max={100} placeholder="Ej: 30" {...register("depositPercent", { valueAsNumber: true })} />
+              <Label htmlFor="quote-deposit">Depósito (%)</Label>
+              <Input id="quote-deposit" type="number" min={0} max={100} placeholder="Ej: 30" {...register("depositPercent", { valueAsNumber: true })} />
             </div>
           </div>
 
           {/* Items */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Items de la Cotizacion</Label>
+              <p className="text-base font-semibold">Ítems de la cotización</p>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => append({ descriptionEs: "", adults: 1, children: 0, unitPrice: 0, quantity: 1 })}
               >
-                <Plus className="h-4 w-4 mr-1" /> Agregar Item
+                <Plus className="h-4 w-4 mr-1" /> Agregar ítem
               </Button>
             </div>
 
@@ -789,9 +809,16 @@ function CreateQuotationDialog({
               <Card key={field.id} className="p-4">
                 <div className="space-y-3">
                   <div className="flex items-start justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">Item {index + 1}</span>
+                    <span className="text-sm font-medium text-muted-foreground">Ítem {index + 1}</span>
                     {fields.length > 1 && (
-                      <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => remove(index)}
+                        aria-label={`Quitar ítem ${index + 1}`}
+                        title="Quitar ítem"
+                      >
                         <X className="h-4 w-4" />
                       </Button>
                     )}
@@ -799,7 +826,8 @@ function CreateQuotationDialog({
 
                   <div className="space-y-2">
                     <Input
-                      placeholder="Descripcion del servicio"
+                      placeholder="Descripción del servicio"
+                      aria-label={`Descripción del ítem ${index + 1}`}
                       {...register(`items.${index}.descriptionEs`)}
                     />
                     {errors.items?.[index]?.descriptionEs && (
@@ -807,22 +835,22 @@ function CreateQuotationDialog({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="space-y-1">
-                      <Label className="text-xs">Adultos</Label>
-                      <Input type="number" min={1} {...register(`items.${index}.adults`, { valueAsNumber: true })} />
+                      <Label htmlFor={`quote-item-${index}-adults`} className="text-xs">Adultos</Label>
+                      <Input id={`quote-item-${index}-adults`} type="number" min={1} {...register(`items.${index}.adults`, { valueAsNumber: true })} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Ninos</Label>
-                      <Input type="number" min={0} {...register(`items.${index}.children`, { valueAsNumber: true })} />
+                      <Label htmlFor={`quote-item-${index}-children`} className="text-xs">Niños</Label>
+                      <Input id={`quote-item-${index}-children`} type="number" min={0} {...register(`items.${index}.children`, { valueAsNumber: true })} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Precio Unit.</Label>
-                      <Input type="number" min={0} step="0.01" {...register(`items.${index}.unitPrice`, { valueAsNumber: true })} />
+                      <Label htmlFor={`quote-item-${index}-price`} className="text-xs">Precio unit.</Label>
+                      <Input id={`quote-item-${index}-price`} type="number" min={0} step="0.01" {...register(`items.${index}.unitPrice`, { valueAsNumber: true })} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Cantidad</Label>
-                      <Input type="number" min={1} {...register(`items.${index}.quantity`, { valueAsNumber: true })} />
+                      <Label htmlFor={`quote-item-${index}-qty`} className="text-xs">Cantidad</Label>
+                      <Input id={`quote-item-${index}-qty`} type="number" min={1} {...register(`items.${index}.quantity`, { valueAsNumber: true })} />
                     </div>
                   </div>
 
@@ -850,8 +878,8 @@ function CreateQuotationDialog({
 
           {/* Notas */}
           <div className="space-y-2">
-            <Label>Notas (opcional)</Label>
-            <Textarea placeholder="Notas adicionales para el cliente..." {...register("notesEs")} />
+            <Label htmlFor="quote-notes">Notas (opcional)</Label>
+            <Textarea id="quote-notes" placeholder="Notas adicionales para el cliente..." {...register("notesEs")} />
           </div>
 
           <DialogFooter>
@@ -864,7 +892,7 @@ function CreateQuotationDialog({
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creando...
                 </>
               ) : (
-                "Crear Cotizacion"
+                "Crear Cotización"
               )}
             </Button>
           </DialogFooter>

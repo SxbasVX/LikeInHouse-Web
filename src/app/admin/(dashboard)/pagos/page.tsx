@@ -43,7 +43,7 @@ import { Pagination } from "@/components/admin/pagination";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/admin/list-states";
 import { formatMoney, formatTimestampDate } from "@/lib/format";
-import { statusOptions } from "@/lib/status";
+import { paymentMethodLabel, statusOptions } from "@/lib/status";
 import { formatTrpcError } from "@/lib/trpc-error";
 import {
   Search,
@@ -55,14 +55,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-const methodLabels: Record<string, string> = {
-  CULQI_CARD: "Tarjeta (Culqi)",
-  CULQI_YAPE: "Yape (Culqi)",
-  PAYPAL: "PayPal",
-  BANK_TRANSFER: "Transferencia",
-  CASH: "Efectivo",
-};
-
 // "USD 1,234.00 · PEN 560.00": un total por moneda, nunca sumados entre sí.
 function formatTotals(totals: { currency: string; amount: number }[]): string {
   if (totals.length === 0) return formatMoney(0, "USD");
@@ -73,6 +65,7 @@ export default function PagosPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<string>("");
   const [method, setMethod] = useState<string>("");
+  const [search, setSearch] = useState("");
   const [verifyTarget, setVerifyTarget] = useState<Payment | null>(null);
   const { toast } = useToast();
 
@@ -81,6 +74,7 @@ export default function PagosPage() {
     limit: 10,
     status: (status as "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "REFUNDED") || undefined,
     method: (method as "CULQI_CARD" | "CULQI_YAPE" | "PAYPAL" | "BANK_TRANSFER" | "CASH") || undefined,
+    search: search.trim() || undefined,
   });
 
   const { data: stats, refetch: refetchStats } = trpc.payment.getStats.useQuery();
@@ -157,7 +151,20 @@ export default function PagosPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap mb-6">
+            <div className="relative flex-1 min-w-0 sm:min-w-[240px]">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por cliente o código de reserva..."
+                aria-label="Buscar pagos"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-10"
+              />
+            </div>
             <Select
               value={status}
               onValueChange={(val) => {
@@ -165,7 +172,7 @@ export default function PagosPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-44" aria-label="Filtrar por estado">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
@@ -182,7 +189,7 @@ export default function PagosPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-48" aria-label="Filtrar por método">
                 <SelectValue placeholder="Método" />
               </SelectTrigger>
               <SelectContent>
@@ -204,7 +211,7 @@ export default function PagosPage() {
             <EmptyState
               icon={CreditCard}
               title="No se encontraron pagos"
-              description={status || method ? "Prueba con otros filtros." : "Los pagos registrados aparecerán aquí."}
+              description={status || method || search ? "Prueba con otros filtros." : "Los pagos registrados aparecerán aquí."}
             />
           ) : (
             <>
@@ -213,28 +220,30 @@ export default function PagosPage() {
                   <TableRow>
                     <TableHead>Reserva</TableHead>
                     <TableHead>Cliente</TableHead>
-                    <TableHead>Tour</TableHead>
-                    <TableHead>Método</TableHead>
+                    <TableHead className="hidden lg:table-cell">Tour</TableHead>
+                    <TableHead className="hidden md:table-cell">Método</TableHead>
                     <TableHead>Monto</TableHead>
                     <TableHead>Estado</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="hidden md:table-cell">Fecha</TableHead>
+                    <TableHead className="w-[50px]"><span className="sr-only">Acciones</span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {data?.payments.map((payment: Payment) => (
                     <TableRow key={payment.id}>
-                      <TableCell className="font-mono text-sm">
-                        {payment.reservation.referenceCode.slice(0, 12)}...
+                      <TableCell className="font-mono text-sm max-w-[160px]">
+                        <span className="block truncate" title={payment.reservation.referenceCode}>
+                          {payment.reservation.referenceCode}
+                        </span>
                       </TableCell>
                       <TableCell>
                         {payment.reservation.client.firstName}{" "}
                         {payment.reservation.client.lastName}
                       </TableCell>
-                      <TableCell>{payment.reservation.tour.nameEs}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">{payment.reservation.tour.nameEs}</TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <Badge variant="outline">
-                          {methodLabels[payment.method] || payment.method}
+                          {paymentMethodLabel(payment.method)}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-medium">
@@ -246,14 +255,19 @@ export default function PagosPage() {
                       <TableCell>
                         <StatusBadge domain="payment" status={payment.status} />
                       </TableCell>
-                      <TableCell className="text-sm">
+                      <TableCell className="hidden md:table-cell text-sm">
                         {formatTimestampDate(payment.createdAt)}
                       </TableCell>
                       <TableCell>
                         {payment.status === "PENDING" && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Acciones para el pago de la reserva ${payment.reservation.referenceCode}`}
+                                title="Acciones"
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -262,7 +276,7 @@ export default function PagosPage() {
                                 onClick={() => setVerifyTarget(payment)}
                               >
                                 <CheckCircle className="mr-2 h-4 w-4" />
-                                Verificar Pago
+                                Verificar pago
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -302,7 +316,7 @@ export default function PagosPage() {
                 <strong>
                   {verifyTarget.reservation.client.firstName} {verifyTarget.reservation.client.lastName}
                 </strong>{" "}
-                ({methodLabels[verifyTarget.method] || verifyTarget.method}), reserva{" "}
+                ({paymentMethodLabel(verifyTarget.method)}), reserva{" "}
                 <span className="font-mono">{verifyTarget.reservation.referenceCode}</span>.
               </p>
               <p>Confirma sólo si el dinero ya ingresó a la cuenta. Quedará registrado con tu usuario.</p>

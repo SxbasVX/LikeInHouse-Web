@@ -64,7 +64,7 @@ export default function NuevaReservaPage() {
 
   const { data: toursData } = trpc.tour.list.useQuery({
     page: 1,
-    limit: 50,
+    limit: 200,
     status: "PUBLISHED",
     tourType: "BOOKABLE",
   });
@@ -123,9 +123,28 @@ export default function NuevaReservaPage() {
   // Selected client name
   const selectedClient = clientsData?.clients.find((c) => c.id === clientId);
 
+  // Qué falta para poder crear la reserva (se muestra junto al botón)
+  const missing = [
+    !clientId && "un cliente",
+    !tourId && "un tour",
+    tourId && tourDetail && !pricing && "un tour con precios configurados",
+  ].filter(Boolean) as string[];
+  const newClientMissing = [
+    !newClientData.firstName.trim() && "nombre",
+    !newClientData.lastName.trim() && "apellido",
+    !newClientData.email.trim() && "email",
+  ].filter(Boolean) as string[];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clientId || !tourId || !pricing) return;
+    if (!clientId || !tourId || !pricing) {
+      toast({
+        title: "Faltan datos para crear la reserva",
+        description: missing.length > 0 ? `Selecciona ${missing.join(" y ")}.` : "Espera a que cargue el precio del tour.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     createReservation.mutate({
       clientId,
@@ -154,7 +173,7 @@ export default function NuevaReservaPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Nueva Reserva Manual"
+        title="Nueva reserva manual"
         subtitle="Crea una reserva para un cliente"
         leading={
           <Button variant="ghost" size="icon" asChild>
@@ -181,6 +200,7 @@ export default function NuevaReservaPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Buscar por nombre, email o teléfono..."
+                      aria-label="Buscar cliente"
                       value={clientSearch}
                       onChange={(e) => setClientSearch(e.target.value)}
                       className="pl-10"
@@ -194,6 +214,7 @@ export default function NuevaReservaPage() {
                           type="button"
                           key={client.id}
                           onClick={() => setClientId(client.id)}
+                          aria-pressed={clientId === client.id}
                           className={`w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors ${
                             clientId === client.id ? "bg-primary/10 border-l-2 border-primary" : ""
                           }`}
@@ -225,18 +246,20 @@ export default function NuevaReservaPage() {
                 </>
               ) : (
                 <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <Label>Nombre *</Label>
+                      <Label htmlFor="new-client-first-name">Nombre *</Label>
                       <Input
+                        id="new-client-first-name"
                         value={newClientData.firstName}
                         onChange={(e) => setNewClientData((p) => ({ ...p, firstName: e.target.value }))}
                         placeholder="Juan"
                       />
                     </div>
                     <div>
-                      <Label>Apellido *</Label>
+                      <Label htmlFor="new-client-last-name">Apellido *</Label>
                       <Input
+                        id="new-client-last-name"
                         value={newClientData.lastName}
                         onChange={(e) => setNewClientData((p) => ({ ...p, lastName: e.target.value }))}
                         placeholder="Pérez"
@@ -244,41 +267,49 @@ export default function NuevaReservaPage() {
                     </div>
                   </div>
                   <div>
-                    <Label>Email *</Label>
+                    <Label htmlFor="new-client-email">Email *</Label>
                     <Input
+                      id="new-client-email"
                       type="email"
                       value={newClientData.email}
                       onChange={(e) => setNewClientData((p) => ({ ...p, email: e.target.value }))}
                       placeholder="cliente@email.com"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <Label>Teléfono</Label>
+                      <Label htmlFor="new-client-phone">Teléfono</Label>
                       <Input
+                        id="new-client-phone"
                         value={newClientData.phone}
                         onChange={(e) => setNewClientData((p) => ({ ...p, phone: e.target.value }))}
                         placeholder="+51 999 888 777"
                       />
                     </div>
                     <div>
-                      <Label>País</Label>
+                      <Label htmlFor="new-client-country">País</Label>
                       <Input
+                        id="new-client-country"
                         value={newClientData.country}
                         onChange={(e) => setNewClientData((p) => ({ ...p, country: e.target.value }))}
                         placeholder="Perú"
                       />
                     </div>
                   </div>
+                  {newClientMissing.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Completa {newClientMissing.join(", ")} para crear el cliente.
+                    </p>
+                  )}
                   <div className="flex gap-2">
                     <Button
                       type="button"
                       onClick={handleCreateClient}
-                      disabled={!newClientData.email || !newClientData.firstName || !newClientData.lastName || createClient.isPending}
+                      disabled={newClientMissing.length > 0 || createClient.isPending}
                       size="sm"
                     >
                       {createClient.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Crear Cliente
+                      Crear cliente
                     </Button>
                     <Button type="button" variant="ghost" size="sm" onClick={() => setShowNewClient(false)}>
                       Cancelar
@@ -292,14 +323,14 @@ export default function NuevaReservaPage() {
           {/* Tour selection */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Tour y Fecha</CardTitle>
+              <CardTitle className="text-lg">Tour y fecha</CardTitle>
               <CardDescription>Selecciona el tour y la fecha de salida</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Tour *</Label>
+                <Label htmlFor="reservation-tour">Tour *</Label>
                 <Select value={tourId} onValueChange={(v) => { setTourId(v); setDepartureId(""); }}>
-                  <SelectTrigger>
+                  <SelectTrigger id="reservation-tour">
                     <SelectValue placeholder="Selecciona un tour" />
                   </SelectTrigger>
                   <SelectContent>
@@ -319,9 +350,9 @@ export default function NuevaReservaPage() {
 
               {tourId && availableDepartures.length > 0 && (
                 <div>
-                  <Label>Fecha de Salida</Label>
+                  <Label htmlFor="reservation-departure">Fecha de salida</Label>
                   <Select value={departureId} onValueChange={setDepartureId}>
-                    <SelectTrigger>
+                    <SelectTrigger id="reservation-departure">
                       <SelectValue placeholder="Selecciona una fecha (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
@@ -348,8 +379,9 @@ export default function NuevaReservaPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Adultos *</Label>
+                  <Label htmlFor="reservation-adults">Adultos *</Label>
                   <Input
+                    id="reservation-adults"
                     type="number"
                     min={1}
                     max={availableCapacity ?? 99}
@@ -358,8 +390,9 @@ export default function NuevaReservaPage() {
                   />
                 </div>
                 <div>
-                  <Label>Niños</Label>
+                  <Label htmlFor="reservation-children">Niños</Label>
                   <Input
+                    id="reservation-children"
                     type="number"
                     min={0}
                     max={availableCapacity ? availableCapacity - adults : 99}
@@ -374,10 +407,11 @@ export default function NuevaReservaPage() {
           {/* Notes */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Notas Internas</CardTitle>
+              <CardTitle className="text-lg">Notas internas</CardTitle>
             </CardHeader>
             <CardContent>
               <Textarea
+                aria-label="Notas internas"
                 placeholder="Notas internas sobre esta reserva (solo visible para el equipo)..."
                 value={internalNotes}
                 onChange={(e) => setInternalNotes(e.target.value)}
@@ -446,8 +480,9 @@ export default function NuevaReservaPage() {
 
               {/* Deposit */}
               <div>
-                <Label>Depósito (opcional)</Label>
+                <Label htmlFor="reservation-deposit">Depósito (opcional)</Label>
                 <Input
+                  id="reservation-deposit"
                   type="number"
                   min={0}
                   max={pricing?.total}
@@ -461,10 +496,15 @@ export default function NuevaReservaPage() {
                 />
               </div>
 
+              {missing.length > 0 && (
+                <p className="text-xs text-muted-foreground" aria-live="polite">
+                  Para crear la reserva, selecciona {missing.join(" y ")}.
+                </p>
+              )}
               <Button
                 type="submit"
                 className="w-full"
-                disabled={!clientId || !tourId || !pricing || createReservation.isPending}
+                disabled={createReservation.isPending}
               >
                 {createReservation.isPending ? (
                   <>
@@ -472,7 +512,7 @@ export default function NuevaReservaPage() {
                     Creando...
                   </>
                 ) : (
-                  "Crear Reserva"
+                  "Crear reserva"
                 )}
               </Button>
             </CardContent>

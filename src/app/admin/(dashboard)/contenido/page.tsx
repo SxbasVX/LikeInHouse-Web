@@ -77,7 +77,7 @@ export default function ContenidoPage() {
       <PageHeader title="Contenido" subtitle="Gestiona el contenido del sitio web público" />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
           <TabsTrigger value="faqs">FAQs</TabsTrigger>
           <TabsTrigger value="testimonials">Testimonios</TabsTrigger>
           <TabsTrigger value="blog">Blog</TabsTrigger>
@@ -236,7 +236,7 @@ function FAQsSection() {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" aria-label="Acciones de la pregunta" title="Acciones">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -477,6 +477,9 @@ function TestimonialsSection() {
                         isFeatured: !t.isFeatured,
                       })
                     }
+                    aria-label={t.isFeatured ? `Quitar destacado del testimonio de ${t.clientName}` : `Destacar testimonio de ${t.clientName}`}
+                    aria-pressed={t.isFeatured}
+                    title={t.isFeatured ? "Quitar destacado" : "Destacar"}
                   >
                     {t.isFeatured ? (
                       <Star className="h-4 w-4 text-brand-orange fill-brand-orange" />
@@ -548,7 +551,7 @@ function BlogSection() {
 
   const createBlog = trpc.content.blogCreate.useMutation({
     onSuccess: () => {
-      toast({ title: "Articulo creado como borrador" });
+      toast({ title: "Artículo creado como borrador" });
       refetch();
       setShowCreate(false);
       resetForm();
@@ -560,7 +563,7 @@ function BlogSection() {
 
   const updateBlog = trpc.content.blogUpdate.useMutation({
     onSuccess: () => {
-      toast({ title: "Articulo actualizado" });
+      toast({ title: "Artículo actualizado" });
       refetch();
       setEditId(null);
       resetForm();
@@ -572,7 +575,7 @@ function BlogSection() {
 
   const deleteBlog = trpc.content.blogDelete.useMutation({
     onSuccess: () => {
-      toast({ title: "Articulo eliminado" });
+      toast({ title: "Artículo eliminado" });
       refetch();
       setDeleteId(null);
     },
@@ -647,22 +650,22 @@ function BlogSection() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Blog Posts</CardTitle>
-            <CardDescription>{data?.total ?? 0} articulos</CardDescription>
+            <CardDescription>{data?.total ?? 0} artículos</CardDescription>
           </div>
           <Button onClick={() => { resetForm(); setShowCreate(true); }}>
-            <Plus className="mr-2 h-4 w-4" /> Nuevo Articulo
+            <Plus className="mr-2 h-4 w-4" /> Nuevo Artículo
           </Button>
         </CardHeader>
         <CardContent>
           {data?.posts.length === 0 ? (
-            <p className="text-center py-8 font-serif italic text-brand-teal">No hay articulos aun</p>
+            <p className="text-center py-8 font-serif italic text-brand-teal">No hay artículos aún</p>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Titulo</TableHead>
-                    <TableHead>Categoria</TableHead>
+                    <TableHead>Título</TableHead>
+                    <TableHead>Categoría</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
@@ -693,7 +696,7 @@ function BlogSection() {
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" aria-label={`Acciones del artículo ${post.titleEs}`} title="Acciones"><MoreHorizontal className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => { resetForm(); openEdit(post.id); }}>
@@ -735,19 +738,19 @@ function BlogSection() {
       <Dialog open={showCreate} modal={false} onOpenChange={(open) => { if (!open) resetForm(); setShowCreate(open); }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle>Nuevo Articulo de Blog</DialogTitle>
+            <DialogTitle>Nuevo Artículo de Blog</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Titulo (ES) *</Label>
+                <Label>Título (ES) *</Label>
                 <Input name="titleEs" required onChange={(e) => {
                   const slugInput = e.currentTarget.form?.querySelector<HTMLInputElement>('[name="slug"]');
                   if (slugInput && !slugInput.dataset.manual) slugInput.value = slugify(e.target.value);
                 }} />
               </div>
               <div className="space-y-2">
-                <Label>Titulo (EN) *</Label>
+                <Label>Título (EN) *</Label>
                 <Input name="titleEn" required />
               </div>
             </div>
@@ -757,7 +760,7 @@ function BlogSection() {
                 <Input name="slug" required pattern="^[a-z0-9-]+$" onInput={(e) => { (e.target as HTMLInputElement).dataset.manual = "true"; }} />
               </div>
               <div className="space-y-2">
-                <Label>Categoria</Label>
+                <Label>Categoría</Label>
                 <Input name="category" placeholder="Travel, Tips, etc." />
               </div>
             </div>
@@ -777,7 +780,7 @@ function BlogSection() {
             </div>
             <div className="space-y-2">
               <Label>Contenido (ES)</Label>
-              <TiptapEditor content={contentEs} onChange={setContentEs} placeholder="Escribe el contenido del articulo..." />
+              <TiptapEditor content={contentEs} onChange={setContentEs} placeholder="Escribe el contenido del artículo..." />
             </div>
             <div className="space-y-2">
               <Label>Contenido (EN)</Label>
@@ -797,7 +800,7 @@ function BlogSection() {
       <Dialog open={!!editId} modal={false} onOpenChange={(open) => { if (!open) { setEditId(null); resetForm(); } }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle>Editar Articulo</DialogTitle>
+            <DialogTitle>Editar Artículo</DialogTitle>
           </DialogHeader>
           {editLoading ? (
             <div className="space-y-4">
@@ -809,11 +812,11 @@ function BlogSection() {
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Titulo (ES)</Label>
+                  <Label>Título (ES)</Label>
                   <Input name="titleEs" defaultValue={editPost.titleEs} required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Titulo (EN)</Label>
+                  <Label>Título (EN)</Label>
                   <Input name="titleEn" defaultValue={editPost.titleEn} required />
                 </div>
               </div>
@@ -823,7 +826,7 @@ function BlogSection() {
                   <Input name="slug" defaultValue={editPost.slug} required pattern="^[a-z0-9-]+$" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Categoria</Label>
+                  <Label>Categoría</Label>
                   <Input name="category" defaultValue={editPost.category || ""} />
                 </div>
               </div>
@@ -880,8 +883,8 @@ function BlogSection() {
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Eliminar Articulo</DialogTitle>
-            <DialogDescription>Esta accion no se puede deshacer.</DialogDescription>
+            <DialogTitle>Eliminar Artículo</DialogTitle>
+            <DialogDescription>Esta acción no se puede deshacer.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteId(null)}>Cancelar</Button>
@@ -1157,6 +1160,8 @@ function ContactMessagesSection() {
                             setSelectedMessage(msg);
                             if (!msg.isRead) markRead.mutate({ id: msg.id });
                           }}
+                          aria-label={`Ver mensaje de ${msg.name}`}
+                          title="Ver mensaje"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -1423,6 +1428,8 @@ function SettingsSection() {
                           size="icon"
                           onClick={() => handleSave(setting.key)}
                           disabled={upsertSetting.isPending}
+                          aria-label={`Guardar ${setting.key}`}
+                          title="Guardar"
                         >
                           <Save className="h-4 w-4 text-brand-teal" />
                         </Button>
@@ -1430,6 +1437,8 @@ function SettingsSection() {
                           variant="ghost"
                           size="icon"
                           onClick={() => setEditingKey(null)}
+                          aria-label="Cancelar edición"
+                          title="Cancelar"
                         >
                           <XCircle className="h-4 w-4" />
                         </Button>
@@ -1439,6 +1448,8 @@ function SettingsSection() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleEdit(setting)}
+                        aria-label={`Editar ${setting.key}`}
+                        title="Editar"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -1767,7 +1778,7 @@ function AirbnbListingsSettings({
   );
   const [lastSaved, setLastSaved] = useState<string>(JSON.stringify(initial));
 
-  // Re-sync si remoto cambia (ej. tras refetch) y no hay edicion en curso
+  // Re-sync si remoto cambia (ej. tras refetch) y no hay edición en curso
   const remoteJson = JSON.stringify(initial);
   if (remoteJson !== lastSaved && JSON.stringify(draft) === lastSaved) {
     setDraft(initial.length > 0 ? initial : [{ label: "", url: "" }]);
@@ -1830,6 +1841,7 @@ function AirbnbListingsSettings({
                   onClick={() => removeRow(i)}
                   disabled={draft.length === 1}
                   title="Eliminar"
+                  aria-label={`Eliminar fila ${i + 1}`}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>

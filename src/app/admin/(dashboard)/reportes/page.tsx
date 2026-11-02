@@ -39,6 +39,7 @@ import { PageHeader } from "@/components/admin/page-header";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { EmptyState, ErrorState } from "@/components/admin/list-states";
 import { formatDate, formatMoney, formatTimestampDate } from "@/lib/format";
+import { paymentMethodLabel, reservationOriginLabel, statusLabel } from "@/lib/status";
 import { Separator } from "@/components/ui/separator";
 import {
   Tabs,
@@ -98,7 +99,7 @@ export default function ReportesPage() {
   );
 
   // Tours list for selector
-  const { data: toursData } = trpc.tour.list.useQuery({ page: 1, limit: 50 });
+  const { data: toursData } = trpc.tour.list.useQuery({ page: 1, limit: 200 });
 
   // Month options (last 12 months)
   const monthOptions = useMemo(() => {
@@ -126,8 +127,8 @@ export default function ReportesPage() {
         children: r.children,
         totalAmount: r.totalAmount,
         currency: r.currency,
-        status: r.status,
-        origin: r.origin,
+        status: statusLabel("reservation", r.status),
+        origin: reservationOriginLabel(r.origin),
         date: formatTimestampDate(r.createdAt),
       })),
       `reporte-mensual-${monthStr}`,
@@ -159,8 +160,8 @@ export default function ReportesPage() {
         children: r.children,
         totalAmount: r.totalAmount,
         currency: r.currency,
-        status: r.status,
-        origin: r.origin,
+        status: statusLabel("reservation", r.status),
+        origin: reservationOriginLabel(r.origin),
         departureDate: formatDate(r.departure?.departureDate ?? r.travelDate),
         date: formatTimestampDate(r.createdAt),
       })),
@@ -175,8 +176,8 @@ export default function ReportesPage() {
         { key: "currency", label: "Moneda" },
         { key: "status", label: "Estado" },
         { key: "origin", label: "Origen" },
-        { key: "departureDate", label: "Fecha Salida" },
-        { key: "date", label: "Fecha Reserva" },
+        { key: "departureDate", label: "Fecha de salida" },
+        { key: "date", label: "Fecha de reserva" },
       ]
     );
   };
@@ -187,15 +188,15 @@ export default function ReportesPage() {
 
       <Tabs defaultValue="monthly" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="monthly">Reporte Mensual</TabsTrigger>
-          <TabsTrigger value="tour">Reporte por Tour</TabsTrigger>
+          <TabsTrigger value="monthly">Reporte mensual</TabsTrigger>
+          <TabsTrigger value="tour">Reporte por tour</TabsTrigger>
         </TabsList>
 
         {/* ==================== MONTHLY REPORT ==================== */}
         <TabsContent value="monthly" className="space-y-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <Select value={monthStr} onValueChange={setMonthStr}>
-              <SelectTrigger className="w-[250px]">
+              <SelectTrigger className="w-full sm:w-[250px]" aria-label="Mes del reporte">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -241,7 +242,7 @@ export default function ReportesPage() {
                     totalAmount: r.totalAmount,
                     currency: r.currency,
                     status: r.status,
-                    origin: r.origin,
+                    origin: reservationOriginLabel(r.origin),
                     date: formatTimestampDate(r.createdAt),
                   })),
                 }}
@@ -268,7 +269,7 @@ export default function ReportesPage() {
                       <ChangeIndicator value={monthlyReport.revenueChangePercent} />
                     </div>
                     <p className="text-2xl font-bold mt-2">{formatMoney(monthlyReport.totalRevenue, "USD", { maximumFractionDigits: 0 })}</p>
-                    <p className="text-xs font-serif italic text-brand-teal">Revenue total</p>
+                    <p className="text-xs font-serif italic text-brand-teal">Ingresos totales</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -302,7 +303,7 @@ export default function ReportesPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Top Tours</CardTitle>
-                    <CardDescription>Por revenue en el período</CardDescription>
+                    <CardDescription>Por ingresos en el período</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {monthlyReport.topTours.length === 0 ? (
@@ -313,7 +314,7 @@ export default function ReportesPage() {
                           <TableRow>
                             <TableHead>Tour</TableHead>
                             <TableHead className="text-right">Reservas</TableHead>
-                            <TableHead className="text-right">Revenue</TableHead>
+                            <TableHead className="text-right">Ingresos</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -336,7 +337,7 @@ export default function ReportesPage() {
                 {/* Payment Methods */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Métodos de Pago</CardTitle>
+                    <CardTitle className="text-lg">Métodos de pago</CardTitle>
                     <CardDescription>Distribución de pagos completados</CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -346,7 +347,7 @@ export default function ReportesPage() {
                       <div className="space-y-3">
                         {monthlyReport.byMethod.map((m) => (
                           <div key={m.method} className="flex items-center justify-between">
-                            <Badge variant="outline">{m.method.replace(/_/g, " ")}</Badge>
+                            <Badge variant="outline">{paymentMethodLabel(m.method)}</Badge>
                             <span className="font-medium">{formatMoney(m.amount, "USD", { maximumFractionDigits: 0 })}</span>
                           </div>
                         ))}
@@ -357,7 +358,7 @@ export default function ReportesPage() {
               </div>
 
               {/* Status breakdown */}
-              <div className="flex gap-4 text-sm">
+              <div className="flex flex-wrap gap-4 text-sm">
                 <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
                   Pagadas: {monthlyReport.paidCount}
                 </Badge>
@@ -371,9 +372,9 @@ export default function ReportesPage() {
 
         {/* ==================== TOUR REPORT ==================== */}
         <TabsContent value="tour" className="space-y-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <Select value={tourId} onValueChange={setTourId}>
-              <SelectTrigger className="w-[350px]">
+              <SelectTrigger className="w-full sm:w-[350px]" aria-label="Tour del reporte">
                 <SelectValue placeholder="Selecciona un tour" />
               </SelectTrigger>
               <SelectContent>
@@ -415,7 +416,7 @@ export default function ReportesPage() {
                     totalAmount: r.totalAmount,
                     currency: r.currency,
                     status: r.status,
-                    origin: r.origin,
+                    origin: reservationOriginLabel(r.origin),
                     date: formatTimestampDate(r.createdAt),
                   })),
                 }}
@@ -440,7 +441,7 @@ export default function ReportesPage() {
                 <Card>
                   <CardContent className="pt-4 pb-3">
                     <p className="text-2xl font-bold">{formatMoney(tourReport.totalRevenue, "USD", { maximumFractionDigits: 0 })}</p>
-                    <p className="text-xs font-serif italic text-brand-teal">Revenue total</p>
+                    <p className="text-xs font-serif italic text-brand-teal">Ingresos totales</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -484,23 +485,25 @@ export default function ReportesPage() {
                         <TableRow>
                           <TableHead>Código</TableHead>
                           <TableHead>Cliente</TableHead>
-                          <TableHead>Personas</TableHead>
+                          <TableHead className="hidden md:table-cell">Personas</TableHead>
                           <TableHead>Monto</TableHead>
                           <TableHead>Estado</TableHead>
-                          <TableHead>Fecha</TableHead>
+                          <TableHead className="hidden md:table-cell">Fecha</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {tourReport.reservations.map((r) => (
                           <TableRow key={r.id}>
-                            <TableCell className="font-mono text-xs">{r.referenceCode.slice(0, 12)}</TableCell>
+                            <TableCell className="font-mono text-xs max-w-[160px]">
+                              <span className="block truncate" title={r.referenceCode}>{r.referenceCode}</span>
+                            </TableCell>
                             <TableCell>{r.client.firstName} {r.client.lastName}</TableCell>
-                            <TableCell>{r.adults + r.children}</TableCell>
+                            <TableCell className="hidden md:table-cell">{r.adults + r.children}</TableCell>
                             <TableCell className="font-medium">{formatMoney(r.totalAmount, r.currency)}</TableCell>
                             <TableCell>
                               <StatusBadge domain="reservation" status={r.status} />
                             </TableCell>
-                            <TableCell className="text-xs">
+                            <TableCell className="hidden md:table-cell text-xs">
                               {formatTimestampDate(r.createdAt)}
                             </TableCell>
                           </TableRow>

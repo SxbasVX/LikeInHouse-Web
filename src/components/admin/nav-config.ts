@@ -8,7 +8,6 @@ import {
   FileBarChart,
   Users,
   Newspaper,
-  Image as ImageIcon,
   UserCog,
   BarChart3,
   BookMarked,
@@ -23,7 +22,10 @@ export interface NavItem {
   icon: LucideIcon;
 }
 
-/** Fuente única de secciones del panel: la usan el sidebar y el breadcrumb del header. */
+/**
+ * Fuente única de secciones del panel: la usan el sidebar y el breadcrumb del header.
+ * Galería (/admin/galeria) se oculta del menú mientras sea un placeholder.
+ */
 export const navSections: { label: string; items: NavItem[] }[] = [
   {
     label: "Principal",
@@ -60,7 +62,6 @@ export const navSections: { label: string; items: NavItem[] }[] = [
     items: [
       { label: "Contenido", href: "/admin/contenido", icon: Newspaper },
       { label: "Documentos", href: "/admin/documentos", icon: BookMarked },
-      { label: "Galería", href: "/admin/galeria", icon: ImageIcon },
       { label: "Usuarios", href: "/admin/usuarios", icon: UserCog },
     ],
   },

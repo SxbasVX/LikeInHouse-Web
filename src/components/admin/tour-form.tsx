@@ -32,7 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, ChevronDown, Eye, Save, Star, Loader2 } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Eye, Save, Star, Loader2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import type { TourCreateInput } from "@/lib/validators/tour";
@@ -258,6 +258,16 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
     }
   };
 
+  // Pestañas con errores: se marcan con ícono (no sólo color) para que se noten.
+  const errorKeys = Object.keys(errors);
+  const tabErrors = {
+    general: errorKeys.some((k) => ["nameEs", "nameEn", "slug", "tourType", "category", "difficulty", "durationDays", "durationNights", "durationHours", "destination", "shortDescEs", "shortDescEn", "longDescEs", "longDescEn"].includes(k)),
+    multimedia: !!errors.images,
+    precios: !!(errors.pricing || errors.departures),
+    avanzado: errorKeys.some((k) => ["itinerary", "includes", "excludes", "metaTitleEs", "metaTitleEn", "metaDescEs", "metaDescEn"].includes(k)),
+  };
+  const tabErrorIcon = <AlertCircle className="ml-1.5 h-3.5 w-3.5 shrink-0" aria-label="Tiene errores" />;
+
   return (
     <form onSubmit={handleSubmit(onFormSubmit as any, onFormError)} className="space-y-6 max-w-5xl pb-24">
       <ConfirmDialog
@@ -279,7 +289,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
         }}
       />
       {/* Barra superior con estado - STICKY para facil acceso */}
-      <div className="sticky top-0 z-40 flex items-center justify-between rounded-lg border bg-background/95 backdrop-blur shadow-sm p-4">
+      <div className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-background/95 backdrop-blur shadow-sm p-4">
         <div className="flex items-center gap-3">
           <Badge variant={isBookable ? "default" : "secondary"}>
             {isBookable ? "Comprable" : "Informativo"}
@@ -313,12 +323,30 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-8">
-          <TabsTrigger value="general" className={Object.keys(errors).some(k => ["nameEs", "nameEn", "slug", "tourType", "category", "difficulty", "durationDays", "durationNights", "durationHours", "destination", "shortDescEs", "shortDescEn", "longDescEs", "longDescEn"].includes(k)) ? "text-red-500" : ""}>Información General</TabsTrigger>
-          <TabsTrigger value="multimedia" className={errors.images ? "text-red-500" : ""}>Imágenes</TabsTrigger>
-          <TabsTrigger value="precios" disabled={!isBookable} className={(errors.pricing || errors.departures) ? "text-red-500" : ""}>Precios y Fechas</TabsTrigger>
-          <TabsTrigger value="avanzado" className={Object.keys(errors).some(k => ["itinerary", "includes", "excludes", "metaTitleEs", "metaTitleEn", "metaDescEs", "metaDescEn"].includes(k)) ? "text-red-500" : ""}>Itinerario y Otros</TabsTrigger>
+        <TabsList className={`w-full justify-start overflow-x-auto md:grid md:grid-cols-4 ${isBookable ? "mb-8" : "mb-2"}`}>
+          <TabsTrigger value="general" className={tabErrors.general ? "text-red-600" : ""}>
+            Información General{tabErrors.general && tabErrorIcon}
+          </TabsTrigger>
+          <TabsTrigger value="multimedia" className={tabErrors.multimedia ? "text-red-600" : ""}>
+            Imágenes{tabErrors.multimedia && tabErrorIcon}
+          </TabsTrigger>
+          <TabsTrigger
+            value="precios"
+            disabled={!isBookable}
+            title={!isBookable ? "Solo para tours comprables" : undefined}
+            className={tabErrors.precios ? "text-red-600" : ""}
+          >
+            Precios y Fechas{tabErrors.precios && tabErrorIcon}
+          </TabsTrigger>
+          <TabsTrigger value="avanzado" className={tabErrors.avanzado ? "text-red-600" : ""}>
+            Itinerario y Otros{tabErrors.avanzado && tabErrorIcon}
+          </TabsTrigger>
         </TabsList>
+        {!isBookable && (
+          <p className="mb-6 text-xs text-muted-foreground">
+            «Precios y Fechas» solo está disponible para tours comprables. Cambia el tipo de tour en «Información General» para habilitarla.
+          </p>
+        )}
 
         {/* ========================================================= */}
         {/* TSTA 1: GENERAL */}
@@ -340,8 +368,9 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground">Info</span>
+                    <span className="text-sm text-muted-foreground">Informativo</span>
                     <Switch
+                      aria-label="Tour comprable"
                       checked={isBookable}
                       onCheckedChange={(checked) =>
                         setValue("tourType", checked ? "BOOKABLE" : "INFORMATIONAL")
@@ -589,7 +618,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                           <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary" {...register(`images.${index}.isPrimary`)} />
                           Imagen Principal
                         </label>
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => images.remove(index)}>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => images.remove(index)} aria-label={`Quitar imagen ${index + 1}`} title="Quitar imagen">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -663,7 +692,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                             <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary" {...register(`pricing.tiers.${index}.isDefault`)} />
                             <Label className="text-xs whitespace-nowrap">Principal</Label>
                           </div>
-                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => pricingTiers.remove(index)}>
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => pricingTiers.remove(index)} aria-label={`Quitar tarifa ${index + 1}`} title="Quitar tarifa">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -719,7 +748,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                             <Label className={`text-xs font-semibold ${errors.departures?.[index]?.maxCapacity ? "text-destructive" : ""}`}>Lugares Topes</Label>
                             <Input type="number" min={1} {...register(`departures.${index}.maxCapacity`, { valueAsNumber: true })} className={errors.departures?.[index]?.maxCapacity ? "border-destructive" : ""} />
                           </div>
-                          <Button type="button" variant="outline" size="icon" onClick={() => departures.remove(index)} className="hover:bg-destructive hover:text-white transition-colors">
+                          <Button type="button" variant="outline" size="icon" onClick={() => departures.remove(index)} className="hover:bg-destructive hover:text-white transition-colors" aria-label={`Quitar fecha de salida ${index + 1}`} title="Quitar fecha">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -776,7 +805,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                     <div key={field.id} className="rounded-xl border p-4 space-y-4 bg-card shadow-sm relative group">
                       <div className="flex items-center justify-between border-b pb-2">
                         <span className="text-md font-bold tracking-tight text-primary">DÍA {index + 1}</span>
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive opacity-50 group-hover:opacity-100 transition-opacity" onClick={() => itinerary.remove(index)}>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive opacity-50 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity" onClick={() => itinerary.remove(index)} aria-label={`Quitar día ${index + 1}`} title="Quitar día">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -804,7 +833,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                   <CardTitle className="text-brand-darkTeal flex flex-col gap-1">
                     <span>✅ Lo que Incluye</span>
                   </CardTitle>
-                  <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => includes.append({ textEs: "", textEn: "" })}>
+                  <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => includes.append({ textEs: "", textEn: "" })} aria-label="Agregar elemento incluido" title="Agregar">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -818,7 +847,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                         <Input placeholder="ES: Almuerzo bufet" {...register(`includes.${index}.textEs`)} className={`h-8 ${errors.includes?.[index]?.textEs ? "border-destructive" : ""}`} />
                         <Input placeholder="EN: Buffet lunch" {...register(`includes.${index}.textEn`)} className={`h-8 ${errors.includes?.[index]?.textEn ? "border-destructive" : ""}`} />
                       </div>
-                      <Button type="button" variant="ghost" size="icon" className="self-center hover:text-red-600 h-8 w-8" onClick={() => includes.remove(index)}>
+                      <Button type="button" variant="ghost" size="icon" className="self-center hover:text-red-600 h-8 w-8" onClick={() => includes.remove(index)} aria-label={`Quitar elemento incluido ${index + 1}`} title="Quitar">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -833,7 +862,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                   <CardTitle className="text-brand-orange flex flex-col gap-1">
                     <span>❌ Lo que No Incluye</span>
                   </CardTitle>
-                  <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => excludes.append({ textEs: "", textEn: "" })}>
+                  <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => excludes.append({ textEs: "", textEn: "" })} aria-label="Agregar elemento no incluido" title="Agregar">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -847,7 +876,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                         <Input placeholder="ES: Vuelos internacionales" {...register(`excludes.${index}.textEs`)} className={`h-8 ${errors.excludes?.[index]?.textEs ? "border-destructive" : ""}`} />
                         <Input placeholder="EN: International flights" {...register(`excludes.${index}.textEn`)} className={`h-8 ${errors.excludes?.[index]?.textEn ? "border-destructive" : ""}`} />
                       </div>
-                      <Button type="button" variant="ghost" size="icon" className="self-center hover:text-red-600 h-8 w-8" onClick={() => excludes.remove(index)}>
+                      <Button type="button" variant="ghost" size="icon" className="self-center hover:text-red-600 h-8 w-8" onClick={() => excludes.remove(index)} aria-label={`Quitar elemento no incluido ${index + 1}`} title="Quitar">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -886,6 +915,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                     <div key={field.id} className="rounded-xl border p-4 space-y-3 bg-amber-50/40 border-amber-200 relative group">
                       <div className="flex items-center justify-between">
                         <select
+                          aria-label={`Tipo de condición ${index + 1}`}
                           {...register(`conditions.${index}.type`)}
                           className="text-xs font-semibold border rounded-md px-2 py-1 bg-white focus:ring-1 focus:ring-brand-orange outline-none"
                         >
@@ -900,8 +930,10 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-destructive opacity-50 group-hover:opacity-100 transition-opacity"
+                          className="h-8 w-8 text-destructive opacity-50 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                           onClick={() => conditions.remove(index)}
+                          aria-label={`Quitar condición ${index + 1}`}
+                          title="Quitar condición"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -987,15 +1019,15 @@ function TourPreview({ data }: { data: TourFormData }) {
           <Badge variant={data.tourType === "BOOKABLE" ? "default" : "secondary"}>
             {data.tourType === "BOOKABLE" ? "Comprable" : "Informativo"}
           </Badge>
-          <Badge variant="outline">{data.category || "Sin categoria"}</Badge>
+          <Badge variant="outline">{data.category || "Sin categoría"}</Badge>
           <Badge variant="outline">{data.destination || "Sin destino"}</Badge>
         </div>
         <h2 className="text-xl font-bold">{data.nameEs || "Sin nombre"}</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          {data.durationDays > 0 ? `${data.durationDays} dias / ${data.durationNights} noches` : `${data.durationHours || 0} horas`}
+          {data.durationDays > 0 ? `${data.durationDays} días / ${data.durationNights} noches` : `${data.durationHours || 0} horas`}
         </p>
       </div>
-      <p className="text-sm">{data.shortDescEs || "Sin descripcion corta"}</p>
+      <p className="text-sm">{data.shortDescEs || "Sin descripción corta"}</p>
       {data.tourType === "BOOKABLE" && data.pricing?.tiers?.length > 0 && (
         <div className="rounded-lg bg-primary/10 p-3 space-y-1">
           {data.pricing.tiers.map((tier, i) => (
@@ -1008,7 +1040,7 @@ function TourPreview({ data }: { data: TourFormData }) {
       )}
       {data.longDescEs && (
         <div>
-          <h3 className="font-semibold mb-1">Descripcion</h3>
+          <h3 className="font-semibold mb-1">Descripción</h3>
           <p className="text-sm whitespace-pre-wrap">{data.longDescEs}</p>
         </div>
       )}
@@ -1017,7 +1049,7 @@ function TourPreview({ data }: { data: TourFormData }) {
           <h3 className="font-semibold mb-2">Itinerario</h3>
           {data.itinerary.map((day, i) => (
             <div key={i} className="mb-2 rounded border p-2">
-              <p className="text-sm font-medium">Dia {i + 1}: {day.titleEs}</p>
+              <p className="text-sm font-medium">Día {i + 1}: {day.titleEs}</p>
               <div className="mt-2 space-y-2 text-xs text-muted-foreground">
                 {parseItineraryDescription(day.descriptionEs).map((block, blockIndex) =>
                   block.type === "heading" ? (
@@ -1033,7 +1065,7 @@ function TourPreview({ data }: { data: TourFormData }) {
       )}
       {data.images.length > 1 && (
         <div>
-          <h3 className="font-semibold mb-2">Galeria ({data.images.length} imagenes)</h3>
+          <h3 className="font-semibold mb-2">Galería ({data.images.length} imágenes)</h3>
           <div className="grid grid-cols-4 gap-2">
             {data.images.filter(img => img.url).map((img, i) => (
               <img key={i} src={img.url} alt="" className="rounded aspect-square object-cover" />

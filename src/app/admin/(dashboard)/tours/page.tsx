@@ -60,11 +60,12 @@ export default function ToursPage() {
       />
 
       {/* Filters */}
-      <div className="flex gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar tours..."
+            aria-label="Buscar tours"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -80,7 +81,7 @@ export default function ToursPage() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40" aria-label="Filtrar por estado">
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>
@@ -91,7 +92,11 @@ export default function ToursPage() {
           </SelectContent>
         </Select>
         {destination && (
-          <Button variant="secondary" onClick={() => { setDestination(undefined); setPage(1); }}>
+          <Button
+            variant="secondary"
+            onClick={() => { setDestination(undefined); setPage(1); }}
+            aria-label={`Quitar filtro de destino ${destination}`}
+          >
             {destination}
             <X className="ml-2 h-4 w-4" />
           </Button>
