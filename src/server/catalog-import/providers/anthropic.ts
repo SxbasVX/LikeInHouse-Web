@@ -52,6 +52,14 @@ function requestParams(call: ClaudeCall): RequestParams {
   };
 }
 
+// Keep Anthropic's own explanation (e.g. "invalid PDF", "model not found"): a bare status code can't be acted on.
+function apiFailure(error: unknown): ProviderError {
+  if (!(error instanceof Anthropic.APIError)) return new ProviderError("anthropic", null, true);
+  const body = error.error as { error?: { message?: string } } | undefined;
+  const reason = body?.error?.message ?? error.message;
+  return new ProviderError("anthropic", error.status ?? null, true, `HTTP ${error.status ?? "?"} (${error.type ?? "error"}): ${reason}`.slice(0, 500));
+}
+
 function assertUsable(message: Anthropic.Beta.Messages.BetaMessage): void {
   if (message.stop_reason === "refusal") {
     throw new ProviderError("anthropic", null, false, `Claude rechazó la solicitud${message.stop_details?.category ? ` (${message.stop_details.category})` : ""}.`);
@@ -96,8 +104,7 @@ export async function callClaude(call: ClaudeCall): Promise<ClaudeReply> {
         betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
       }, { signal: call.signal }).finalMessage();
     } catch (error) {
-      if (error instanceof Anthropic.APIError) throw new ProviderError("anthropic", error.status ?? null, true);
-      throw new ProviderError("anthropic", null, true);
+      throw apiFailure(error);
     }
     model = message.model;
     usage.add(message.usage);
@@ -123,7 +130,7 @@ export async function submitClaudeBatch(requests: Array<{ customId: string; call
     });
     return batch.id;
   } catch (error) {
-    throw new ProviderError("anthropic", error instanceof Anthropic.APIError ? error.status ?? null : null, true);
+    throw apiFailure(error);
   }
 }
 
