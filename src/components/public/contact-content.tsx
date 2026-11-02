@@ -5,10 +5,12 @@ import { Phone, Mail, Clock, ArrowUpRight, MessageCircle } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 import { waUrl } from "@/lib/whatsapp";
 import { trpc } from "@/lib/trpc";
+import { QuoteRequestForm } from "@/components/public/quote-request-form";
 
 export function ContactContent() {
   const t = useTranslations("contact");
   const tc = useTranslations("common");
+  const tQuote = useTranslations("quote");
   const locale = useLocale();
   const isEs = locale === "es";
 
@@ -143,6 +145,13 @@ export function ContactContent() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Solicitud de cotización */}
+          <div id="cotizar" className="mt-8 rounded-3xl border border-gray-100 bg-white p-8 shadow-sm sm:p-10 scroll-mt-24">
+            <h2 className="font-heading text-2xl font-bold text-gray-900 sm:text-3xl">{tQuote("title")}</h2>
+            <p className="mt-2 mb-8 text-gray-500">{tQuote("subtitle")}</p>
+            <QuoteRequestForm />
           </div>
 
         </div>

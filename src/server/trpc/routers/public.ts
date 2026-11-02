@@ -15,6 +15,7 @@ import {
 } from "@/server/lib/cache";
 import { serializeDecimals } from "@/server/lib/serialize";
 import { getExchangeRates } from "@/server/lib/exchange";
+import { sendCrmLead } from "@/server/lib/crm";
 
 export const publicRouter = router({
   // Tours publicados con paginación y filtros
@@ -257,6 +258,79 @@ export const publicRouter = router({
           message: sanitizePlainText(input.message),
         },
       });
+      return { success: true };
+    }),
+
+  // Solicitud de cotización: queda en Mensajes del admin y se envía como Lead al CRM
+  requestQuote: rateLimitedProcedure(RATE_LIMITS.contactForm)
+    .input(
+      z.object({
+        tourSlug: z.string().max(200).optional(),
+        destination: z.string().max(60).optional(),
+        name: z.string().trim().min(2, "Nombre requerido").max(100),
+        phone: z.string().trim().regex(/^\+?[\d\s\-().]{6,20}$/, "Teléfono inválido"),
+        email: z.string().trim().email("Email inválido").optional().or(z.literal("")),
+        originCity: z.string().trim().max(100).optional(),
+        departureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
+        returnDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
+        adults: z.number().int().min(1).max(50),
+        children: z.number().int().min(0).max(50),
+        infants: z.number().int().min(0).max(20),
+        message: z.string().trim().max(2000).optional(),
+        locale: z.enum(["es", "en"]).default("es"),
+      }).refine((v) => !v.departureDate || !v.returnDate || v.returnDate >= v.departureDate, {
+        message: "La fecha de retorno debe ser posterior a la de salida",
+        path: ["returnDate"],
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // El tour y su destino se toman de la base, no del navegador
+      const tour = input.tourSlug
+        ? await ctx.db.tour.findFirst({
+            where: { slug: input.tourSlug, status: "PUBLISHED", isActive: true },
+            select: { nameEs: true, destination: true },
+          })
+        : null;
+      const destination = tour?.destination ?? (input.destination ? sanitizePlainText(input.destination) : undefined);
+      const name = sanitizePlainText(input.name);
+      const originCity = input.originCity ? sanitizePlainText(input.originCity) : undefined;
+      const message = input.message ? sanitizePlainText(input.message) : undefined;
+      const travelers = `${input.adults} adultos, ${input.children} niños, ${input.infants} infantes`;
+
+      await ctx.db.contactMessage.create({
+        data: {
+          name,
+          email: input.email || "",
+          phone: input.phone,
+          subject: `Cotización: ${tour?.nameEs ?? destination ?? "general"}`,
+          message: [
+            tour && `Tour: ${tour.nameEs}`,
+            destination && `Destino: ${destination}`,
+            originCity && `Ciudad de origen: ${originCity}`,
+            input.departureDate && `Salida: ${input.departureDate}`,
+            input.returnDate && `Retorno: ${input.returnDate}`,
+            `Viajeros: ${travelers}`,
+            message && `\n${message}`,
+          ].filter(Boolean).join("\n"),
+        },
+      });
+
+      await sendCrmLead({
+        nombre: name,
+        telefono: input.phone,
+        correo: input.email || undefined,
+        destino: destination,
+        ciudad_origen: originCity,
+        fecha_salida: input.departureDate || undefined,
+        fecha_retorno: input.returnDate || undefined,
+        adultos: input.adults,
+        ninos: input.children,
+        infantes: input.infants,
+        mensaje: message,
+        tour: tour?.nameEs,
+        idioma: input.locale,
+      });
+
       return { success: true };
     }),
 });

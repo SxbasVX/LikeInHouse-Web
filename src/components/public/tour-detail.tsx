@@ -6,8 +6,9 @@ import { waUrl } from "@/lib/whatsapp";
 import {
   MapPin, Clock, Star, Calendar, Check, X, Users,
   ChevronLeft, ChevronRight, ChevronDown, Mountain,
-  Share2, ShoppingCart, ArrowUpRight,
+  Share2, ShoppingCart, ArrowUpRight, FileText,
 } from "lucide-react";
+import { QuoteRequestDialog } from "@/components/public/quote-request-form";
 import { useState } from "react";
 import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import { useToast } from "@/hooks/use-toast";
@@ -102,6 +103,8 @@ export function TourDetail({ tour }: { tour: TourData }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [selectedDate, setSelectedDate] = useState("");
+  const [quoteOpen, setQuoteOpen] = useState(false);
+  const tQuote = useTranslations("quote");
   const cartHydrated = useCartHydration();
   const { addItem, removeItem, isInCart } = useCartStore();
   const { toast } = useToast();
@@ -610,15 +613,16 @@ export function TourDetail({ tour }: { tour: TourData }) {
                   {/* CTAs */}
                   <div className="px-6 py-5 space-y-2.5">
                     {tour.tourType === "INFORMATIONAL" ? (
-                      <Link
-                        href="/contacto"
+                      <button
+                        type="button"
+                        onClick={() => setQuoteOpen(true)}
                         className="flex items-center justify-between w-full rounded-2xl bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-2 py-3 text-sm font-bold transition-all group shadow-sm"
                       >
-                        {t("contact_us")}
+                        {tQuote("button")}
                         <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20 group-hover:bg-white group-hover:text-brand-darkRed transition-colors">
                           <ArrowUpRight className="h-4 w-4 group-hover:rotate-12 transition-transform" />
                         </span>
-                      </Link>
+                      </button>
                     ) : (
                       <Link
                         href={`/tours/${tour.slug}/reservar${selectedDate ? `?date=${selectedDate}` : ""}`}
@@ -643,6 +647,17 @@ export function TourDetail({ tour }: { tour: TourData }) {
                       {inCart ? <Check className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
                       {inCart ? tCart("in_cart") : tCart("add_to_cart")}
                     </button>
+
+                    {tour.tourType !== "INFORMATIONAL" && (
+                      <button
+                        type="button"
+                        onClick={() => setQuoteOpen(true)}
+                        className="w-full flex items-center justify-center gap-2 rounded-2xl py-2 text-sm font-semibold text-brand-darkTeal hover:bg-brand-teal/8 transition-all"
+                      >
+                        <FileText className="h-4 w-4" />
+                        {tQuote("button")}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -714,17 +729,25 @@ export function TourDetail({ tour }: { tour: TourData }) {
     {tour.tourType === "INFORMATIONAL" && (
       <div className="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3">
         <span className="text-sm font-semibold text-gray-700">{t("contact_for_info")}</span>
-        <Link
-          href="/contacto"
+        <button
+          type="button"
+          onClick={() => setQuoteOpen(true)}
           className="shrink-0 inline-flex items-center gap-2 rounded-full bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-2 py-3 text-sm font-bold transition-all shadow-md"
         >
-          {t("contact_us")}
+          {tQuote("button")}
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20">
             <ArrowUpRight className="h-3.5 w-3.5" />
           </span>
-        </Link>
+        </button>
       </div>
     )}
+
+    <QuoteRequestDialog
+      open={quoteOpen}
+      onOpenChange={setQuoteOpen}
+      tour={{ slug: tour.slug, name, destination: tour.destination }}
+      defaultDate={selectedDate || undefined}
+    />
 
     {/* ── LIGHTBOX ──────────────────────────────────────────── */}
     {lightboxOpen && tour.images.length > 0 && (
