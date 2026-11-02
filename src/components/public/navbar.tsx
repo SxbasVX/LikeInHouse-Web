@@ -464,26 +464,32 @@ function ToursMegaMenu({
 
       {open && (
         <div className="absolute left-1/2 top-[calc(100%+8px)] -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="w-[720px] rounded-[24px] border bg-white shadow-2xl overflow-hidden ring-1 ring-black/5">
-            <div className="grid grid-cols-5">
-              <div className="col-span-2 bg-gray-50 p-5">
-                <div className="space-y-4">
-                  {destinations.map((dest) => (
-                    <DestinationGroup key={dest} destination={dest} tours={toursByDest?.[dest] || []} isEs={isEs} onNavigate={() => setOpen(false)} />
-                  ))}
+          <div className="w-[760px] rounded-[24px] border bg-white shadow-2xl overflow-hidden ring-1 ring-black/5">
+            {/* Altura máxima: si hay muchos destinos, el panel hace scroll en vez de salirse de la pantalla */}
+            <div className="grid max-h-[calc(100vh-120px)] grid-cols-[1fr_220px]">
+              <div className="flex min-h-0 flex-col bg-gray-50">
+                <div className="overflow-y-auto p-5">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    {isEs ? "Destinos" : "Destinations"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                    {destinations.map((dest) => (
+                      <DestinationGroup key={dest} destination={dest} tours={toursByDest?.[dest] || []} isEs={isEs} onNavigate={() => setOpen(false)} />
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-4 pt-3 border-t">
+                <div className="border-t bg-gray-50 px-5 py-3">
                   <Link href="/tours" onClick={() => setOpen(false)} className="inline-flex items-center gap-1 text-sm font-medium text-brand-darkRed hover:underline">
                     {isEs ? "Ver todos los tours" : "View all tours"}
                     <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
               </div>
-              <div className="col-span-3 p-5">
+              <div className="overflow-y-auto p-5">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
                   {isEs ? "Tours destacados" : "Featured tours"}
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-4">
                   {featuredTours.map((tour) => (
                     <Link key={tour.slug} href={`/tours/${tour.slug}`} onClick={() => setOpen(false)} className="group overflow-hidden rounded-lg">
                       <div className="aspect-[16/10] overflow-hidden rounded-lg bg-gray-100">
@@ -515,20 +521,21 @@ function DestinationGroup({ destination, tours, isEs, onNavigate }: {
   onNavigate: () => void;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <Link href={`/tours?destination=${encodeURIComponent(destination)}`} onClick={onNavigate} className="group flex items-center gap-2">
-        <MapPin className="h-4 w-4 text-brand-darkRed" />
-        <span className="text-sm font-semibold text-gray-800 group-hover:text-brand-darkRed transition-colors">{destination}</span>
+        <MapPin className="h-4 w-4 shrink-0 text-brand-darkRed" />
+        <span className="truncate text-sm font-semibold text-gray-800 group-hover:text-brand-darkRed transition-colors">{destination}</span>
       </Link>
       <div className="ml-6 mt-1 space-y-0.5">
-        {tours.slice(0, 3).map((tour) => (
-          <Link key={tour.slug} href={`/tours/${tour.slug}`} onClick={onNavigate} className="block text-xs text-gray-500 hover:text-brand-darkRed transition-colors py-0.5">
+        {tours.slice(0, 2).map((tour) => (
+          <Link key={tour.slug} href={`/tours/${tour.slug}`} onClick={onNavigate} className="block truncate text-xs text-gray-500 hover:text-brand-darkRed transition-colors py-0.5" title={isEs ? tour.nameEs : tour.nameEn}>
             {isEs ? tour.nameEs : tour.nameEn}
           </Link>
         ))}
-        {tours.length > 3 && (
-          <Link href={`/tours?destination=${encodeURIComponent(destination)}`} onClick={onNavigate} className="block text-xs font-medium text-brand-darkRed/70 hover:text-brand-darkRed py-0.5">
-            +{tours.length - 3} {isEs ? "mas" : "more"}...
+        {tours.length > 2 && (
+          <Link href={`/tours?destination=${encodeURIComponent(destination)}`} onClick={onNavigate} className="inline-flex items-center gap-0.5 text-xs font-medium text-brand-darkRed/70 hover:text-brand-darkRed py-0.5">
+            {isEs ? "Ver todos" : "View all"}
+            <ChevronRight className="h-3 w-3" />
           </Link>
         )}
       </div>

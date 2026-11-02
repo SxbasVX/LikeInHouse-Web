@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AlertTriangle, Loader2, MapPin, Plus, Settings2, X } from "lucide-react";
+import { AlertTriangle, Loader2, MapPin, Plus, Settings2, Tags, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatTrpcError } from "@/lib/trpc-error";
 import { cn } from "@/lib/utils";
@@ -26,19 +26,26 @@ interface TourDestinationsPanelProps {
 
 export function TourDestinationsPanel({ selected, onSelect }: TourDestinationsPanelProps) {
   const { data: summary, isLoading } = trpc.tour.destinationSummary.useQuery();
-  const [managing, setManaging] = useState(false);
+  const { data: categoryData } = trpc.tour.categories.useQuery();
+  const [managing, setManaging] = useState<ListKind | null>(null);
 
   const cities = summary?.filter((s) => s.inList) ?? [];
   const outOfList = summary?.filter((s) => !s.inList) ?? [];
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-3">
         <CardTitle className="text-base">Tours por ciudad</CardTitle>
-        <Button variant="outline" size="sm" onClick={() => setManaging(true)}>
-          <Settings2 className="mr-2 h-4 w-4" />
-          Ciudades
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setManaging("categories")} disabled={!categoryData}>
+            <Tags className="mr-2 h-4 w-4" />
+            Categorías
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setManaging("destinations")}>
+            <Settings2 className="mr-2 h-4 w-4" />
+            Ciudades
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {isLoading ? (
@@ -82,39 +89,84 @@ export function TourDestinationsPanel({ selected, onSelect }: TourDestinationsPa
         )}
       </CardContent>
 
-      {managing && (
-        <ManageDestinationsDialog
+      {managing === "destinations" && (
+        <ManageListDialog
+          kind="destinations"
           initial={cities.map((c) => c.destination)}
           counts={Object.fromEntries((summary ?? []).map((s) => [s.destination, s.total]))}
-          onClose={() => setManaging(false)}
+          onClose={() => setManaging(null)}
+        />
+      )}
+      {managing === "categories" && categoryData && (
+        <ManageListDialog
+          kind="categories"
+          initial={categoryData.categories}
+          counts={categoryData.counts}
+          onClose={() => setManaging(null)}
         />
       )}
     </Card>
   );
 }
 
-function ManageDestinationsDialog({
+type ListKind = "destinations" | "categories";
+
+const LIST_COPY: Record<ListKind, { title: string; description: string; placeholder: string; saved: string; inUse: string; remove: string }> = {
+  destinations: {
+    title: "Ciudades de operación",
+    description: "Son las únicas opciones del campo Destino al crear o editar un tour. Solo puedes quitar ciudades sin tours.",
+    placeholder: "Nueva ciudad, ej. Huaraz",
+    saved: "Lista de ciudades actualizada",
+    inUse: "Tiene tours: cámbialos de ciudad antes de quitarla",
+    remove: "Quitar ciudad",
+  },
+  categories: {
+    title: "Categorías de tours",
+    description: "Son las opciones que se marcan en cada tour y los filtros de la web. Solo puedes quitar categorías sin tours.",
+    placeholder: "Nueva categoría, ej. Bienestar",
+    saved: "Lista de categorías actualizada",
+    inUse: "Tiene tours: quítala de esos tours antes de borrarla",
+    remove: "Quitar categoría",
+  },
+};
+
+function ManageListDialog({
+  kind,
   initial,
   counts,
   onClose,
 }: {
+  kind: ListKind;
   initial: string[];
   counts: Record<string, number>;
   onClose: () => void;
 }) {
   const { toast } = useToast();
   const utils = trpc.useUtils();
+  const copy = LIST_COPY[kind];
   const [destinations, setDestinations] = useState(initial);
   const [newCity, setNewCity] = useState("");
 
-  const save = trpc.tour.setDestinations.useMutation({
+  const mutationOptions = {
     onSuccess: async () => {
-      toast({ title: "Lista de ciudades actualizada" });
-      await Promise.all([utils.tour.destinations.invalidate(), utils.tour.destinationSummary.invalidate()]);
+      toast({ title: copy.saved });
+      await Promise.all([
+        utils.tour.destinations.invalidate(),
+        utils.tour.destinationSummary.invalidate(),
+        utils.tour.categories.invalidate(),
+      ]);
       onClose();
     },
-    onError: (error) => toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" }),
-  });
+    onError: (error: Parameters<typeof formatTrpcError>[0]) =>
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" }),
+  };
+  const saveDestinations = trpc.tour.setDestinations.useMutation(mutationOptions);
+  const saveCategories = trpc.tour.setCategories.useMutation(mutationOptions);
+  const save = kind === "destinations" ? saveDestinations : saveCategories;
+  const submit = () =>
+    kind === "destinations"
+      ? saveDestinations.mutate({ destinations })
+      : saveCategories.mutate({ categories: destinations });
 
   const addCity = () => {
     const value = newCity.trim();
@@ -129,10 +181,8 @@ function ManageDestinationsDialog({
     <Dialog open onOpenChange={(open) => !open && !save.isPending && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Ciudades de operación</DialogTitle>
-          <DialogDescription>
-            Son las únicas opciones del campo Destino al crear o editar un tour. Solo puedes quitar ciudades sin tours.
-          </DialogDescription>
+          <DialogTitle>{copy.title}</DialogTitle>
+          <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-2">
@@ -145,7 +195,7 @@ function ManageDestinationsDialog({
                 addCity();
               }
             }}
-            placeholder="Nueva ciudad, ej. Huaraz"
+            placeholder={copy.placeholder}
             maxLength={60}
           />
           <Button type="button" variant="outline" onClick={addCity}>
@@ -167,8 +217,8 @@ function ManageDestinationsDialog({
                   size="icon"
                   className="h-7 w-7"
                   disabled={inUse}
-                  title={inUse ? "Tiene tours: cámbialos de ciudad antes de quitarla" : "Quitar"}
-                  aria-label={`Quitar ciudad ${d}`}
+                  title={inUse ? copy.inUse : "Quitar"}
+                  aria-label={`${copy.remove} ${d}`}
                   onClick={() => setDestinations(destinations.filter((x) => x !== d))}
                 >
                   <X className="h-4 w-4" />
@@ -182,7 +232,7 @@ function ManageDestinationsDialog({
           <Button variant="outline" onClick={onClose} disabled={save.isPending}>
             Cancelar
           </Button>
-          <Button onClick={() => save.mutate({ destinations })} disabled={save.isPending}>
+          <Button onClick={submit} disabled={save.isPending || destinations.length === 0}>
             {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Guardar
           </Button>

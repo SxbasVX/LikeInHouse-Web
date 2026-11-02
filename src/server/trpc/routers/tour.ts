@@ -19,6 +19,8 @@ import {
   getTourDestinations,
   normalizeDestinationList,
 } from "@/server/lib/tour-destinations";
+import { TOUR_CATEGORIES_KEY, assertValidCategories, getTourCategories } from "@/server/lib/tour-categories";
+import { splitCategories } from "@/lib/tour-categories";
 import { serializeDecimals } from "@/server/lib/serialize";
 
 const adminOrMarketing = roleProtectedProcedure(["ADMIN", "MARKETING"]);
@@ -134,6 +136,43 @@ export const tourRouter = router({
       return destinations;
     }),
 
+  // Categorías oficiales y cuántos tours usan cada una
+  categories: protectedProcedure.query(async ({ ctx }) => {
+    const [categories, tours] = await Promise.all([
+      getTourCategories(ctx.db),
+      ctx.db.tour.findMany({ where: { isActive: true }, select: { category: true } }),
+    ]);
+    const counts: Record<string, number> = {};
+    for (const tour of tours) {
+      for (const c of splitCategories(tour.category)) counts[c] = (counts[c] ?? 0) + 1;
+    }
+    return { categories, counts };
+  }),
+
+  setCategories: adminOrMarketing
+    .input(z.object({ categories: z.array(z.string().max(40)).min(1).max(30) }))
+    .mutation(async ({ ctx, input }) => {
+      const categories = normalizeDestinationList(input.categories);
+      const removed = (await getTourCategories(ctx.db)).filter((c) => !categories.includes(c));
+      if (removed.length > 0) {
+        const tours = await ctx.db.tour.findMany({ where: { isActive: true }, select: { category: true } });
+        const inUse = removed.filter((c) => tours.some((t) => splitCategories(t.category).includes(c)));
+        if (inUse.length > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `No se puede quitar ${inUse.map((c) => `"${c}"`).join(", ")}: todavía tiene tours. Quítala de esos tours primero.`,
+          });
+        }
+      }
+      await ctx.db.setting.upsert({
+        where: { key: TOUR_CATEGORIES_KEY },
+        create: { key: TOUR_CATEGORIES_KEY, value: categories },
+        update: { value: categories },
+      });
+      revalidateTag(CACHE_TAGS.tours);
+      return categories;
+    }),
+
   // Guardar borrador (auto-save)
   saveDraft: adminOrMarketing
     .input(tourUpdateSchema)
@@ -207,6 +246,7 @@ export const tourRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { itinerary, pricing, includes, excludes, conditions, images, departures, ...tourData } = input;
       await assertValidDestination(ctx.db, tourData.destination);
+      await assertValidCategories(ctx.db, tourData.category);
 
       // Wrap in transaction to ensure atomicity (tour + all relations)
       const tour = await ctx.db.$transaction(async (tx) => {
@@ -303,6 +343,9 @@ export const tourRouter = router({
       }
       if (tourData.destination && tourData.destination !== existing.destination) {
         await assertValidDestination(ctx.db, tourData.destination);
+      }
+      if (tourData.category && tourData.category !== existing.category) {
+        await assertValidCategories(ctx.db, tourData.category);
       }
 
       // Wrap all mutations in a transaction for atomicity

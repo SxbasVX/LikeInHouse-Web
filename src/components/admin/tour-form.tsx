@@ -32,11 +32,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, ChevronDown, Eye, Save, Star, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Eye, Save, Star, Loader2, AlertCircle, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import type { TourCreateInput } from "@/lib/validators/tour";
-import { parseItineraryDescription } from "@/lib/utils";
+import { cn, parseItineraryDescription } from "@/lib/utils";
+import { MAX_CATEGORIES_PER_TOUR, joinCategories, splitCategories } from "@/lib/tour-categories";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 
 interface TourFormProps {
@@ -180,6 +181,17 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
   const destination = watch("destination");
   const { data: destinationOptions = [], isSuccess: destinationsLoaded } = trpc.tour.destinations.useQuery();
   const destinationOutOfList = destinationsLoaded && !!destination && !destinationOptions.includes(destination);
+
+  const { data: categoryData } = trpc.tour.categories.useQuery();
+  const categoryOptions = categoryData?.categories ?? [];
+  const selectedCategories = splitCategories(watch("category"));
+  const categoriesOutOfList = categoryData ? selectedCategories.filter((c) => !categoryOptions.includes(c)) : [];
+  const toggleCategory = (c: string) => {
+    const next = selectedCategories.includes(c)
+      ? selectedCategories.filter((x) => x !== c)
+      : [...selectedCategories, c].slice(0, MAX_CATEGORIES_PER_TOUR);
+    setValue("category", joinCategories(next, categoryOptions), { shouldDirty: true, shouldValidate: true });
+  };
 
   const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
@@ -488,12 +500,45 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
 
               {/* Categoría y Duración */}
               <Separator />
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="space-y-2">
-                  <Label className={errors.category ? "text-destructive" : ""}>Categoría *</Label>
-                  <Input {...register("category")} placeholder="Ej. Aventura, Cultural" className={errors.category ? "border-destructive" : ""} />
-                  {errors.category && <p className="text-[11px] font-medium text-destructive">{errors.category.message}</p>}
+              <div className="space-y-2">
+                <Label id="category-label" className={errors.category ? "text-destructive" : ""}>
+                  Categorías * <span className="font-normal text-muted-foreground">(hasta {MAX_CATEGORIES_PER_TOUR})</span>
+                </Label>
+                <div className="flex flex-wrap gap-2" role="group" aria-labelledby="category-label">
+                  {[...categoryOptions, ...categoriesOutOfList].map((c) => {
+                    const checked = selectedCategories.includes(c);
+                    const outOfList = !categoryOptions.includes(c);
+                    const blocked = !checked && selectedCategories.length >= MAX_CATEGORIES_PER_TOUR;
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        role="checkbox"
+                        aria-checked={checked}
+                        disabled={blocked}
+                        onClick={() => toggleCategory(c)}
+                        title={outOfList ? "Fuera de la lista: quítala y elige una oficial" : blocked ? `Máximo ${MAX_CATEGORIES_PER_TOUR} categorías` : undefined}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+                          checked && !outOfList && "border-brand-teal bg-brand-teal text-white",
+                          checked && outOfList && "border-destructive bg-destructive/10 text-destructive",
+                          !checked && "hover:bg-muted"
+                        )}
+                      >
+                        {checked && (outOfList ? <AlertCircle className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />)}
+                        {c}
+                      </button>
+                    );
+                  })}
                 </div>
+                {errors.category && <p className="text-[11px] font-medium text-destructive">{errors.category.message}</p>}
+                {categoriesOutOfList.length > 0 ? (
+                  <p className="text-[11px] font-medium text-destructive">Hay categorías fuera de la lista (en rojo). Quítalas y elige de la lista.</p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">¿Falta una categoría? Agrégala en Tours &gt; Categorías.</p>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Dificultad</Label>
                   <Select

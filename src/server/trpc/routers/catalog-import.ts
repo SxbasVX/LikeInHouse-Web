@@ -12,6 +12,8 @@ import { jsonData, refreshImportCounts, createProvider, isProviderConfigured } f
 import { getProviderSelection } from "@/server/catalog-import/providers/router";
 import { checkRateLimit } from "@/server/lib/rate-limit";
 import { assertValidDestination } from "@/server/lib/tour-destinations";
+import { assertValidCategories, getTourCategories } from "@/server/lib/tour-categories";
+import { CATEGORY_SEPARATOR, MAX_CATEGORIES_PER_TOUR, mapLegacyCategory } from "@/lib/tour-categories";
 
 const developer = roleProtectedProcedure(["DEVELOPER"]);
 const authorized = developer.use(async ({ ctx, next }) => {
@@ -132,6 +134,13 @@ export const catalogImportRouter = router({
       const candidate = parseCandidate(record.tourDataJson);
       if (validateCatalogTour(candidate).length) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Corrige las incidencias antes de crear el borrador." });
       await assertValidDestination(tx, candidate.destination!);
+      // La IA escribe la categoría libre ("Cultural y naturaleza"): se traduce a la lista oficial
+      const mapped = mapLegacyCategory(candidate.category!, await getTourCategories(tx));
+      if (mapped.unknown.length > 0 || mapped.categories.length === 0) {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: `Categoría no reconocida: "${candidate.category}". Edita el candidato y elige categorías de la lista.` });
+      }
+      candidate.category = mapped.categories.slice(0, MAX_CATEGORIES_PER_TOUR).join(CATEGORY_SEPARATOR);
+      await assertValidCategories(tx, candidate.category);
       if ((await findDuplicateMatches(tx, candidate)).length) throw new TRPCError({ code: "CONFLICT", message: "Se encontró un tour similar. Revisa el duplicado antes de continuar." });
       const claimed = await tx.catalogImportTour.updateMany({ where: { id: record.id, status: "READY", createdTourId: null }, data: { status: "VALIDATED" } });
       if (!claimed.count) throw new TRPCError({ code: "CONFLICT", message: "El candidato cambió; abre nuevamente la vista previa." });

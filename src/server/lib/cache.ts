@@ -2,6 +2,8 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { db } from "./db";
 import { Decimal } from "@prisma/client/runtime/library";
+import { getTourCategories } from "./tour-categories";
+import { splitCategories } from "@/lib/tour-categories";
 
 // ─── Helpers ───
 
@@ -73,14 +75,19 @@ export const getCachedDestinations = unstable_cache(
     { revalidate: 600, tags: [CACHE_TAGS.tours] }
 );
 
+// Filtro público: solo categorías oficiales que tengan algún tour publicado
 export const getCachedCategories = unstable_cache(
     async () => {
-        const tours = await db.tour.findMany({
-            where: { status: "PUBLISHED", isActive: true },
-            select: { category: true },
-            distinct: ["category"],
-        });
-        return tours.map((t) => t.category);
+        const [official, tours] = await Promise.all([
+            getTourCategories(db),
+            db.tour.findMany({
+                where: { status: "PUBLISHED", isActive: true },
+                select: { category: true },
+                distinct: ["category"],
+            }),
+        ]);
+        const used = new Set(tours.flatMap((t) => splitCategories(t.category)));
+        return official.filter((c) => used.has(c));
     },
     ["categories"],
     { revalidate: 600, tags: [CACHE_TAGS.tours] }
