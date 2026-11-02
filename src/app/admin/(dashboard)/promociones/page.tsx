@@ -22,13 +22,17 @@ import {
   Power, PowerOff, Upload,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { PageHeader } from "@/components/admin/page-header";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/admin/list-states";
+import { formatDate } from "@/lib/format";
+import { formatTrpcError } from "@/lib/trpc-error";
 
 // ─── BANNERS ─────────────────────────────────────────────────────────────────
 
 function BannersTab() {
   const { toast } = useToast();
   const utils = trpc.useUtils();
-  const { data: banners = [], isLoading } = trpc.content.bannerList.useQuery();
+  const { data: banners = [], isLoading, error, refetch, isRefetching } = trpc.content.bannerList.useQuery();
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -45,15 +49,15 @@ function BannersTab() {
 
   const create = trpc.content.bannerCreate.useMutation({
     onSuccess: () => { utils.content.bannerList.invalidate(); toast({ title: "Banner creado" }); setOpen(false); },
-    onError: (e) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "Error", description: formatTrpcError(e), variant: "destructive" }),
   });
   const update = trpc.content.bannerUpdate.useMutation({
     onSuccess: () => { utils.content.bannerList.invalidate(); toast({ title: "Banner actualizado" }); setOpen(false); },
-    onError: (e) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "Error", description: formatTrpcError(e), variant: "destructive" }),
   });
   const del = trpc.content.bannerDelete.useMutation({
     onSuccess: () => { utils.content.bannerList.invalidate(); toast({ title: "Banner eliminado" }); setDeleteTarget(null); },
-    onError: (e) => toast({ title: "No se pudo eliminar el banner", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "No se pudo eliminar el banner", description: formatTrpcError(e), variant: "destructive" }),
   });
 
   function openNew() {
@@ -94,12 +98,11 @@ function BannersTab() {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Cargando...</p>
+        <TableSkeleton rows={3} />
+      ) : error ? (
+        <ErrorState title="No se pudieron cargar los banners" error={error} onRetry={() => refetch()} isRetrying={isRefetching} className="border rounded-xl" />
       ) : banners.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground border rounded-xl">
-          <ImageIcon className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p>No hay banners aún. Crea el primero.</p>
-        </div>
+        <EmptyState icon={ImageIcon} title="No hay banners aún" description="Crea el primero con «Nuevo banner»." className="border rounded-xl" />
       ) : (
         <Table>
           <TableHeader>
@@ -123,9 +126,9 @@ function BannersTab() {
                 </TableCell>
                 <TableCell className="font-medium">{b.titleEs}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {b.startsAt ? new Date(b.startsAt).toLocaleDateString("es") : "—"}
+                  {formatDate(b.startsAt, {}, "—")}
                   {" → "}
-                  {b.endsAt ? new Date(b.endsAt).toLocaleDateString("es") : "sin límite"}
+                  {formatDate(b.endsAt, {}, "sin límite")}
                 </TableCell>
                 <TableCell>
                   <Badge variant={b.isActive ? "default" : "secondary"}>
@@ -282,7 +285,7 @@ function BannersTab() {
 function DiscountsTab() {
   const { toast } = useToast();
   const utils = trpc.useUtils();
-  const { data: discounts = [], isLoading } = trpc.content.globalDiscountList.useQuery();
+  const { data: discounts = [], isLoading, error, refetch, isRefetching } = trpc.content.globalDiscountList.useQuery();
   const [name, setName] = useState("");
   const [percent, setPercent] = useState("");
   type DiscountRef = { id: string; name: string; percent: number };
@@ -292,19 +295,19 @@ function DiscountsTab() {
 
   const create = trpc.content.globalDiscountCreate.useMutation({
     onSuccess: () => { utils.content.globalDiscountList.invalidate(); setName(""); setPercent(""); toast({ title: "Descuento creado" }); },
-    onError: (e) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "Error", description: formatTrpcError(e), variant: "destructive" }),
   });
   const activate = trpc.content.globalDiscountActivate.useMutation({
     onSuccess: () => { utils.content.globalDiscountList.invalidate(); utils.public.activeGlobalDiscount.invalidate(); toast({ title: "Descuento activado para todos los tours" }); setActivateTarget(null); },
-    onError: (e) => toast({ title: "No se pudo activar el descuento", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "No se pudo activar el descuento", description: formatTrpcError(e), variant: "destructive" }),
   });
   const deactivate = trpc.content.globalDiscountDeactivate.useMutation({
     onSuccess: () => { utils.content.globalDiscountList.invalidate(); utils.public.activeGlobalDiscount.invalidate(); toast({ title: "Descuento desactivado" }); setDeactivateOpen(false); },
-    onError: (e) => toast({ title: "No se pudo desactivar el descuento", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "No se pudo desactivar el descuento", description: formatTrpcError(e), variant: "destructive" }),
   });
   const del = trpc.content.globalDiscountDelete.useMutation({
     onSuccess: () => { utils.content.globalDiscountList.invalidate(); toast({ title: "Descuento eliminado" }); setDeleteTarget(null); },
-    onError: (e) => toast({ title: "No se pudo eliminar el descuento", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "No se pudo eliminar el descuento", description: formatTrpcError(e), variant: "destructive" }),
   });
 
   const hasActive = discounts.some((d) => d.isActive);
@@ -353,12 +356,11 @@ function DiscountsTab() {
       </Card>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Cargando...</p>
+        <TableSkeleton rows={3} />
+      ) : error ? (
+        <ErrorState title="No se pudieron cargar los descuentos" error={error} onRetry={() => refetch()} isRetrying={isRefetching} className="border rounded-xl" />
       ) : discounts.length === 0 ? (
-        <div className="text-center py-10 text-muted-foreground border rounded-xl">
-          <Tag className="h-8 w-8 mx-auto mb-2 opacity-30" />
-          <p>No hay descuentos creados aún.</p>
-        </div>
+        <EmptyState icon={Tag} title="No hay descuentos creados aún" className="border rounded-xl" />
       ) : (
         <Table>
           <TableHeader>
@@ -475,11 +477,11 @@ function DiscountsTab() {
 
 export default function PromocionesPage() {
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
-      <div>
-        <h1 className="text-2xl font-bold">Promociones</h1>
-        <p className="text-muted-foreground text-sm">Gestiona banners en la home y descuentos globales para todos los tours</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Promociones"
+        subtitle="Gestiona banners en la home y descuentos globales para todos los tours"
+      />
 
       <Tabs defaultValue="banners">
         <TabsList>

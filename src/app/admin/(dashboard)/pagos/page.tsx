@@ -23,7 +23,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -39,32 +38,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { PageHeader } from "@/components/admin/page-header";
+import { Pagination } from "@/components/admin/pagination";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/admin/list-states";
+import { formatMoney, formatTimestampDate } from "@/lib/format";
+import { statusOptions } from "@/lib/status";
+import { formatTrpcError } from "@/lib/trpc-error";
 import {
   Search,
   MoreHorizontal,
   CheckCircle,
-  ChevronLeft,
-  ChevronRight,
+  CreditCard,
   DollarSign,
   Clock,
   TrendingUp,
 } from "lucide-react";
-
-const statusLabels: Record<string, string> = {
-  PENDING: "Pendiente",
-  PROCESSING: "Procesando",
-  COMPLETED: "Completado",
-  FAILED: "Fallido",
-  REFUNDED: "Reembolsado",
-};
-
-const statusColors: Record<string, string> = {
-  PENDING: "bg-brand-orange/15 text-brand-orange",
-  PROCESSING: "bg-brand-teal/15 text-brand-darkTeal",
-  COMPLETED: "bg-brand-teal/15 text-brand-darkTeal",
-  FAILED: "bg-brand-darkRed/15 text-brand-darkRed",
-  REFUNDED: "bg-brand-beige text-brand-darkRed",
-};
 
 const methodLabels: Record<string, string> = {
   CULQI_CARD: "Tarjeta (Culqi)",
@@ -73,10 +62,6 @@ const methodLabels: Record<string, string> = {
   BANK_TRANSFER: "Transferencia",
   CASH: "Efectivo",
 };
-
-function formatMoney(amount: number, currency: string): string {
-  return new Intl.NumberFormat("es-PE", { style: "currency", currency }).format(amount);
-}
 
 // "USD 1,234.00 · PEN 560.00": un total por moneda, nunca sumados entre sí.
 function formatTotals(totals: { currency: string; amount: number }[]): string {
@@ -91,7 +76,7 @@ export default function PagosPage() {
   const [verifyTarget, setVerifyTarget] = useState<Payment | null>(null);
   const { toast } = useToast();
 
-  const { data, isLoading, refetch } = trpc.payment.list.useQuery({
+  const { data, isLoading, error, refetch, isRefetching } = trpc.payment.list.useQuery({
     page,
     limit: 10,
     status: (status as "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "REFUNDED") || undefined,
@@ -108,16 +93,13 @@ export default function PagosPage() {
       setVerifyTarget(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "No se pudo verificar el pago", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Pagos</h1>
-        <p className="font-serif italic text-brand-teal">Control de pagos y transacciones</p>
-      </div>
+      <PageHeader title="Pagos" subtitle="Control de pagos y transacciones" />
 
       {/* Stats cards */}
       {stats && (
@@ -171,7 +153,7 @@ export default function PagosPage() {
         <CardHeader>
           <CardTitle>Transacciones</CardTitle>
           <CardDescription>
-            {data ? `${data.total} pagos registrados` : "Cargando..."}
+            {data ? `${data.total} pagos registrados` : error ? "—" : "Cargando..."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -188,11 +170,9 @@ export default function PagosPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">Todos</SelectItem>
-                <SelectItem value="PENDING">Pendiente</SelectItem>
-                <SelectItem value="PROCESSING">Procesando</SelectItem>
-                <SelectItem value="COMPLETED">Completado</SelectItem>
-                <SelectItem value="FAILED">Fallido</SelectItem>
-                <SelectItem value="REFUNDED">Reembolsado</SelectItem>
+                {statusOptions("payment").map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select
@@ -217,15 +197,15 @@ export default function PagosPage() {
           </div>
 
           {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
+            <TableSkeleton />
+          ) : error ? (
+            <ErrorState title="No se pudieron cargar los pagos" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
           ) : data?.payments.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No se encontraron pagos
-            </div>
+            <EmptyState
+              icon={CreditCard}
+              title="No se encontraron pagos"
+              description={status || method ? "Prueba con otros filtros." : "Los pagos registrados aparecerán aquí."}
+            />
           ) : (
             <>
               <Table>
@@ -258,18 +238,16 @@ export default function PagosPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="font-medium">
-                        {payment.currency} {Number(payment.amount).toFixed(2)}
+                        {formatMoney(payment.amount, payment.currency)}
                         {payment.isDeposit && (
                           <span className="ml-1 text-xs text-muted-foreground">(Dep.)</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge className={statusColors[payment.status] || ""} variant="secondary">
-                          {statusLabels[payment.status]}
-                        </Badge>
+                        <StatusBadge domain="payment" status={payment.status} />
                       </TableCell>
                       <TableCell className="text-sm">
-                        {new Date(payment.createdAt).toLocaleDateString("es-PE")}
+                        {formatTimestampDate(payment.createdAt)}
                       </TableCell>
                       <TableCell>
                         {payment.status === "PENDING" && (
@@ -295,30 +273,15 @@ export default function PagosPage() {
                 </TableBody>
               </Table>
 
-              {data && data.pages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm font-serif italic text-brand-teal">
-                    Página {data.page} de {data.pages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" /> Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => p + 1)}
-                      disabled={page >= (data?.pages ?? 1)}
-                    >
-                      Siguiente <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+              {data && (
+                <Pagination
+                  page={page}
+                  pages={data.pages}
+                  total={data.total}
+                  itemLabel="pagos"
+                  onPageChange={setPage}
+                  className="mt-4"
+                />
               )}
             </>
           )}

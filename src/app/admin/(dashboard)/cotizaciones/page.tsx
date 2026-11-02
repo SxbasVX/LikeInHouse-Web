@@ -28,8 +28,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -55,39 +53,27 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { PageHeader } from "@/components/admin/page-header";
+import { Pagination } from "@/components/admin/pagination";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/admin/list-states";
+import { formatMoney, formatTimestampDate } from "@/lib/format";
+import { statusOptions } from "@/lib/status";
+import { formatTrpcError } from "@/lib/trpc-error";
 import {
   Search,
   MoreHorizontal,
   Send,
   CheckCircle,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
   Plus,
+  FileText,
   LinkIcon,
   Copy,
   ExternalLink,
   Loader2,
   X,
 } from "lucide-react";
-
-const statusLabels: Record<string, string> = {
-  DRAFT: "Borrador",
-  SENT: "Enviada",
-  VIEWED: "Vista",
-  ACCEPTED: "Aceptada",
-  CONVERTED: "Convertida",
-  EXPIRED: "Expirada",
-};
-
-const statusColors: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-800",
-  SENT: "bg-brand-teal/15 text-brand-darkTeal",
-  VIEWED: "bg-brand-beige text-brand-darkRed",
-  ACCEPTED: "bg-brand-teal/15 text-brand-darkTeal",
-  CONVERTED: "bg-brand-darkTeal/15 text-brand-darkTeal",
-  EXPIRED: "bg-brand-darkRed/15 text-brand-darkRed",
-};
 
 // =============================================
 // Schema para crear cotizacion
@@ -130,7 +116,7 @@ export default function CotizacionesPage() {
   } | null>(null);
   const { toast } = useToast();
 
-  const { data, isLoading, refetch } = trpc.quotation.list.useQuery({
+  const { data, isLoading, error, refetch, isRefetching } = trpc.quotation.list.useQuery({
     page,
     limit: 10,
     search: search || undefined,
@@ -144,7 +130,7 @@ export default function CotizacionesPage() {
       setPendingAction(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "No se pudo actualizar el estado", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -155,7 +141,7 @@ export default function CotizacionesPage() {
       setPendingAction(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "No se pudo enviar el correo", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -166,7 +152,7 @@ export default function CotizacionesPage() {
       setDeleteId(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "No se pudo eliminar la cotización", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -179,7 +165,7 @@ export default function CotizacionesPage() {
       refetch();
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "No se pudo generar el link de pago", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -190,21 +176,21 @@ export default function CotizacionesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Cotizaciones</h1>
-          <p className="font-serif italic text-brand-teal">Gestiona cotizaciones y genera links de pago</p>
-        </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Nueva Cotizacion
-        </Button>
-      </div>
+      <PageHeader
+        title="Cotizaciones"
+        subtitle="Gestiona cotizaciones y genera links de pago"
+        actions={
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Nueva Cotización
+          </Button>
+        }
+      />
 
       <Card>
         <CardHeader>
           <CardTitle>Lista de Cotizaciones</CardTitle>
           <CardDescription>
-            {data ? `${data.total} cotizaciones en total` : "Cargando..."}
+            {data ? `${data.total} cotizaciones en total` : error ? "—" : "Cargando..."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -233,26 +219,23 @@ export default function CotizacionesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">Todos</SelectItem>
-                <SelectItem value="DRAFT">Borrador</SelectItem>
-                <SelectItem value="SENT">Enviada</SelectItem>
-                <SelectItem value="VIEWED">Vista</SelectItem>
-                <SelectItem value="ACCEPTED">Aceptada</SelectItem>
-                <SelectItem value="CONVERTED">Convertida</SelectItem>
-                <SelectItem value="EXPIRED">Expirada</SelectItem>
+                {statusOptions("quotation").map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
           {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
+            <TableSkeleton />
+          ) : error ? (
+            <ErrorState title="No se pudieron cargar las cotizaciones" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
           ) : data?.quotations.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No se encontraron cotizaciones
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="No se encontraron cotizaciones"
+              description={search || status ? "Prueba con otros filtros de búsqueda." : "Crea una cotización con «Nueva Cotización»."}
+            />
           ) : (
             <>
               <Table>
@@ -288,15 +271,13 @@ export default function CotizacionesPage() {
                       <TableCell>{quotation.titleEs}</TableCell>
                       <TableCell>{quotation._count.items}</TableCell>
                       <TableCell className="font-medium">
-                        {quotation.currency} {Number(quotation.totalAmount).toFixed(2)}
+                        {formatMoney(quotation.totalAmount, quotation.currency)}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {new Date(quotation.validUntil).toLocaleDateString("es-PE")}
+                        {formatTimestampDate(quotation.validUntil)}
                       </TableCell>
                       <TableCell>
-                        <Badge className={statusColors[quotation.status] || ""} variant="secondary">
-                          {statusLabels[quotation.status]}
-                        </Badge>
+                        <StatusBadge domain="quotation" status={quotation.status} />
                       </TableCell>
                       <TableCell className="text-sm">
                         {quotation.createdBy.name}
@@ -357,7 +338,7 @@ export default function CotizacionesPage() {
                                   amountPaid: 0,
                                   totalAmount: Number(quotation.totalAmount),
                                   currency: quotation.currency,
-                                  dateStr: quotation.validUntil ? `Válida hasta ${new Date(quotation.validUntil).toLocaleDateString("es-PE")}` : "Por definir",
+                                  dateStr: quotation.validUntil ? `Válida hasta ${formatTimestampDate(quotation.validUntil)}` : "Por definir",
                                   adults: 0,
                                   children: 0,
                                   isEs: true,
@@ -379,30 +360,15 @@ export default function CotizacionesPage() {
                 </TableBody>
               </Table>
 
-              {data && data.pages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm font-serif italic text-brand-teal">
-                    Pagina {data.page} de {data.pages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" /> Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => p + 1)}
-                      disabled={page >= (data?.pages ?? 1)}
-                    >
-                      Siguiente <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+              {data && (
+                <Pagination
+                  page={page}
+                  pages={data.pages}
+                  total={data.total}
+                  itemLabel="cotizaciones"
+                  onPageChange={setPage}
+                  className="mt-4"
+                />
               )}
             </>
           )}
@@ -465,7 +431,7 @@ export default function CotizacionesPage() {
           pendingAction && (() => {
             const q = pendingAction.quotation;
             const client = `${q.client.firstName} ${q.client.lastName}`;
-            const amount = `${q.currency} ${Number(q.totalAmount).toFixed(2)}`;
+            const amount = formatMoney(q.totalAmount, q.currency);
             if (pendingAction.kind === "EMAIL") {
               return (
                 <>
@@ -580,7 +546,7 @@ function CreateQuotationDialog({
       setSelectedClientLabel("");
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "No se pudo crear la cotización", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -639,7 +605,7 @@ function CreateQuotationDialog({
           toast({ title: "Error", description: "Ya existe un cliente con ese email. Usa 'Cliente Existente' para buscarlo.", variant: "destructive" });
           return;
         }
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+        toast({ title: "Error", description: formatTrpcError(err), variant: "destructive" });
         return;
       }
     }
@@ -861,7 +827,7 @@ function CreateQuotationDialog({
                   </div>
 
                   <div className="text-right text-sm font-medium">
-                    Subtotal: $ {calculateSubtotal(watchItems?.[index] || { unitPrice: 0, quantity: 1, adults: 1, children: 0 }).toFixed(2)}
+                    Subtotal: {formatMoney(calculateSubtotal(watchItems?.[index] || { unitPrice: 0, quantity: 1, adults: 1, children: 0 }), currency)}
                   </div>
                 </div>
               </Card>
@@ -878,7 +844,7 @@ function CreateQuotationDialog({
           <div className="flex items-center justify-between text-lg font-bold">
             <span>Total</span>
             <span className="text-primary">
-              $ {grandTotal.toFixed(2)}
+              {formatMoney(grandTotal, currency)}
             </span>
           </div>
 

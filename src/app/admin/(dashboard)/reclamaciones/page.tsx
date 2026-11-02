@@ -7,13 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Search, BookOpen, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, BookOpen, Eye } from "lucide-react";
 import {
-  complaintStatusConfig as statusConfig,
+  complaintStatusIcons,
   complaintTypeLabels,
   type ComplaintStatus as Status,
 } from "@/components/admin/complaint-labels";
+import { PageHeader } from "@/components/admin/page-header";
+import { Pagination } from "@/components/admin/pagination";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/admin/list-states";
+import { formatTimestampDate } from "@/lib/format";
 
 const PAGE_SIZE = 20;
 
@@ -36,7 +40,7 @@ export default function ReclamacionesPage() {
     staleTime: 30_000,
   });
 
-  const { data, isLoading } = trpc.complaint.list.useQuery(
+  const { data, isLoading, error, refetch, isRefetching } = trpc.complaint.list.useQuery(
     {
       search: debouncedSearch || undefined,
       status: statusFilter === "ALL" ? undefined : statusFilter,
@@ -50,15 +54,10 @@ export default function ReclamacionesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Libro de Reclamaciones</h2>
-          <p className="font-serif italic text-brand-teal">
-            Reclamos y quejas registrados por consumidores (INDECOPI)
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Libro de Reclamaciones"
+        subtitle="Reclamos y quejas registrados por consumidores (INDECOPI)"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -131,17 +130,19 @@ export default function ReclamacionesPage() {
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">Cargando...</div>
+            <TableSkeleton className="p-4" />
+          ) : error ? (
+            <ErrorState title="No se pudieron cargar los registros" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
           ) : !data?.items.length ? (
-            <div className="p-12 text-center">
-              <BookOpen className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
-              <p className="text-muted-foreground">No hay registros.</p>
-            </div>
+            <EmptyState
+              icon={BookOpen}
+              title="No hay registros"
+              description={debouncedSearch || statusFilter !== "ALL" ? "Prueba con otros filtros de búsqueda." : undefined}
+            />
           ) : (
             <div className="divide-y">
               {data.items.map((c) => {
-                const cfg = statusConfig[c.status as Status];
-                const Icon = cfg.icon;
+                const Icon = complaintStatusIcons[c.status as Status] ?? BookOpen;
                 const daysAgo = Math.floor((Date.now() - new Date(c.createdAt).getTime()) / (1000 * 60 * 60 * 24));
                 const overdue = c.status === "PENDIENTE" && daysAgo > 20;
                 return (
@@ -168,12 +169,12 @@ export default function ReclamacionesPage() {
                         </div>
                         <p className="text-sm text-gray-900 truncate mt-1">{c.consumerName}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {c.consumerEmail} · {new Date(c.createdAt).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}
+                          {c.consumerEmail} · {formatTimestampDate(c.createdAt, { day: "2-digit", month: "short", year: "numeric" })}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 ml-4">
-                      <Badge variant={cfg.variant}>{cfg.label}</Badge>
+                      <StatusBadge domain="complaint" status={c.status} />
                       <Eye className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </Link>
@@ -181,30 +182,15 @@ export default function ReclamacionesPage() {
               })}
             </div>
           )}
-          {data && totalPages > 1 && (
-            <div className="flex items-center justify-between border-t p-4">
-              <p className="text-sm font-serif italic text-brand-teal">
-                Página {data.page} de {totalPages}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" /> Anterior
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={page >= totalPages}
-                >
-                  Siguiente <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+          {data && (
+            <Pagination
+              page={page}
+              pages={totalPages}
+              total={data.total}
+              itemLabel="registros"
+              onPageChange={setPage}
+              className="border-t p-4"
+            />
           )}
         </CardContent>
       </Card>

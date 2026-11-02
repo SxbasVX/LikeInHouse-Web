@@ -30,6 +30,10 @@ import {
 import { MoreHorizontal, Pencil, Eye, EyeOff, Star, StarOff, Trash2, Loader2, Map } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { formatTrpcError } from "@/lib/trpc-error";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState } from "@/components/admin/list-states";
+import { formatMoney } from "@/lib/format";
 
 interface Tour {
   id: string;
@@ -52,12 +56,6 @@ interface ToursTableProps {
   tours: Tour[];
   onRefresh: () => void;
 }
-
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  DRAFT: { label: "Borrador", variant: "secondary" },
-  PUBLISHED: { label: "Publicado", variant: "default" },
-  ARCHIVED: { label: "Archivado", variant: "outline" },
-};
 
 export function ToursTable({ tours, onRefresh }: ToursTableProps) {
   const { toast } = useToast();
@@ -84,7 +82,7 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
       onRefresh();
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -106,16 +104,13 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
         <TableBody>
           {tours.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="h-48 text-center text-muted-foreground">
-                <div className="flex flex-col items-center justify-center space-y-3">
-                  <div className="rounded-full bg-muted p-4">
-                    <Map className="h-8 w-8 text-muted-foreground/50" />
-                  </div>
-                  <div>
-                    <p className="text-base font-medium text-foreground">Aún no hay tours</p>
-                    <p className="text-sm text-muted-foreground mt-1">Crea tu primer destino o cambia los filtros de búsqueda.</p>
-                  </div>
-                </div>
+              <TableCell colSpan={8} className="h-48">
+                <EmptyState
+                  icon={Map}
+                  title="Aún no hay tours"
+                  description="Crea tu primer tour o cambia los filtros de búsqueda."
+                  className="py-4"
+                />
               </TableCell>
             </TableRow>
           ) : (
@@ -151,16 +146,14 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={statusConfig[tour.status]?.variant || "secondary"}>
-                    {statusConfig[tour.status]?.label || tour.status}
-                  </Badge>
+                  <StatusBadge domain="tour" status={tour.status} />
                 </TableCell>
                 <TableCell>
                   {tour.tourType === "BOOKABLE" && tour.pricing
                     ? (() => {
                         const dt = tour.pricing.tiers?.find((t) => t.isDefault) || tour.pricing.tiers?.[0];
                         const p = dt ? Number(dt.priceUsd) : Number(tour.pricing.basePriceUsdAdult);
-                        return `$ ${p.toFixed(2)}`;
+                        return formatMoney(p, "USD");
                       })()
                     : "-"}
                 </TableCell>

@@ -9,21 +9,20 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Image, Upload, FolderOpen } from "lucide-react";
+import { PageHeader } from "@/components/admin/page-header";
 
 export default function GaleriaPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Galería</h1>
-          <p className="font-serif italic text-brand-teal">
-            Gestiona las imágenes del sitio (Cloudinary)
-          </p>
-        </div>
-        <Button disabled>
-          <Upload className="mr-2 h-4 w-4" /> Subir Imagen
-        </Button>
-      </div>
+      <PageHeader
+        title="Galería"
+        subtitle="Gestiona las imágenes del sitio (Cloudinary)"
+        actions={
+          <Button disabled>
+            <Upload className="mr-2 h-4 w-4" /> Subir Imagen
+          </Button>
+        }
+      />
 
       <div className="grid gap-6 md:grid-cols-3">
         <Card>

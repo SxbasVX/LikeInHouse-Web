@@ -10,6 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Search, FileText, Globe, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { PageHeader } from "@/components/admin/page-header";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/admin/list-states";
+import { formatTrpcError } from "@/lib/trpc-error";
 
 export default function DocumentosPage() {
   const [search, setSearch] = useState("");
@@ -17,7 +20,7 @@ export default function DocumentosPage() {
   const { toast } = useToast();
   const utils = trpc.useUtils();
 
-  const { data: docs, isLoading } = trpc.docs.list.useQuery(
+  const { data: docs, isLoading, error, refetch, isRefetching } = trpc.docs.list.useQuery(
     { search: search || undefined },
     { staleTime: 30_000 }
   );
@@ -28,26 +31,23 @@ export default function DocumentosPage() {
       utils.docs.list.invalidate();
       setDeleteTarget(null);
     },
-    onError: (e) => toast({ title: "No se pudo eliminar el documento", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "No se pudo eliminar el documento", description: formatTrpcError(e), variant: "destructive" }),
   });
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Documentos</h2>
-          <p className="font-serif italic text-brand-teal">
-            PDFs y páginas de contenido (T&C, certificaciones, políticas)
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/admin/documentos/nuevo">
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo Documento
-          </Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="Documentos"
+        subtitle="PDFs y páginas de contenido (T&C, certificaciones, políticas)"
+        actions={
+          <Button asChild>
+            <Link href="/admin/documentos/nuevo">
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Documento
+            </Link>
+          </Button>
+        }
+      />
 
       {/* Search */}
       <div className="relative max-w-sm">
@@ -69,11 +69,15 @@ export default function DocumentosPage() {
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-8 text-center text-muted-foreground">Cargando...</div>
+            <TableSkeleton rows={4} className="p-4" />
+          ) : error ? (
+            <ErrorState title="No se pudieron cargar los documentos" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
           ) : !docs?.length ? (
-            <div className="p-8 text-center text-muted-foreground">
-              No hay documentos. Crea el primero.
-            </div>
+            <EmptyState
+              icon={FileText}
+              title={search ? "No se encontraron documentos" : "No hay documentos"}
+              description={search ? "Prueba con otra búsqueda." : "Crea el primero con «Nuevo Documento»."}
+            />
           ) : (
             <div className="divide-y">
               {docs.map((doc) => (

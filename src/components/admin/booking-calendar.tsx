@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,6 +9,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { formatDate, formatTimestampDate, formatMoney } from "@/lib/format";
+import { getStatusStyle } from "@/lib/status";
 
 interface CalendarReservation {
   id: string;
@@ -33,14 +35,6 @@ interface BookingCalendarProps {
   month: Date;
   onMonthChange: (date: Date) => void;
 }
-
-const statusConfig: Record<string, { label: string; color: string; dot: string }> = {
-  PENDING: { label: "Pendiente", color: "bg-amber-100 text-amber-800 border-amber-200", dot: "bg-amber-500" },
-  CONFIRMED: { label: "Confirmada", color: "bg-blue-100 text-blue-800 border-blue-200", dot: "bg-blue-500" },
-  PAID: { label: "Pagada", color: "bg-emerald-100 text-emerald-800 border-emerald-200", dot: "bg-emerald-500" },
-  COMPLETED: { label: "Completada", color: "bg-gray-100 text-gray-600 border-gray-200", dot: "bg-gray-400" },
-  CANCELLED: { label: "Cancelada", color: "bg-red-100 text-red-800 border-red-200", dot: "bg-red-500" },
-};
 
 const DAYS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
@@ -159,12 +153,12 @@ export function BookingCalendar({ reservations, month, onMonthChange }: BookingC
 
               <div className="mt-1 space-y-0.5">
                 {events.slice(0, 3).map((r) => {
-                  const cfg = statusConfig[r.status] || statusConfig.PENDING;
+                  const cfg = getStatusStyle("reservation", r.status);
                   return (
                     <button
                       key={r.id}
                       onClick={() => setSelected(r)}
-                      className={`w-full text-left rounded px-1.5 py-0.5 text-[10px] font-medium truncate border ${cfg.color} hover:opacity-80 transition-opacity`}
+                      className={`w-full text-left rounded px-1.5 py-0.5 text-[10px] font-medium truncate border ${cfg.className} hover:opacity-80 transition-opacity`}
                     >
                       <span className={`inline-block h-1.5 w-1.5 rounded-full mr-1 ${cfg.dot}`} />
                       {r.tour.nameEs.slice(0, 15)}
@@ -192,9 +186,7 @@ export function BookingCalendar({ reservations, month, onMonthChange }: BookingC
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-sm">{selected.referenceCode}</span>
-                <Badge className={statusConfig[selected.status]?.color || ""}>
-                  {statusConfig[selected.status]?.label || selected.status}
-                </Badge>
+                <StatusBadge domain="reservation" status={selected.status} />
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
@@ -215,7 +207,7 @@ export function BookingCalendar({ reservations, month, onMonthChange }: BookingC
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Monto</p>
-                  <p className="font-semibold">{selected.currency} ${selected.totalAmount.toFixed(2)}</p>
+                  <p className="font-semibold">{formatMoney(selected.totalAmount, selected.currency)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Origen</p>
@@ -227,15 +219,13 @@ export function BookingCalendar({ reservations, month, onMonthChange }: BookingC
                       {selected.departure ? "Fecha Salida" : "Fecha solicitada"}
                     </p>
                     <p>
-                      {new Date(
-                        selected.departure?.departureDate ?? selected.travelDate!
-                      ).toLocaleDateString("es-PE", { timeZone: "UTC" })}
+                      {formatDate(selected.departure?.departureDate ?? selected.travelDate)}
                     </p>
                   </div>
                 )}
                 <div>
                   <p className="text-muted-foreground text-xs">Creada</p>
-                  <p>{new Date(selected.createdAt).toLocaleDateString("es-PE", { timeZone: "UTC" })}</p>
+                  <p>{formatTimestampDate(selected.createdAt)}</p>
                 </div>
               </div>
             </div>

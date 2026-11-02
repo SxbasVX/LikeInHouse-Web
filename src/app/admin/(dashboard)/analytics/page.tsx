@@ -27,6 +27,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3, TrendingUp, DollarSign, ShoppingCart } from "lucide-react";
+import { PageHeader } from "@/components/admin/page-header";
+import { ErrorState } from "@/components/admin/list-states";
+import { formatMoney } from "@/lib/format";
 
 const SOURCE_COLORS: Record<string, string> = {
   instagram: "bg-pink-100 text-pink-800",
@@ -53,17 +56,14 @@ function SourceBadge({ source }: { source: string }) {
 export default function AnalyticsPage() {
   const [days, setDays] = useState(30);
 
-  const { data, isLoading } = trpc.dashboard.getSourceAnalytics.useQuery({ days });
+  const { data, isLoading, error, refetch, isRefetching } = trpc.dashboard.getSourceAnalytics.useQuery({ days });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Analytics de Marketing</h1>
-          <p className="font-serif italic text-brand-teal">
-            Atribucion de fuentes de trafico y rendimiento de campanas
-          </p>
-        </div>
+      <PageHeader
+        title="Analytics de Marketing"
+        subtitle="Atribución de fuentes de tráfico y rendimiento de campañas"
+        actions={
         <Select
           value={String(days)}
           onValueChange={(val) => setDays(Number(val))}
@@ -79,7 +79,8 @@ export default function AnalyticsPage() {
             <SelectItem value="365">Ultimo ano</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+        }
+      />
 
       {isLoading ? (
         <div className="space-y-4">
@@ -93,6 +94,10 @@ export default function AnalyticsPage() {
           </div>
           <Skeleton className="h-64 w-full" />
         </div>
+      ) : error ? (
+        <Card>
+          <ErrorState title="No se pudieron cargar los datos de analytics" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
+        </Card>
       ) : !data ? null : (
         <>
           {/* Summary Cards */}
@@ -113,7 +118,7 @@ export default function AnalyticsPage() {
                 <DollarSign className="h-5 w-5 text-brand-orange" />
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold">$ {data.totalRevenue.toLocaleString()}</p>
+                <p className="text-3xl font-bold">{formatMoney(data.totalRevenue, "USD")}</p>
                 <p className="text-xs text-muted-foreground mt-1">USD</p>
               </CardContent>
             </Card>
@@ -161,7 +166,7 @@ export default function AnalyticsPage() {
                         <TableRow key={row.source}>
                           <TableCell><SourceBadge source={row.source} /></TableCell>
                           <TableCell className="text-right font-medium">{row.orders}</TableCell>
-                          <TableCell className="text-right font-medium">$ {row.revenue.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-medium">{formatMoney(row.revenue, "USD")}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -200,7 +205,7 @@ export default function AnalyticsPage() {
                         <TableRow key={row.source}>
                           <TableCell><SourceBadge source={row.source} /></TableCell>
                           <TableCell className="text-right font-medium">{row.orders}</TableCell>
-                          <TableCell className="text-right font-medium">$ {row.revenue.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-medium">{formatMoney(row.revenue, "USD")}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -243,9 +248,9 @@ export default function AnalyticsPage() {
                           <span className="font-mono text-sm">{row.campaign}</span>
                         </TableCell>
                         <TableCell className="text-right font-medium">{row.orders}</TableCell>
-                        <TableCell className="text-right font-medium">$ {row.revenue.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-medium">{formatMoney(row.revenue, "USD")}</TableCell>
                         <TableCell className="text-right text-muted-foreground">
-                          $ {row.orders > 0 ? (row.revenue / row.orders).toFixed(2) : "0.00"}
+                          {formatMoney(row.orders > 0 ? row.revenue / row.orders : 0, "USD")}
                         </TableCell>
                       </TableRow>
                     ))}

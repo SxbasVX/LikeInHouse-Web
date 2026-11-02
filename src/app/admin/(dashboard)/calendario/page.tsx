@@ -18,15 +18,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/admin/page-header";
+import { ErrorState } from "@/components/admin/list-states";
+import { formatMoney } from "@/lib/format";
+import { STATUS, statusOptions } from "@/lib/status";
 
 function formatTotals(totals: Record<string, number>): string {
   const entries = Object.entries(totals);
   if (entries.length === 0) return formatMoney(0, "USD");
   return entries.map(([currency, amount]) => formatMoney(amount, currency)).join(" · ");
-}
-
-function formatMoney(amount: number, currency: string): string {
-  return new Intl.NumberFormat("es-PE", { style: "currency", currency }).format(amount);
 }
 
 export default function CalendarioPage() {
@@ -52,7 +52,7 @@ export default function CalendarioPage() {
     };
   }, [month]);
 
-  const { data: reservations, isLoading } = trpc.reservation.listForCalendar.useQuery({
+  const { data: reservations, isLoading, error, refetch, isRefetching } = trpc.reservation.listForCalendar.useQuery({
     startDate,
     endDate,
     travelStartDate,
@@ -84,10 +84,7 @@ export default function CalendarioPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Calendario</h1>
-        <p className="font-serif italic text-brand-teal">Vista mensual de reservas</p>
-      </div>
+      <PageHeader title="Calendario" subtitle="Vista mensual de reservas" />
 
       {/* Stats */}
       {stats && (
@@ -100,13 +97,13 @@ export default function CalendarioPage() {
           </Card>
           <Card>
             <CardContent className="pt-4 pb-3">
-              <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
+              <p className="text-2xl font-bold text-amber-700">{stats.pending}</p>
               <p className="text-xs font-serif italic text-brand-teal">Pendientes</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4 pb-3">
-              <p className="text-2xl font-bold text-emerald-600">{stats.paid}</p>
+              <p className="text-2xl font-bold text-brand-darkTeal">{stats.paid}</p>
               <p className="text-xs font-serif italic text-brand-teal">Pagadas</p>
             </CardContent>
           </Card>
@@ -139,11 +136,9 @@ export default function CalendarioPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los estados</SelectItem>
-            <SelectItem value="PENDING">Pendiente</SelectItem>
-            <SelectItem value="CONFIRMED">Confirmada</SelectItem>
-            <SelectItem value="PAID">Pagada</SelectItem>
-            <SelectItem value="COMPLETED">Completada</SelectItem>
-            <SelectItem value="CANCELLED">Cancelada</SelectItem>
+            {statusOptions("reservation").map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -152,7 +147,15 @@ export default function CalendarioPage() {
       <Card>
         <CardHeader>
           <CardTitle>Reservas</CardTitle>
-          <CardDescription>Click en una reserva para ver el detalle</CardDescription>
+          <CardDescription>Haz clic en una reserva para ver el detalle</CardDescription>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground">
+            {Object.values(STATUS.reservation).map((s) => (
+              <span key={s.label} className="inline-flex items-center gap-1.5">
+                <span className={`h-2 w-2 rounded-full ${s.dot}`} aria-hidden="true" />
+                {s.label}
+              </span>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -160,6 +163,8 @@ export default function CalendarioPage() {
               <Skeleton className="h-8 w-full" />
               <Skeleton className="h-[500px] w-full" />
             </div>
+          ) : error ? (
+            <ErrorState title="No se pudieron cargar las reservas del mes" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
           ) : (
             <BookingCalendar
               reservations={(reservations || []).map((r) => ({

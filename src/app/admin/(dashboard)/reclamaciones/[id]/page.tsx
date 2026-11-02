@@ -12,8 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Mail, Phone, MapPin, FileText, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { PageHeader } from "@/components/admin/page-header";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/admin/list-states";
+import { formatDateTime, formatMoney } from "@/lib/format";
+import { statusLabel } from "@/lib/status";
+import { formatTrpcError } from "@/lib/trpc-error";
 import {
-  complaintStatusConfig,
   complaintTypeLabels,
   complaintItemTypeLabels,
   type ComplaintStatus as Status,
@@ -28,7 +33,7 @@ export default function ReclamacionDetailPage({
   const { toast } = useToast();
   const utils = trpc.useUtils();
 
-  const { data: complaint, isLoading } = trpc.complaint.getById.useQuery({ id });
+  const { data: complaint, isLoading, error, refetch, isRefetching } = trpc.complaint.getById.useQuery({ id });
 
   const [status, setStatus] = useState<Status>("EN_PROCESO");
   const [response, setResponse] = useState("");
@@ -49,7 +54,7 @@ export default function ReclamacionDetailPage({
       utils.complaint.list.invalidate();
       utils.complaint.stats.invalidate();
     },
-    onError: (e) => toast({ title: "No se pudo enviar la respuesta", description: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "No se pudo enviar la respuesta", description: formatTrpcError(e), variant: "destructive" }),
   });
 
   function handleSubmit(e: React.FormEvent) {
@@ -61,56 +66,66 @@ export default function ReclamacionDetailPage({
     setConfirmOpen(true);
   }
 
+  const backLink = (
+    <Button variant="ghost" size="sm" asChild className="-ml-2">
+      <Link href="/admin/reclamaciones">
+        <ArrowLeft className="h-4 w-4 mr-1" />
+        Volver a la lista
+      </Link>
+    </Button>
+  );
+
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Cargando...</div>;
+    return <TableSkeleton rows={4} rowClassName="h-32" />;
+  }
+
+  if (error && error.data?.code !== "NOT_FOUND") {
+    return (
+      <div className="space-y-6">
+        {backLink}
+        <ErrorState title="No se pudo cargar el reclamo" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
+      </div>
+    );
   }
 
   if (!complaint) {
-    return <div className="p-8 text-center text-muted-foreground">Reclamo no encontrado.</div>;
+    return (
+      <div className="space-y-6">
+        {backLink}
+        <EmptyState title="Reclamo no encontrado" description="El registro no existe o fue eliminado." />
+      </div>
+    );
   }
 
   const daysAgo = Math.floor((Date.now() - new Date(complaint.createdAt).getTime()) / (1000 * 60 * 60 * 24));
   const daysRemaining = 30 - daysAgo;
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      {/* Header */}
-      <div>
-        <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2">
-          <Link href="/admin/reclamaciones">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Volver a la lista
-          </Link>
-        </Button>
-        <div className="flex items-start justify-between flex-wrap gap-3">
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold font-mono">{complaint.code}</h2>
-              <Badge variant="outline">{complaintTypeLabels[complaint.type] ?? complaint.type}</Badge>
-              <Badge variant={complaint.itemType === "SERVICIO" ? "secondary" : "default"}>
-                {complaintItemTypeLabels[complaint.itemType] ?? complaint.itemType}
-              </Badge>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        {backLink}
+        <PageHeader
+          title={<span className="font-mono">{complaint.code}</span>}
+          subtitle={`Registrado el ${formatDateTime(complaint.createdAt, { dateStyle: "long", timeStyle: "short" })}`}
+          actions={
+            <div className="flex flex-col items-start gap-1 sm:items-end">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{complaintTypeLabels[complaint.type] ?? complaint.type}</Badge>
+                <Badge variant={complaint.itemType === "SERVICIO" ? "secondary" : "default"}>
+                  {complaintItemTypeLabels[complaint.itemType] ?? complaint.itemType}
+                </Badge>
+                <StatusBadge domain="complaint" status={complaint.status} className="text-sm" />
+              </div>
+              {complaint.status !== "RESUELTO" && complaint.status !== "RECHAZADO" && (
+                <p className={`text-xs ${daysRemaining < 10 ? "text-rose-600 font-semibold" : "text-muted-foreground"}`}>
+                  {daysRemaining > 0
+                    ? `${daysRemaining} días restantes (plazo 30 días)`
+                    : `Plazo vencido hace ${Math.abs(daysRemaining)} días`}
+                </p>
+              )}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Registrado el {new Date(complaint.createdAt).toLocaleString("es-PE", { dateStyle: "long", timeStyle: "short" })}
-            </p>
-          </div>
-          <div className="text-right">
-            <Badge
-              variant={complaintStatusConfig[complaint.status as Status]?.variant ?? "default"}
-              className="text-sm"
-            >
-              {complaintStatusConfig[complaint.status as Status]?.label ?? complaint.status}
-            </Badge>
-            {complaint.status !== "RESUELTO" && complaint.status !== "RECHAZADO" && (
-              <p className={`text-xs mt-1 ${daysRemaining < 10 ? "text-rose-600 font-semibold" : "text-muted-foreground"}`}>
-                {daysRemaining > 0
-                  ? `${daysRemaining} días restantes (plazo 30 días)`
-                  : `Plazo vencido hace ${Math.abs(daysRemaining)} días`}
-              </p>
-            )}
-          </div>
-        </div>
+          }
+        />
       </div>
 
       {/* Consumidor */}
@@ -164,7 +179,7 @@ export default function ReclamacionDetailPage({
           {complaint.amountClaimed && (
             <div className="inline-block bg-muted rounded-lg px-3 py-1.5">
               <span className="text-xs text-muted-foreground">Monto reclamado: </span>
-              <span className="font-semibold">{complaint.currency} {Number(complaint.amountClaimed).toFixed(2)}</span>
+              <span className="font-semibold">{formatMoney(complaint.amountClaimed, complaint.currency)}</span>
             </div>
           )}
         </CardContent>
@@ -200,7 +215,7 @@ export default function ReclamacionDetailPage({
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p className="text-xs text-muted-foreground">
-              Enviada el {new Date(complaint.respondedAt).toLocaleString("es-PE", { dateStyle: "long", timeStyle: "short" })}
+              Enviada el {formatDateTime(complaint.respondedAt, { dateStyle: "long", timeStyle: "short" })}
             </p>
             <p className="whitespace-pre-wrap">{complaint.response}</p>
           </CardContent>
@@ -272,14 +287,14 @@ export default function ReclamacionDetailPage({
             {complaint.respondedAt && (
               <p className="rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-900">
                 Este registro ya fue respondido el{" "}
-                {new Date(complaint.respondedAt).toLocaleString("es-PE", { dateStyle: "long", timeStyle: "short" })}.
+                {formatDateTime(complaint.respondedAt, { dateStyle: "long", timeStyle: "short" })}.
                 Se enviará un nuevo correo con la respuesta actualizada.
               </p>
             )}
             <p>
               Se enviará la respuesta por email a <strong>{complaint.consumerEmail}</strong> y el
               registro quedará como{" "}
-              <strong>{complaintStatusConfig[status]?.label ?? status}</strong>.
+              <strong>{statusLabel("complaint", status)}</strong>.
             </p>
           </>
         }

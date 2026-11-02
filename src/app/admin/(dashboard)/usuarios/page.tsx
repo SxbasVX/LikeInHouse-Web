@@ -24,7 +24,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -48,6 +47,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { formatTrpcError } from "@/lib/trpc-error";
 import {
   Plus,
   MoreHorizontal,
@@ -57,11 +57,13 @@ import {
   Trash2,
   Shield,
   Loader2,
-  ChevronLeft,
-  ChevronRight,
-  AlertCircle,
+  UserCog,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { PageHeader } from "@/components/admin/page-header";
+import { Pagination } from "@/components/admin/pagination";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/admin/list-states";
+import { formatDateTime } from "@/lib/format";
 
 const roleLabels: Record<string, string> = {
   ADMIN: "Administrador",
@@ -101,7 +103,7 @@ export default function UsuariosPage() {
   const resetForm = () =>
     setForm({ name: "", email: "", password: "", role: "SALES" });
 
-  const { data, isLoading, isError, error, refetch } = trpc.user.list.useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = trpc.user.list.useQuery({
     page,
     limit: 20,
   });
@@ -114,7 +116,7 @@ export default function UsuariosPage() {
       resetForm();
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -125,7 +127,7 @@ export default function UsuariosPage() {
       setEditUser(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -136,7 +138,7 @@ export default function UsuariosPage() {
       setDeactivateUser(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -147,17 +149,16 @@ export default function UsuariosPage() {
       setDeleteId(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Usuarios</h1>
-          <p className="font-serif italic text-brand-teal">Gestiona los usuarios del sistema</p>
-        </div>
+      <PageHeader
+        title="Usuarios"
+        subtitle="Gestiona los usuarios del sistema"
+        actions={
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -241,45 +242,39 @@ export default function UsuariosPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       <Card>
         <CardHeader>
           <CardTitle>Equipo</CardTitle>
           <CardDescription>
-            {data ? `${data.total} usuarios registrados` : "Cargando..."}
+            {data ? `${data.total} usuarios registrados` : isError ? "—" : "Cargando..."}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
+            <TableSkeleton rows={3} />
           ) : isError ? (
-            <div className="flex flex-col items-center gap-3 py-12 text-center">
-              <AlertCircle className="h-8 w-8 text-red-500" />
-              <p className="text-sm text-muted-foreground">
-                No se pudieron cargar los usuarios{error?.message ? `: ${error.message}` : "."}
-              </p>
-              <Button variant="outline" size="sm" onClick={() => refetch()}>
-                Reintentar
-              </Button>
-            </div>
+            <ErrorState title="No se pudieron cargar los usuarios" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
           ) : !data || data.users.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
-              {page > 1 ? (
-                <div className="flex flex-col items-center gap-3">
-                  <p>No hay usuarios en esta página.</p>
+            page > 1 ? (
+              <EmptyState
+                icon={UserCog}
+                title="No hay usuarios en esta página"
+                action={
                   <Button variant="outline" size="sm" onClick={() => setPage(1)}>
                     Volver a la primera página
                   </Button>
-                </div>
-              ) : (
-                <p>Aún no hay usuarios registrados. Crea el primero con «Nuevo Usuario».</p>
-              )}
-            </div>
+                }
+              />
+            ) : (
+              <EmptyState
+                icon={UserCog}
+                title="Aún no hay usuarios registrados"
+                description="Crea el primero con «Nuevo Usuario»."
+              />
+            )
           ) : (
             <>
             <Table>
@@ -313,7 +308,7 @@ export default function UsuariosPage() {
                     </TableCell>
                     <TableCell className="text-sm">
                       {user.lastLoginAt
-                        ? new Date(user.lastLoginAt).toLocaleDateString("es-PE", {
+                        ? formatDateTime(user.lastLoginAt, {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
@@ -375,31 +370,14 @@ export default function UsuariosPage() {
               </TableBody>
             </Table>
 
-            {data.pages > 1 && (
-              <div className="flex items-center justify-between mt-4">
-                <p className="text-sm font-serif italic text-brand-teal">
-                  Página {data.page} de {data.pages}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" /> Anterior
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => p + 1)}
-                    disabled={page >= data.pages}
-                  >
-                    Siguiente <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+            <Pagination
+              page={page}
+              pages={data.pages}
+              total={data.total}
+              itemLabel="usuarios"
+              onPageChange={setPage}
+              className="mt-4"
+            />
             </>
           )}
         </CardContent>

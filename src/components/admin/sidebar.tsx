@@ -5,76 +5,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import {
-  LayoutDashboard,
-  Map,
-  CalendarCheck,
-  Calendar,
-  CreditCard,
-  FileText,
-  FileBarChart,
-  Users,
-  Newspaper,
-  Image as ImageIcon,
-  UserCog,
-  LogOut,
-  BarChart3,
-  Menu,
-  X,
-  BookMarked,
-  BookOpen,
-  Tag,
-} from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
-
-const navSections = [
-  {
-    label: "Principal",
-    items: [
-      { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-    ],
-  },
-  {
-    label: "Operaciones",
-    items: [
-      { label: "Tours", href: "/admin/tours", icon: Map },
-      { label: "Reservas", href: "/admin/reservas", icon: CalendarCheck },
-      { label: "Calendario", href: "/admin/calendario", icon: Calendar },
-      { label: "Pagos", href: "/admin/pagos", icon: CreditCard },
-      { label: "Cotizaciones", href: "/admin/cotizaciones", icon: FileText },
-    ],
-  },
-  {
-    label: "Clientes & Datos",
-    items: [
-      { label: "Clientes", href: "/admin/clientes", icon: Users },
-      { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-      { label: "Reportes", href: "/admin/reportes", icon: FileBarChart },
-    ],
-  },
-  {
-    label: "Marketing",
-    items: [
-      { label: "Promociones", href: "/admin/promociones", icon: Tag },
-    ],
-  },
-  {
-    label: "Legal",
-    items: [
-      { label: "Reclamaciones", href: "/admin/reclamaciones", icon: BookOpen },
-    ],
-  },
-  {
-    label: "Configuración",
-    items: [
-      { label: "Contenido", href: "/admin/contenido", icon: Newspaper },
-      { label: "Documentos", href: "/admin/documentos", icon: BookMarked },
-      { label: "Galeria", href: "/admin/galeria", icon: ImageIcon },
-      { label: "Usuarios", href: "/admin/usuarios", icon: UserCog },
-    ],
-  },
-];
+import { navSections, isNavActive } from "@/components/admin/nav-config";
 
 interface AdminSidebarProps {
   user: {
@@ -95,11 +29,6 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
     setMobileOpen(false);
   }, [pathname]);
 
-  const isActive = (href: string) => {
-    if (href === "/admin") return pathname === "/admin";
-    return pathname.startsWith(href);
-  };
-
   const initials = user.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "AD";
@@ -117,11 +46,12 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
               <ul className="space-y-0.5">
                 {section.items.map((item) => {
                   const Icon = item.icon;
-                  const active = isActive(item.href);
+                  const active = isNavActive(pathname, item.href);
                   return (
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        aria-current={active ? "page" : undefined}
                         className={cn(
                           "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                           active

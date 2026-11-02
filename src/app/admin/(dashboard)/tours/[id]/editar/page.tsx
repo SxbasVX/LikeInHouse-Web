@@ -4,14 +4,17 @@ import { useRouter, useParams } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { TourForm } from "@/components/admin/tour-form";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState, ErrorState } from "@/components/admin/list-states";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/admin/page-header";
+import { TrpcErrorDescription } from "@/components/admin/trpc-error-description";
 
 export default function EditarTourPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { toast } = useToast();
 
-  const { data: tour, isLoading } = trpc.tour.getById.useQuery({ id });
+  const { data: tour, isLoading, error, refetch, isRefetching } = trpc.tour.getById.useQuery({ id });
 
   const saveDraftMutation = trpc.tour.saveDraft.useMutation();
 
@@ -21,36 +24,9 @@ export default function EditarTourPage() {
       router.push("/admin/tours");
     },
     onError: (error) => {
-      let description: any = error.message;
-
-      try {
-        const parsed = JSON.parse(error.message);
-        if (Array.isArray(parsed) && parsed[0]?.message) {
-          description = (
-            <div className="mt-2 max-h-[290px] overflow-y-auto pr-2">
-              <p className="text-sm font-semibold mb-2">Corrige los siguientes errores:</p>
-              <ul className="list-disc pl-4 space-y-2">
-                {parsed.map((e: any, i: number) => {
-                  const fieldPath = e.path ? e.path.join(" > ") : "";
-                  const msg = e.message.includes("NaN") ? "Falta completar un número válido" : e.message;
-                  return (
-                    <li key={i} className="text-xs">
-                      {fieldPath && <span className="font-semibold block opacity-70 mb-0.5">{fieldPath}</span>}
-                      {msg}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          );
-        }
-      } catch (e) {
-        // Ignorar si no es JSON
-      }
-
       toast({
         title: "No se pudo actualizar el tour",
-        description,
+        description: <TrpcErrorDescription error={error} />,
         variant: "destructive",
       });
     },
@@ -65,13 +41,20 @@ export default function EditarTourPage() {
     );
   }
 
+  if (error && error.data?.code !== "NOT_FOUND") {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Editar Tour" />
+        <ErrorState title="No se pudo cargar el tour" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
+      </div>
+    );
+  }
+
   if (!tour) {
     return (
-      <div className="py-12 text-center">
-        <h2 className="text-xl font-semibold">Tour no encontrado</h2>
-        <p className="text-muted-foreground mt-2">
-          El tour que buscas no existe o fue eliminado.
-        </p>
+      <div className="space-y-6">
+        <PageHeader title="Tour no encontrado" />
+        <EmptyState title="Tour no encontrado" description="El tour que buscas no existe o fue eliminado." />
       </div>
     );
   }
@@ -155,10 +138,7 @@ export default function EditarTourPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Editar Tour</h2>
-        <p className="text-muted-foreground">{tour.nameEs}</p>
-      </div>
+      <PageHeader title="Editar Tour" subtitle={tour.nameEs} />
       <TourForm
         initialData={initialData}
         onSubmit={(data) => updateMutation.mutate({ id, ...data })}

@@ -13,8 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/admin/page-header";
+import { Pagination } from "@/components/admin/pagination";
+import { ErrorState, TableSkeleton } from "@/components/admin/list-states";
 import { Plus, Search, X } from "lucide-react";
 import { TourDestinationsPanel } from "@/components/admin/tour-destinations-panel";
 
@@ -25,7 +27,7 @@ export default function ToursPage() {
   const [destination, setDestination] = useState<string | undefined>(undefined);
   const utils = trpc.useUtils();
 
-  const { data, isLoading, refetch } = trpc.tour.list.useQuery({
+  const { data, isLoading, error, refetch, isRefetching } = trpc.tour.list.useQuery({
     page,
     limit: 10,
     search: search || undefined,
@@ -36,20 +38,18 @@ export default function ToursPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Tours</h2>
-          <p className="font-serif italic text-brand-teal">
-            Gestiona los tours de LikeInHouse
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/admin/tours/nuevo">
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo Tour
-          </Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="Tours"
+        subtitle="Gestiona los tours de LikeInHouse"
+        actions={
+          <Button asChild>
+            <Link href="/admin/tours/nuevo">
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Tour
+            </Link>
+          </Button>
+        }
+      />
 
       <TourDestinationsPanel
         selected={destination}
@@ -102,11 +102,9 @@ export default function ToursPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="space-y-3 p-6">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
+            <TableSkeleton rows={3} className="p-6" />
+          ) : error ? (
+            <ErrorState title="No se pudieron cargar los tours" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
           ) : (
             <ToursTable
               tours={data?.tours || []}
@@ -119,31 +117,8 @@ export default function ToursPage() {
         </CardContent>
       </Card>
 
-      {/* Pagination */}
-      {data && data.pages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-serif italic text-brand-teal">
-            Mostrando pagina {data.page} de {data.pages} ({data.total} tours)
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= data.pages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Siguiente
-            </Button>
-          </div>
-        </div>
+      {data && (
+        <Pagination page={page} pages={data.pages} total={data.total} itemLabel="tours" onPageChange={setPage} />
       )}
     </div>
   );

@@ -24,7 +24,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -49,15 +48,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { formatTrpcError } from "@/lib/trpc-error";
+import { PageHeader } from "@/components/admin/page-header";
+import { Pagination } from "@/components/admin/pagination";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/admin/list-states";
 import {
   Search,
   Plus,
   MoreHorizontal,
   Pencil,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
   Globe,
+  Users,
   Phone,
 } from "lucide-react";
 
@@ -92,7 +94,7 @@ export default function ClientesPage() {
   const resetForm = () =>
     setForm({ email: "", firstName: "", lastName: "", phone: "", country: "", language: "es", notes: "" });
 
-  const { data, isLoading, refetch } = trpc.clients.list.useQuery({
+  const { data, isLoading, error, refetch, isRefetching } = trpc.clients.list.useQuery({
     page,
     limit: 10,
     search: search || undefined,
@@ -106,7 +108,7 @@ export default function ClientesPage() {
       resetForm();
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -117,7 +119,7 @@ export default function ClientesPage() {
       setEditClient(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -128,7 +130,7 @@ export default function ClientesPage() {
       setDeleteId(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -235,11 +237,10 @@ export default function ClientesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Clientes</h1>
-          <p className="font-serif italic text-brand-teal">Gestiona la base de clientes</p>
-        </div>
+      <PageHeader
+        title="Clientes"
+        subtitle="Gestiona la base de clientes"
+        actions={
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -270,13 +271,14 @@ export default function ClientesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       <Card>
         <CardHeader>
           <CardTitle>Lista de Clientes</CardTitle>
           <CardDescription>
-            {data ? `${data.total} clientes registrados` : "Cargando..."}
+            {data ? `${data.total} clientes registrados` : error ? "—" : "Cargando..."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -296,15 +298,15 @@ export default function ClientesPage() {
           </div>
 
           {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
+            <TableSkeleton />
+          ) : error ? (
+            <ErrorState title="No se pudieron cargar los clientes" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
           ) : data?.clients.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No se encontraron clientes
-            </div>
+            <EmptyState
+              icon={Users}
+              title="No se encontraron clientes"
+              description={search ? "Prueba con otra búsqueda." : "Registra tu primer cliente con «Nuevo Cliente»."}
+            />
           ) : (
             <>
               <Table>
@@ -390,30 +392,15 @@ export default function ClientesPage() {
                 </TableBody>
               </Table>
 
-              {data && data.pages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm font-serif italic text-brand-teal">
-                    Página {data.page} de {data.pages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" /> Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => p + 1)}
-                      disabled={page >= (data?.pages ?? 1)}
-                    >
-                      Siguiente <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+              {data && (
+                <Pagination
+                  page={page}
+                  pages={data.pages}
+                  total={data.total}
+                  itemLabel="clientes"
+                  onPageChange={setPage}
+                  className="mt-4"
+                />
               )}
             </>
           )}

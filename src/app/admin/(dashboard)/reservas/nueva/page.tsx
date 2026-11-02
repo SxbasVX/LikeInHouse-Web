@@ -27,6 +27,9 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Loader2, Search, UserPlus } from "lucide-react";
 import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
+import { formatDate, formatMoney } from "@/lib/format";
+import { formatTrpcError } from "@/lib/trpc-error";
 
 export default function NuevaReservaPage() {
   const router = useRouter();
@@ -78,7 +81,7 @@ export default function NuevaReservaPage() {
       setShowNewClient(false);
       toast({ title: "Cliente creado", description: `${client.firstName} ${client.lastName}` });
     },
-    onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Error", description: formatTrpcError(err), variant: "destructive" }),
   });
 
   const createReservation = trpc.reservation.create.useMutation({
@@ -86,7 +89,7 @@ export default function NuevaReservaPage() {
       toast({ title: "Reserva creada", description: `Ref: ${res.referenceCode}` });
       router.push("/admin/reservas");
     },
-    onError: (err) => toast({ title: "Error al crear reserva", description: err.message, variant: "destructive" }),
+    onError: (err) => toast({ title: "Error al crear reserva", description: formatTrpcError(err), variant: "destructive" }),
   });
 
   // Computed pricing
@@ -150,18 +153,17 @@ export default function NuevaReservaPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/reservas">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Nueva Reserva Manual</h1>
-          <p className="font-serif italic text-brand-teal">Crea una reserva para un cliente</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Nueva Reserva Manual"
+        subtitle="Crea una reserva para un cliente"
+        leading={
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/admin/reservas" aria-label="Volver a reservas">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+        }
+      />
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column: main form */}
@@ -307,7 +309,7 @@ export default function NuevaReservaPage() {
                         {tour.pricing && (() => {
                           const dt = (tour.pricing as any).tiers?.find((t: any) => t.isDefault) || (tour.pricing as any).tiers?.[0];
                           const p = dt ? Number(dt.priceUsd) : Number(tour.pricing.basePriceUsdAdult);
-                          return ` (USD ${p.toFixed(0)})`;
+                          return ` (${formatMoney(p, "USD", { maximumFractionDigits: 0 })})`;
                         })()}
                       </SelectItem>
                     ))}
@@ -327,7 +329,7 @@ export default function NuevaReservaPage() {
                         const available = dep.maxCapacity - dep.bookedCount;
                         return (
                           <SelectItem key={dep.id} value={dep.id}>
-                            {new Date(dep.departureDate).toLocaleDateString("es-PE", { timeZone: "UTC" })}
+                            {formatDate(dep.departureDate)}
                             {" "}— {available} cupos disponibles
                           </SelectItem>
                         );
@@ -425,19 +427,19 @@ export default function NuevaReservaPage() {
               {pricing && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Adultos ({adults} × ${pricing.adultPrice.toFixed(2)})</span>
-                    <span>${(pricing.adultPrice * adults).toFixed(2)}</span>
+                    <span className="text-muted-foreground">Adultos ({adults} × {formatMoney(pricing.adultPrice, "USD")})</span>
+                    <span>{formatMoney(pricing.adultPrice * adults, "USD")}</span>
                   </div>
                   {children > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Niños ({children} × ${pricing.childPrice.toFixed(2)})</span>
-                      <span>${(pricing.childPrice * children).toFixed(2)}</span>
+                      <span className="text-muted-foreground">Niños ({children} × {formatMoney(pricing.childPrice, "USD")})</span>
+                      <span>{formatMoney(pricing.childPrice * children, "USD")}</span>
                     </div>
                   )}
                   <Separator />
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total</span>
-                    <span>USD ${pricing.total.toFixed(2)}</span>
+                    <span>{formatMoney(pricing.total, "USD")}</span>
                   </div>
                 </div>
               )}

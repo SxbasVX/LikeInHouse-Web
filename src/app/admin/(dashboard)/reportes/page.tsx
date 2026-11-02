@@ -35,6 +35,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/admin/page-header";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState, ErrorState } from "@/components/admin/list-states";
+import { formatDate, formatMoney, formatTimestampDate } from "@/lib/format";
 import { Separator } from "@/components/ui/separator";
 import {
   Tabs,
@@ -50,17 +54,13 @@ import {
   Users,
   CalendarCheck,
   Minus,
+  FileBarChart,
 } from "lucide-react";
 
 function currentMonthStr(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
-
-const statusLabels: Record<string, string> = {
-  PENDING: "Pendiente", CONFIRMED: "Confirmada", PAID: "Pagada",
-  COMPLETED: "Completada", CANCELLED: "Cancelada",
-};
 
 function ChangeIndicator({ value }: { value: number | null }) {
   if (value === null) return <Minus className="h-4 w-4 text-muted-foreground" />;
@@ -74,13 +74,25 @@ export default function ReportesPage() {
   const [tourId, setTourId] = useState<string>("");
 
   // Monthly report
-  const { data: monthlyReport, isLoading: loadingMonthly } = trpc.dashboard.getMonthlyReport.useQuery(
+  const {
+    data: monthlyReport,
+    isLoading: loadingMonthly,
+    error: monthlyError,
+    refetch: refetchMonthly,
+    isRefetching: refetchingMonthly,
+  } = trpc.dashboard.getMonthlyReport.useQuery(
     { date: monthStr },
     { enabled: !!monthStr }
   );
 
   // Tour report
-  const { data: tourReport, isLoading: loadingTour } = trpc.dashboard.getTourReport.useQuery(
+  const {
+    data: tourReport,
+    isLoading: loadingTour,
+    error: tourError,
+    refetch: refetchTour,
+    isRefetching: refetchingTour,
+  } = trpc.dashboard.getTourReport.useQuery(
     { tourId },
     { enabled: !!tourId }
   );
@@ -116,7 +128,7 @@ export default function ReportesPage() {
         currency: r.currency,
         status: r.status,
         origin: r.origin,
-        date: new Date(r.createdAt).toLocaleDateString("es-PE", { timeZone: "UTC" }),
+        date: formatTimestampDate(r.createdAt),
       })),
       `reporte-mensual-${monthStr}`,
       [
@@ -149,10 +161,8 @@ export default function ReportesPage() {
         currency: r.currency,
         status: r.status,
         origin: r.origin,
-        departureDate: (r.departure || r.travelDate)
-          ? new Date((r.departure?.departureDate ?? r.travelDate)!).toLocaleDateString("es-PE", { timeZone: "UTC" })
-          : "",
-        date: new Date(r.createdAt).toLocaleDateString("es-PE", { timeZone: "UTC" }),
+        departureDate: formatDate(r.departure?.departureDate ?? r.travelDate),
+        date: formatTimestampDate(r.createdAt),
       })),
       `reporte-tour-${tourReport.tour.nameEs.replace(/\s+/g, "-").toLowerCase()}`,
       [
@@ -173,10 +183,7 @@ export default function ReportesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Reportes</h1>
-        <p className="font-serif italic text-brand-teal">Insights financieros y métricas de rendimiento</p>
-      </div>
+      <PageHeader title="Reportes" subtitle="Insights financieros y métricas de rendimiento" />
 
       <Tabs defaultValue="monthly" className="space-y-6">
         <TabsList>
@@ -235,7 +242,7 @@ export default function ReportesPage() {
                     currency: r.currency,
                     status: r.status,
                     origin: r.origin,
-                    date: new Date(r.createdAt).toLocaleDateString("es-PE", { timeZone: "UTC" }),
+                    date: formatTimestampDate(r.createdAt),
                   })),
                 }}
               />
@@ -246,6 +253,10 @@ export default function ReportesPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28" />)}
             </div>
+          ) : monthlyError ? (
+            <Card>
+              <ErrorState title="No se pudo cargar el reporte mensual" error={monthlyError} onRetry={() => refetchMonthly()} isRetrying={refetchingMonthly} />
+            </Card>
           ) : monthlyReport ? (
             <>
               {/* KPIs */}
@@ -256,7 +267,7 @@ export default function ReportesPage() {
                       <DollarSign className="h-5 w-5 text-emerald-600" />
                       <ChangeIndicator value={monthlyReport.revenueChangePercent} />
                     </div>
-                    <p className="text-2xl font-bold mt-2">USD ${monthlyReport.totalRevenue.toFixed(0)}</p>
+                    <p className="text-2xl font-bold mt-2">{formatMoney(monthlyReport.totalRevenue, "USD", { maximumFractionDigits: 0 })}</p>
                     <p className="text-xs font-serif italic text-brand-teal">Revenue total</p>
                   </CardContent>
                 </Card>
@@ -280,7 +291,7 @@ export default function ReportesPage() {
                 <Card>
                   <CardContent className="pt-4 pb-3">
                     <DollarSign className="h-5 w-5 text-orange-600" />
-                    <p className="text-2xl font-bold mt-2">USD ${monthlyReport.avgBookingValue.toFixed(0)}</p>
+                    <p className="text-2xl font-bold mt-2">{formatMoney(monthlyReport.avgBookingValue, "USD", { maximumFractionDigits: 0 })}</p>
                     <p className="text-xs font-serif italic text-brand-teal">Valor promedio</p>
                   </CardContent>
                 </Card>
@@ -313,7 +324,7 @@ export default function ReportesPage() {
                                 <p className="text-xs font-serif italic text-brand-teal">{t.destination}</p>
                               </TableCell>
                               <TableCell className="text-right">{t.bookings}</TableCell>
-                              <TableCell className="text-right font-medium">${t.revenue.toFixed(0)}</TableCell>
+                              <TableCell className="text-right font-medium">{formatMoney(t.revenue, "USD", { maximumFractionDigits: 0 })}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -336,7 +347,7 @@ export default function ReportesPage() {
                         {monthlyReport.byMethod.map((m) => (
                           <div key={m.method} className="flex items-center justify-between">
                             <Badge variant="outline">{m.method.replace(/_/g, " ")}</Badge>
-                            <span className="font-medium">USD ${m.amount.toFixed(0)}</span>
+                            <span className="font-medium">{formatMoney(m.amount, "USD", { maximumFractionDigits: 0 })}</span>
                           </div>
                         ))}
                       </div>
@@ -405,7 +416,7 @@ export default function ReportesPage() {
                     currency: r.currency,
                     status: r.status,
                     origin: r.origin,
-                    date: new Date(r.createdAt).toLocaleDateString("es-PE", { timeZone: "UTC" }),
+                    date: formatTimestampDate(r.createdAt),
                   })),
                 }}
               />
@@ -414,19 +425,21 @@ export default function ReportesPage() {
 
           {!tourId ? (
             <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                Selecciona un tour para ver su reporte
-              </CardContent>
+              <EmptyState icon={FileBarChart} title="Selecciona un tour para ver su reporte" />
             </Card>
           ) : loadingTour ? (
             <Skeleton className="h-48" />
+          ) : tourError ? (
+            <Card>
+              <ErrorState title="No se pudo cargar el reporte del tour" error={tourError} onRetry={() => refetchTour()} isRetrying={refetchingTour} />
+            </Card>
           ) : tourReport ? (
             <>
               {/* Tour KPIs */}
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <Card>
                   <CardContent className="pt-4 pb-3">
-                    <p className="text-2xl font-bold">USD ${tourReport.totalRevenue.toFixed(0)}</p>
+                    <p className="text-2xl font-bold">{formatMoney(tourReport.totalRevenue, "USD", { maximumFractionDigits: 0 })}</p>
                     <p className="text-xs font-serif italic text-brand-teal">Revenue total</p>
                   </CardContent>
                 </Card>
@@ -483,12 +496,12 @@ export default function ReportesPage() {
                             <TableCell className="font-mono text-xs">{r.referenceCode.slice(0, 12)}</TableCell>
                             <TableCell>{r.client.firstName} {r.client.lastName}</TableCell>
                             <TableCell>{r.adults + r.children}</TableCell>
-                            <TableCell className="font-medium">${r.totalAmount.toFixed(2)}</TableCell>
+                            <TableCell className="font-medium">{formatMoney(r.totalAmount, r.currency)}</TableCell>
                             <TableCell>
-                              <Badge variant="outline">{statusLabels[r.status] || r.status}</Badge>
+                              <StatusBadge domain="reservation" status={r.status} />
                             </TableCell>
                             <TableCell className="text-xs">
-                              {new Date(r.createdAt).toLocaleDateString("es-PE", { timeZone: "UTC" })}
+                              {formatTimestampDate(r.createdAt)}
                             </TableCell>
                           </TableRow>
                         ))}

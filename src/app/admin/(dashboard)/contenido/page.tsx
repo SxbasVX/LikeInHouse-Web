@@ -55,7 +55,11 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
-import { Pencil, Save, Plus, ChevronLeft, ChevronRight, XCircle, CheckCircle, Trash2, StarOff, Star, EyeOff, Eye, MoreHorizontal } from "lucide-react";
+import { PageHeader } from "@/components/admin/page-header";
+import { Pagination } from "@/components/admin/pagination";
+import { formatTrpcError } from "@/lib/trpc-error";
+import { formatDateTime, formatTimestampDate } from "@/lib/format";
+import { Pencil, Save, Plus, XCircle, CheckCircle, Trash2, StarOff, Star, EyeOff, Eye, MoreHorizontal } from "lucide-react";
 import { ImageUpload } from "@/components/ui/image-upload";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -70,12 +74,7 @@ export default function ContenidoPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Contenido</h1>
-        <p className="font-serif italic text-brand-teal">
-          Gestiona el contenido del sitio web público
-        </p>
-      </div>
+      <PageHeader title="Contenido" subtitle="Gestiona el contenido del sitio web público" />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
@@ -131,7 +130,7 @@ function FAQsSection() {
       setShowCreate(false);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -142,7 +141,7 @@ function FAQsSection() {
       setEditFaq(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -153,7 +152,7 @@ function FAQsSection() {
       setDeleteId(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -397,7 +396,7 @@ function TestimonialsSection() {
       refetch();
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -408,7 +407,7 @@ function TestimonialsSection() {
       setDeleteTarget(null);
     },
     onError: (error) => {
-      toast({ title: "No se pudo eliminar el testimonio", description: error.message, variant: "destructive" });
+      toast({ title: "No se pudo eliminar el testimonio", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -555,7 +554,7 @@ function BlogSection() {
       resetForm();
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -567,7 +566,7 @@ function BlogSection() {
       resetForm();
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -688,8 +687,8 @@ function BlogSection() {
                       </TableCell>
                       <TableCell className="text-sm">
                         {post.publishedAt
-                          ? new Date(post.publishedAt).toLocaleDateString("es-PE")
-                          : new Date(post.createdAt).toLocaleDateString("es-PE")}
+                          ? formatTimestampDate(post.publishedAt)
+                          : formatTimestampDate(post.createdAt)}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -724,18 +723,8 @@ function BlogSection() {
                   ))}
                 </TableBody>
               </Table>
-              {data && data.pages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm font-serif italic text-brand-teal">Pagina {data.page} de {data.pages}</p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-                      <ChevronLeft className="h-4 w-4" /> Anterior
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)} disabled={page >= (data?.pages ?? 1)}>
-                      Siguiente <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+              {data && (
+                <Pagination page={page} pages={data.pages} total={data.total} itemLabel="artículos" onPageChange={setPage} className="mt-4" />
               )}
             </>
           )}
@@ -928,7 +917,7 @@ function HomeSectionsSection() {
       setEditSection(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -1153,7 +1142,7 @@ function ContactMessagesSection() {
                       <TableCell>{msg.email}</TableCell>
                       <TableCell className="max-w-xs truncate">{msg.subject}</TableCell>
                       <TableCell className="text-sm">
-                        {new Date(msg.createdAt).toLocaleDateString("es-PE")}
+                        {formatTimestampDate(msg.createdAt)}
                       </TableCell>
                       <TableCell>
                         <Badge variant={msg.isRead ? "secondary" : "default"}>
@@ -1177,30 +1166,8 @@ function ContactMessagesSection() {
                 </TableBody>
               </Table>
 
-              {data && data.pages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm font-serif italic text-brand-teal">
-                    Página {data.page} de {data.pages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" /> Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => p + 1)}
-                      disabled={page >= (data?.pages ?? 1)}
-                    >
-                      Siguiente <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+              {data && (
+                <Pagination page={page} pages={data.pages} total={data.total} itemLabel="mensajes" onPageChange={setPage} className="mt-4" />
               )}
             </>
           )}
@@ -1217,7 +1184,7 @@ function ContactMessagesSection() {
               {selectedMessage?.phone && ` • Tel: ${selectedMessage.phone}`}
               {" • "}
               {selectedMessage?.createdAt &&
-                new Date(selectedMessage.createdAt).toLocaleString("es-PE")}
+                formatDateTime(selectedMessage.createdAt)}
             </DialogDescription>
           </DialogHeader>
           <div className="whitespace-pre-wrap text-sm border rounded-md p-4 bg-muted/50 max-h-64 overflow-y-auto">
@@ -1290,7 +1257,7 @@ function SettingsSection() {
       setShowCreate(false);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -1540,7 +1507,7 @@ function ExchangeRateSettings({
       onSaved();
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { AlertTriangle, Loader2, MapPin, Plus, Settings2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatTrpcError } from "@/lib/trpc-error";
 import { cn } from "@/lib/utils";
 
 interface TourDestinationsPanelProps {
@@ -112,7 +113,7 @@ function ManageDestinationsDialog({
       await Promise.all([utils.tour.destinations.invalidate(), utils.tour.destinationSummary.invalidate()]);
       onClose();
     },
-    onError: (error) => toast({ title: "Error", description: error.message, variant: "destructive" }),
+    onError: (error) => toast({ title: "Error", description: formatTrpcError(error), variant: "destructive" }),
   });
 
   const addCity = () => {

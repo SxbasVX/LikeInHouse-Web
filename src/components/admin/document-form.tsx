@@ -23,6 +23,8 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { PageHeader } from "@/components/admin/page-header";
+import { formatTrpcError } from "@/lib/trpc-error";
 
 interface DocumentFormProps {
   documentId?: string;
@@ -84,7 +86,7 @@ export function DocumentForm({ documentId, initialData }: DocumentFormProps) {
       utils.docs.list.invalidate();
       router.push("/admin/documentos");
     },
-    onError: (e) => toast({ title: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "No se pudo crear el documento", description: formatTrpcError(e), variant: "destructive" }),
   });
 
   const updateMut = trpc.docs.update.useMutation({
@@ -93,7 +95,7 @@ export function DocumentForm({ documentId, initialData }: DocumentFormProps) {
       utils.docs.list.invalidate();
       router.push("/admin/documentos");
     },
-    onError: (e) => toast({ title: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "No se pudo guardar el documento", description: formatTrpcError(e), variant: "destructive" }),
   });
 
   function onSubmit(data: any) {
@@ -108,22 +110,18 @@ export function DocumentForm({ documentId, initialData }: DocumentFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <PageHeader
+        title={isEditing ? "Editar Documento" : "Nuevo Documento"}
+        subtitle={isEditing ? "Modifica los datos del documento" : "Agrega un PDF o página de contenido"}
+        leading={
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/admin/documentos">
+            <Link href="/admin/documentos" aria-label="Volver a documentos">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <div>
-            <h2 className="text-2xl font-bold">{isEditing ? "Editar Documento" : "Nuevo Documento"}</h2>
-            <p className="font-serif italic text-brand-teal text-sm">
-              {isEditing ? "Modifica los datos del documento" : "Agrega un PDF o página de contenido"}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
+        }
+        actions={
+        <>
           {isEditing && slug && (
             <Button variant="outline" size="sm" asChild>
               <a href={`/docs/${slug}`} target="_blank" rel="noopener noreferrer">
@@ -136,8 +134,9 @@ export function DocumentForm({ documentId, initialData }: DocumentFormProps) {
             <Save className="mr-2 h-4 w-4" />
             {isPending ? "Guardando..." : "Guardar"}
           </Button>
-        </div>
-      </div>
+        </>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Columna principal */}

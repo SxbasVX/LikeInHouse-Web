@@ -33,7 +33,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,17 +48,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/admin/page-header";
+import { Pagination } from "@/components/admin/pagination";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/admin/list-states";
+import { formatDate, formatMoney } from "@/lib/format";
+import { statusLabel, statusOptions } from "@/lib/status";
+import { formatTrpcError } from "@/lib/trpc-error";
 import {
   Search,
   MoreHorizontal,
   Eye,
   CheckCircle,
   XCircle,
-  ChevronLeft,
-  ChevronRight,
   Plus,
   Loader2,
-  FileDown,
+  CalendarCheck,
 } from "lucide-react";
 
 /**
@@ -68,26 +72,8 @@ import {
  * de las reservas "Sin fecha".
  */
 function reservationDateStr(r: { departure?: { departureDate: string | Date } | null; travelDate?: string | Date | null }): string {
-  const raw = r.departure?.departureDate ?? r.travelDate;
-  if (!raw) return "";
-  return new Date(raw).toLocaleDateString("es-PE", { timeZone: "UTC" });
+  return formatDate(r.departure?.departureDate ?? r.travelDate);
 }
-
-const statusLabels: Record<string, string> = {
-  PENDING: "Pendiente",
-  CONFIRMED: "Confirmada",
-  PAID: "Pagada",
-  COMPLETED: "Completada",
-  CANCELLED: "Cancelada",
-};
-
-const statusColors: Record<string, string> = {
-  PENDING: "bg-brand-orange/15 text-brand-orange",
-  CONFIRMED: "bg-brand-teal/15 text-brand-darkTeal",
-  PAID: "bg-brand-teal/15 text-brand-darkTeal",
-  COMPLETED: "bg-gray-100 text-gray-800",
-  CANCELLED: "bg-brand-darkRed/15 text-brand-darkRed",
-};
 
 export default function ReservasPage() {
   const [page, setPage] = useState(1);
@@ -97,7 +83,7 @@ export default function ReservasPage() {
   const [newStatus, setNewStatus] = useState<string>("");
   const { toast } = useToast();
 
-  const { data, isLoading, refetch } = trpc.reservation.list.useQuery({
+  const { data, isLoading, error, refetch, isRefetching } = trpc.reservation.list.useQuery({
     page,
     limit: 10,
     search: search || undefined,
@@ -111,7 +97,7 @@ export default function ReservasPage() {
       setSelectedId(null);
     },
     onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "No se pudo actualizar el estado", description: formatTrpcError(error), variant: "destructive" });
     },
   });
 
@@ -126,24 +112,24 @@ export default function ReservasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">Reservas</h1>
-          <p className="font-serif italic text-brand-teal">Gestiona las reservas de tours</p>
-        </div>
-        <Button asChild>
-          <Link href="/admin/reservas/nueva">
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva Reserva
-          </Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="Reservas"
+        subtitle="Gestiona las reservas de tours"
+        actions={
+          <Button asChild>
+            <Link href="/admin/reservas/nueva">
+              <Plus className="mr-2 h-4 w-4" />
+              Nueva Reserva
+            </Link>
+          </Button>
+        }
+      />
 
       <Card>
         <CardHeader>
           <CardTitle>Lista de Reservas</CardTitle>
           <CardDescription>
-            {data ? `${data.total} reservas en total` : "Cargando..."}
+            {data ? `${data.total} reservas en total` : error ? "—" : "Cargando..."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -172,25 +158,23 @@ export default function ReservasPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">Todos</SelectItem>
-                <SelectItem value="PENDING">Pendiente</SelectItem>
-                <SelectItem value="CONFIRMED">Confirmada</SelectItem>
-                <SelectItem value="PAID">Pagada</SelectItem>
-                <SelectItem value="COMPLETED">Completada</SelectItem>
-                <SelectItem value="CANCELLED">Cancelada</SelectItem>
+                {statusOptions("reservation").map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
           {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full" />
-              ))}
-            </div>
+            <TableSkeleton />
+          ) : error ? (
+            <ErrorState title="No se pudieron cargar las reservas" error={error} onRetry={() => refetch()} isRetrying={isRefetching} />
           ) : data?.reservations.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No se encontraron reservas
-            </div>
+            <EmptyState
+              icon={CalendarCheck}
+              title="No se encontraron reservas"
+              description={search || status ? "Prueba con otros filtros de búsqueda." : "Las reservas nuevas aparecerán aquí."}
+            />
           ) : (
             <>
               <Table>
@@ -234,12 +218,10 @@ export default function ReservasPage() {
                         {reservation.adults}A {reservation.children > 0 ? `+ ${reservation.children}N` : ""}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {reservation.currency} {Number(reservation.totalAmount).toFixed(2)}
+                        {formatMoney(reservation.totalAmount, reservation.currency)}
                       </TableCell>
                       <TableCell>
-                        <Badge className={statusColors[reservation.status] || ""} variant="secondary">
-                          {statusLabels[reservation.status]}
-                        </Badge>
+                        <StatusBadge domain="reservation" status={reservation.status} />
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{reservation.origin}</Badge>
@@ -340,30 +322,15 @@ export default function ReservasPage() {
                 </TableBody>
               </Table>
 
-              {data && data.pages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm font-serif italic text-brand-teal">
-                    Página {data.page} de {data.pages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" /> Anterior
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => p + 1)}
-                      disabled={page >= (data?.pages ?? 1)}
-                    >
-                      Siguiente <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+              {data && (
+                <Pagination
+                  page={page}
+                  pages={data.pages}
+                  total={data.total}
+                  itemLabel="reservas"
+                  onPageChange={setPage}
+                  className="mt-4"
+                />
               )}
             </>
           )}
@@ -376,7 +343,7 @@ export default function ReservasPage() {
           <DialogHeader>
             <DialogTitle>Cambiar estado de reserva</DialogTitle>
             <DialogDescription>
-              ¿Confirmas cambiar el estado a &quot;{statusLabels[newStatus]}&quot;?
+              ¿Confirmas cambiar el estado a &quot;{statusLabel("reservation", newStatus)}&quot;?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

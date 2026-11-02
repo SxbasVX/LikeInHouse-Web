@@ -1,33 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, ChevronRight, Home } from "lucide-react";
+import { LogOut, ChevronRight, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const breadcrumbMap: Record<string, string> = {
-  "/admin": "Dashboard",
-  "/admin/tours": "Tours",
-  "/admin/tours/nuevo": "Nuevo Tour",
-  "/admin/reservas": "Reservas",
-  "/admin/reservas/nueva": "Nueva Reserva",
-  "/admin/calendario": "Calendario",
-  "/admin/pagos": "Pagos",
-  "/admin/cotizaciones": "Cotizaciones",
-  "/admin/clientes": "Clientes",
-  "/admin/analytics": "Analytics",
-  "/admin/reportes": "Reportes",
-  "/admin/contenido": "Contenido",
-  "/admin/galeria": "Galeria",
-  "/admin/usuarios": "Usuarios",
-};
+import { getBreadcrumbs } from "@/components/admin/nav-config";
 
 interface AdminHeaderProps {
   user: {
@@ -38,58 +22,48 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ user }: AdminHeaderProps) {
   const pathname = usePathname();
-
-  const getPageTitle = () => {
-    if (breadcrumbMap[pathname]) return breadcrumbMap[pathname];
-    if (pathname.match(/\/admin\/tours\/[^/]+\/editar/)) return "Editar Tour";
-    const segments = pathname.split("/").filter(Boolean);
-    for (let i = segments.length; i >= 0; i--) {
-      const path = "/" + segments.slice(0, i).join("/");
-      if (breadcrumbMap[path]) return breadcrumbMap[path];
-    }
-    return "Admin";
-  };
-
-  const getBreadcrumbs = () => {
-    const crumbs: { label: string; href?: string }[] = [{ label: "Admin", href: "/admin" }];
-    const title = getPageTitle();
-    if (title !== "Dashboard") crumbs.push({ label: title });
-    return crumbs;
-  };
+  const crumbs = getBreadcrumbs(pathname);
 
   const initials = user.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "AD";
 
-  const crumbs = getBreadcrumbs();
-
   return (
     <header className="flex h-16 items-center justify-between border-b border-brand-darkRed/8 bg-white pl-16 pr-4 sm:pr-6 lg:pl-6 shadow-sm">
-      {/* Breadcrumb + title */}
-      <div className="flex items-center gap-2">
-        {crumbs.length > 1 ? (
-          <nav className="flex items-center gap-1.5">
-            {crumbs.map((crumb, i) => (
-              <div key={i} className="flex items-center gap-1.5">
-                {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-gray-300" />}
-                {i === crumbs.length - 1 ? (
-                  <h1 className="font-heading text-xl font-bold tracking-tight text-brand-darkRed">
-                    {crumb.label}
-                  </h1>
+      {/* Breadcrumb (el <h1> lo pone cada página con PageHeader) */}
+      <nav aria-label="Ruta de navegación" className="min-w-0">
+        <ol className="flex min-w-0 items-center gap-1.5 text-sm">
+          {crumbs.map((crumb, i) => {
+            const isLast = i === crumbs.length - 1;
+            const content =
+              i === 0 && !isLast ? (
+                <>
+                  <Home className="h-3.5 w-3.5" />
+                  <span className="sr-only">{crumb.label}</span>
+                </>
+              ) : (
+                crumb.label
+              );
+            return (
+              <li key={i} className="flex min-w-0 items-center gap-1.5">
+                {i > 0 && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-300" aria-hidden="true" />}
+                {crumb.href && !isLast ? (
+                  <Link
+                    href={crumb.href}
+                    className="flex items-center text-gray-500 transition-colors hover:text-brand-darkRed"
+                  >
+                    {content}
+                  </Link>
                 ) : (
-                  <span className="text-sm text-gray-400">
-                    {i === 0 ? <Home className="h-3.5 w-3.5" /> : crumb.label}
+                  <span aria-current="page" className="truncate font-semibold text-brand-darkRed">
+                    {content}
                   </span>
                 )}
-              </div>
-            ))}
-          </nav>
-        ) : (
-          <h1 className="font-heading text-xl font-bold tracking-tight text-brand-darkRed">
-            {crumbs[0].label}
-          </h1>
-        )}
-      </div>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
 
       {/* User menu */}
       <DropdownMenu>
@@ -106,11 +80,6 @@ export function AdminHeader({ user }: AdminHeaderProps) {
           </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem className="gap-2">
-            <User className="h-4 w-4" />
-            Mi Perfil
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
           <DropdownMenuItem
             className="gap-2 text-destructive focus:text-destructive"
             onClick={() => signOut({ callbackUrl: "/admin/login" })}
