@@ -33,6 +33,18 @@ describe("Catálogo de países", () => {
       if (c.value !== "Peru") expect(iso).not.toBe("PE");
     }
   });
+
+  it("las pasarelas reciben el ISO declarado en el catálogo", () => {
+    for (const c of COUNTRIES) {
+      if (c.value === "Other") continue;
+      expect(toCountryCode(c.value)).toBe(c.iso);
+    }
+  });
+
+  it("Perú va primero y 'Otro' al final", () => {
+    expect(COUNTRIES[0].value).toBe("Peru");
+    expect(COUNTRIES[COUNTRIES.length - 1].value).toBe("Other");
+  });
 });
 
 describe("Prefijo telefónico según el país", () => {

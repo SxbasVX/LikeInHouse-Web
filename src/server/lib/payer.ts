@@ -6,6 +6,8 @@
  * eleva el score de riesgo y la transacción se rechaza como sospechosa.
  */
 
+import { COUNTRIES } from "@/lib/countries";
+
 /**
  * Mapea los valores del selector de país del checkout (ver
  * `checkout-form.tsx`) a códigos ISO 3166-1 alpha-2, que es lo que exigen
@@ -50,6 +52,11 @@ const COUNTRY_TO_ISO2: Record<string, string> = {
 export function toCountryCode(country?: string | null): string {
   if (!country) return "PE";
   const raw = country.trim().toLowerCase();
+  // Valores y nombres del catálogo de países (incluye los añadidos después)
+  const fromCatalog = COUNTRIES.find(
+    (c) => c.iso && [c.value, c.labelEs, c.labelEn].some((v) => v.toLowerCase() === raw),
+  );
+  if (fromCatalog) return fromCatalog.iso;
   // El mapa va primero: valores del selector como "UK" tienen dos letras pero
   // NO son ISO2 válidos (el código de Reino Unido es "GB").
   const mapped = COUNTRY_TO_ISO2[raw];
