@@ -5,6 +5,7 @@ import { sanitizePlainText } from "@/server/lib/sanitize";
 import {
   getCachedFeaturedTours,
   getCachedDestinations,
+  getCachedQuoteDestinations,
   getCachedCategories,
   getCachedToursByDestination,
   getCachedFaqs,
@@ -196,6 +197,8 @@ export const publicRouter = router({
   destinations: publicProcedure.query(async () => {
     return getCachedDestinations();
   }),
+
+  quoteDestinations: publicProcedure.query(async () => getCachedQuoteDestinations()),
 
   // Categorías únicas (para filtros)
   categories: publicProcedure.query(async () => {

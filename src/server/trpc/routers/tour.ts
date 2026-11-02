@@ -133,6 +133,8 @@ export const tourRouter = router({
         create: { key: TOUR_DESTINATIONS_KEY, value: destinations },
         update: { value: destinations },
       });
+      // The quote form lists these cities.
+      revalidateTag(CACHE_TAGS.tours);
       return destinations;
     }),
 

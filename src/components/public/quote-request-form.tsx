@@ -20,7 +20,8 @@ interface QuoteRequestFormProps {
   defaultDate?: string;
 }
 
-const TRAVEL_WINDOWS = ["this_month", "1_3_months", "3_6_months", "undecided", "exact"] as const;
+const OTHER_DESTINATION = "__other__";
+const TRAVEL_WINDOWS =["this_month", "1_3_months", "3_6_months", "undecided", "exact"] as const;
 type TravelWindow = (typeof TRAVEL_WINDOWS)[number];
 
 // Opción de selección única (radio): tocar otra reemplaza la anterior
@@ -143,7 +144,9 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
   const today = new Date().toISOString().slice(0, 10);
 
   const [submitted, setSubmitted] = useState(false);
-  const [destination, setDestination] = useState(""); // "" = aún no lo sabe
+  // null = no eligió; OTHER_DESTINATION = escribe un destino que no está en la lista
+  const [destination, setDestination] = useState<string | null>(null);
+  const [otherDestination, setOtherDestination] = useState("");
   const [travelWindow, setTravelWindow] = useState<TravelWindow | undefined>(defaultDate ? "exact" : undefined);
   const [departureDate, setDepartureDate] = useState(defaultDate ?? "");
   const [returnDate, setReturnDate] = useState("");
@@ -156,7 +159,8 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
   const dial = COUNTRIES.find((c) => c.value === phoneCountry)?.dial ?? "";
   const [showMessage, setShowMessage] = useState(false);
 
-  const { data: destinationOptions } = trpc.public.destinations.useQuery(undefined, {
+  // Lista oficial de Tours > Ciudades, aunque la ciudad aún no tenga tours publicados
+  const { data: destinationOptions } = trpc.public.quoteDestinations.useQuery(undefined, {
     enabled: !tour,
     staleTime: 10 * 60 * 1000,
   });
@@ -173,7 +177,9 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
     const exact = travelWindow === "exact";
     requestQuote.mutate({
       tourSlug: tour?.slug,
-      destinations: !tour && destination ? [destination] : [],
+      destinations: tour || !destination ? []
+        : destination === OTHER_DESTINATION ? [otherDestination.trim() || t("destination_other")]
+        : [destination],
       travelWindow,
       name: text("name"),
       phone: contactVia === "whatsapp" ? (dial ? `${dial} ${text("contact")}` : text("contact")) : "",
@@ -216,10 +222,23 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
                 {d}
               </Chip>
             ))}
-            <Chip selected={destination === ""} onClick={() => setDestination("")}>
-              {t("destination_any")}
+            <Chip selected={destination === OTHER_DESTINATION} onClick={() => setDestination(OTHER_DESTINATION)}>
+              {t("destination_other")}
             </Chip>
           </div>
+          {destination === OTHER_DESTINATION && (
+            <div className="space-y-1.5 pt-1">
+              <Label htmlFor="quote-other-destination" className="text-xs text-gray-500">{t("destination_other_label")}</Label>
+              <Input
+                id="quote-other-destination"
+                autoFocus
+                maxLength={60}
+                value={otherDestination}
+                onChange={(e) => setOtherDestination(e.target.value)}
+                placeholder={t("destination_other_placeholder")}
+              />
+            </div>
+          )}
         </Section>
       )}
 

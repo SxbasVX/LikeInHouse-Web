@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { db } from "./db";
 import { Decimal } from "@prisma/client/runtime/library";
 import { getTourCategories } from "./tour-categories";
+import { getTourDestinations } from "./tour-destinations";
 import { splitCategories } from "@/lib/tour-categories";
 
 // ─── Helpers ───
@@ -72,6 +73,13 @@ export const getCachedDestinations = unstable_cache(
         return tours.map((t) => t.destination);
     },
     ["destinations"],
+    { revalidate: 600, tags: [CACHE_TAGS.tours] }
+);
+
+// Formulario de cotización: la lista oficial de Tours > Ciudades, aunque la ciudad aún no tenga tours publicados
+export const getCachedQuoteDestinations = unstable_cache(
+    async () => getTourDestinations(db),
+    ["quote-destinations"],
     { revalidate: 600, tags: [CACHE_TAGS.tours] }
 );
 
