@@ -49,9 +49,16 @@ export async function sendCrmLead(lead: CrmLead): Promise<boolean> {
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      console.error(`[CRM] lead_create respondió ${res.status}: ${text.slice(0, 300)}`);
+    // El CRM responde {"ok": boolean, "msg": string}, a veces con HTTP 200 aunque falle
+    const text = await res.text().catch(() => "");
+    let data: { ok?: boolean; msg?: string } | null = null;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      /* respuesta no JSON */
+    }
+    if (!res.ok || data?.ok === false) {
+      console.error(`[CRM] lead_create respondió ${res.status}: ${data?.msg ?? text.slice(0, 300)}`);
       return false;
     }
     return true;

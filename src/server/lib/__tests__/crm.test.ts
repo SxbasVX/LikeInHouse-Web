@@ -44,6 +44,10 @@ describe("sendCrmLead", () => {
     fetchMock.mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }));
     expect(await sendCrmLead({ nombre: "Ana" })).toBe(false);
 
+    fetchMock.mockResolvedValueOnce(new Response('{"ok":false,"msg":"Falta el nombre"}', { status: 200 }));
+    expect(await sendCrmLead({ nombre: "Ana" })).toBe(false);
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Falta el nombre"));
+
     fetchMock.mockRejectedValueOnce(new Error("network down"));
     expect(await sendCrmLead({ nombre: "Ana" })).toBe(false);
   });
