@@ -71,10 +71,10 @@
     "htb_path2_badge": "Personalized experience",
     "htb_path2_title": "Want something more tailored?",
     "htb_path2_desc": "Tell us what you have in mind: dates, group size, interests. We'll build an exclusive itinerary and guide you every step of the way.",
-    "htb_path2_s1": "Message us on WhatsApp",
+    "htb_path2_s1": "Tell us your idea in the form",
     "htb_path2_s2": "We design your itinerary",
     "htb_path2_s3": "Travel with everything handled",
-    "htb_path2_cta": "Message us on WhatsApp"
+    "htb_path2_cta": "Request a quote"
   },
   "tours": {
     "catalog": "Tour Catalog",
@@ -211,6 +211,7 @@
     "sending": "Sending...",
     "phone_invalid": "Enter a valid phone number",
     "country_code": "Country code",
+    "whatsapp_alt": "Prefer WhatsApp? Message us directly",
     "success_title": "Request sent!",
     "success": "We'll get back to you very soon with your quote."
   },

@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { ArrowUpRight, CheckCircle2, MessageCircle } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, FileText } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
-import { waUrl } from "@/lib/whatsapp";
+import { QuoteRequestDialog } from "@/components/public/quote-request-form";
 
 const STEPS_PATH1 = ["htb_path1_s1", "htb_path1_s2", "htb_path1_s3"] as const;
 const STEPS_PATH2 = ["htb_path2_s1", "htb_path2_s2", "htb_path2_s3"] as const;
@@ -13,6 +14,7 @@ export function HowToBookSection() {
   const t = useTranslations("home");
   const leftAnim  = useScrollAnimation({ threshold: 0.1 });
   const rightAnim = useScrollAnimation({ threshold: 0.1 });
+  const [quoteOpen, setQuoteOpen] = useState(false);
 
   return (
     <section className="bg-[#faf8f5] py-20 lg:py-28 overflow-hidden">
@@ -116,23 +118,23 @@ export function HowToBookSection() {
                 ))}
               </ul>
 
-              <a
-                href={waUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => setQuoteOpen(true)}
                 className="inline-flex items-center justify-between self-start rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white pl-5 pr-1.5 py-1.5 text-sm font-bold transition-all hover:-translate-y-0.5 group/btn"
               >
-                <MessageCircle className="h-4 w-4 mr-2 shrink-0" />
+                <FileText className="h-4 w-4 mr-2 shrink-0" />
                 {t("htb_path2_cta")}
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 group-hover/btn:bg-brand-orange transition-colors ml-3">
                   <ArrowUpRight className="h-4 w-4 group-hover/btn:rotate-12 transition-transform" />
                 </span>
-              </a>
+              </button>
             </div>
           </div>
 
         </div>
       </div>
+      <QuoteRequestDialog open={quoteOpen} onOpenChange={setQuoteOpen} />
     </section>
   );
 }

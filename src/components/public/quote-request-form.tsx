@@ -12,6 +12,7 @@ import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { COUNTRIES } from "@/lib/countries";
+import { waUrl } from "@/lib/whatsapp";
 
 interface QuoteRequestFormProps {
   /** Si viene de la ficha de un tour, el destino se toma del tour. */
@@ -365,9 +366,17 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
 export function QuoteRequestDialog({
   open,
   onOpenChange,
+  whatsappText,
   ...props
-}: QuoteRequestFormProps & { open: boolean; onOpenChange: (open: boolean) => void }) {
+}: QuoteRequestFormProps & {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Mensaje prellenado del enlace "escríbenos directo por WhatsApp". */
+  whatsappText?: string;
+}) {
   const t = useTranslations("quote");
+  const locale = useLocale();
+  const waText = whatsappText ?? (locale === "en" ? "Hi, I'd like info about tours" : "Hola, quiero información sobre tours");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
@@ -377,6 +386,15 @@ export function QuoteRequestDialog({
         </DialogHeader>
         {/* Se monta sólo al abrir, así cada apertura empieza con el formulario limpio */}
         {open && <QuoteRequestForm {...props} />}
+        <a
+          href={waUrl(waText)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1.5 border-t border-gray-100 pt-4 text-sm text-gray-500 transition-colors hover:text-[#128C4A]"
+        >
+          <MessageCircle className="h-4 w-4" />
+          {t("whatsapp_alt")}
+        </a>
       </DialogContent>
     </Dialog>
   );

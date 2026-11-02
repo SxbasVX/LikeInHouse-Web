@@ -71,10 +71,10 @@
     "htb_path2_badge": "Experiencia personalizada",
     "htb_path2_title": "¿Algo más a tu medida?",
     "htb_path2_desc": "Cuéntanos qué tienes en mente: fechas, grupo, intereses. Te diseñamos un itinerario exclusivo y te acompañamos en cada paso.",
-    "htb_path2_s1": "Escríbenos por WhatsApp",
+    "htb_path2_s1": "Cuéntanos tu idea en el formulario",
     "htb_path2_s2": "Diseñamos tu itinerario",
     "htb_path2_s3": "Viaja con todo resuelto",
-    "htb_path2_cta": "Escríbenos por WhatsApp"
+    "htb_path2_cta": "Solicitar cotización"
   },
   "tours": {
     "catalog": "Catálogo de Tours",
@@ -211,6 +211,7 @@
     "sending": "Enviando...",
     "phone_invalid": "Ingresa un teléfono válido",
     "country_code": "Código de país",
+    "whatsapp_alt": "¿Prefieres WhatsApp? Escríbenos directo",
     "success_title": "¡Solicitud enviada!",
     "success": "Te contactaremos muy pronto con tu cotización."
   },

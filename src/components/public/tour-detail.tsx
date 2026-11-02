@@ -2,7 +2,6 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { waUrl } from "@/lib/whatsapp";
 import {
   MapPin, Clock, Star, Calendar, Check, X, Users,
   ChevronLeft, ChevronRight, ChevronDown, Mountain,
@@ -162,18 +161,15 @@ export function TourDetail({ tour }: { tour: TourData }) {
     } catch { /* cancelled */ }
   };
 
-  const handleWhatsApp = () => {
-    if (typeof window !== "undefined") {
-      const tourName = isEs ? tour.nameEs : tour.nameEn;
-      const dateText = selectedDate
-        ? ` para el ${new Date(selectedDate).toLocaleDateString(isEs ? "es-PE" : "en-US", { day: "numeric", month: "long", year: "numeric" })}`
-        : "";
-      const msg = isEs
-        ? `Hola, me interesa el tour: ${tourName}${dateText}`
-        : `Hi, I'm interested in the tour: ${tourName}${dateText}`;
-      window.open(waUrl(msg), "_blank");
-    }
-  };
+  const tourName = isEs ? tour.nameEs : tour.nameEn;
+  const dateText = selectedDate
+    ? ` para el ${new Date(selectedDate).toLocaleDateString(isEs ? "es-PE" : "en-US", { day: "numeric", month: "long", year: "numeric" })}`
+    : "";
+  const whatsappText = isEs
+    ? `Hola, me interesa el tour: ${tourName}${dateText}`
+    : `Hi, I'm interested in the tour: ${tourName}${dateText}`;
+  // WhatsApp abre primero el formulario; desde ahí se puede escribir directo
+  const handleWhatsApp = () => setQuoteOpen(true);
 
   const handleCart = () => {
     if (inCart) {
@@ -747,6 +743,7 @@ export function TourDetail({ tour }: { tour: TourData }) {
       onOpenChange={setQuoteOpen}
       tour={{ slug: tour.slug, name, destination: tour.destination }}
       defaultDate={selectedDate || undefined}
+      whatsappText={whatsappText}
     />
 
     {/* ── LIGHTBOX ──────────────────────────────────────────── */}

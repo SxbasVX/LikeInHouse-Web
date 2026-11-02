@@ -66,15 +66,6 @@ export function ContactContent() {
                 <FileText className="h-4 w-4" />
                 {tQuote("button")}
               </a>
-              <a
-                href={waUrl(isEs ? "Hola, quiero información sobre tours" : "Hi, I'd like info about tours")}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-[#25D366]/40 bg-white px-6 py-3 text-sm font-bold text-[#128C4A] transition-colors hover:bg-[#25D366]/10"
-              >
-                {whatsappIcon}
-                WhatsApp
-              </a>
             </div>
           </div>
         </div>
