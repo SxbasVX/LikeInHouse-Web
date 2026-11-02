@@ -3,6 +3,7 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { useEffect, useCallback, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { trpc } from "@/lib/trpc";
 import { tourCreateSchema } from "@/lib/validators/tour";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -175,6 +176,9 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
   const nameEs = watch("nameEs");
   const tourType = watch("tourType");
   const isBookable = tourType === "BOOKABLE";
+  const destination = watch("destination");
+  const { data: destinationOptions = [], isSuccess: destinationsLoaded } = trpc.tour.destinations.useQuery();
+  const destinationOutOfList = destinationsLoaded && !!destination && !destinationOptions.includes(destination);
 
   const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
@@ -391,8 +395,28 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                 </div>
                 <div className="space-y-2">
                   <Label className={errors.destination ? "text-destructive" : ""}>Destino Relacionado *</Label>
-                  <Input {...register("destination")} placeholder="Ej. Cusco, Lima..." className={errors.destination ? "border-destructive" : ""} />
+                  <Select
+                    value={destination || undefined}
+                    onValueChange={(v) => setValue("destination", v, { shouldDirty: true, shouldValidate: true })}
+                  >
+                    <SelectTrigger className={errors.destination || destinationOutOfList ? "border-destructive" : ""}>
+                      <SelectValue placeholder="Elige una ciudad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {destinationOutOfList && (
+                        <SelectItem value={destination}>{destination} (fuera de la lista)</SelectItem>
+                      )}
+                      {destinationOptions.map((d) => (
+                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.destination && <p className="text-[11px] font-medium text-destructive">{errors.destination.message}</p>}
+                  {destinationOutOfList ? (
+                    <p className="text-[11px] font-medium text-destructive">Este destino no está en la lista de ciudades. Elige una ciudad.</p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">¿Falta una ciudad? Agrégala en Tours &gt; Ciudades.</p>
+                  )}
                 </div>
               </div>
 

@@ -15,18 +15,22 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
+import { TourDestinationsPanel } from "@/components/admin/tour-destinations-panel";
 
 export default function ToursPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string | undefined>(undefined);
+  const [destination, setDestination] = useState<string | undefined>(undefined);
+  const utils = trpc.useUtils();
 
   const { data, isLoading, refetch } = trpc.tour.list.useQuery({
     page,
     limit: 10,
     search: search || undefined,
     status: status as "DRAFT" | "PUBLISHED" | "ARCHIVED" | undefined,
+    destination,
   });
 
   return (
@@ -46,6 +50,14 @@ export default function ToursPage() {
           </Link>
         </Button>
       </div>
+
+      <TourDestinationsPanel
+        selected={destination}
+        onSelect={(d) => {
+          setDestination(d);
+          setPage(1);
+        }}
+      />
 
       {/* Filters */}
       <div className="flex gap-3">
@@ -78,6 +90,12 @@ export default function ToursPage() {
             <SelectItem value="ARCHIVED">Archivado</SelectItem>
           </SelectContent>
         </Select>
+        {destination && (
+          <Button variant="secondary" onClick={() => { setDestination(undefined); setPage(1); }}>
+            {destination}
+            <X className="ml-2 h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {/* Table */}
@@ -90,7 +108,13 @@ export default function ToursPage() {
               ))}
             </div>
           ) : (
-            <ToursTable tours={data?.tours || []} onRefresh={() => refetch()} />
+            <ToursTable
+              tours={data?.tours || []}
+              onRefresh={() => {
+                refetch();
+                utils.tour.destinationSummary.invalidate();
+              }}
+            />
           )}
         </CardContent>
       </Card>

@@ -11,6 +11,7 @@ import { draftCreateData } from "@/server/catalog-import/draft";
 import { jsonData, refreshImportCounts, createProvider, isProviderConfigured } from "@/server/catalog-import/service";
 import { getProviderSelection } from "@/server/catalog-import/providers/router";
 import { checkRateLimit } from "@/server/lib/rate-limit";
+import { assertValidDestination } from "@/server/lib/tour-destinations";
 
 const developer = roleProtectedProcedure(["DEVELOPER"]);
 const authorized = developer.use(async ({ ctx, next }) => {
@@ -130,6 +131,7 @@ export const catalogImportRouter = router({
       if (record.status !== "READY" || record.existingTourId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Este candidato requiere revisión." });
       const candidate = parseCandidate(record.tourDataJson);
       if (validateCatalogTour(candidate).length) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Corrige las incidencias antes de crear el borrador." });
+      await assertValidDestination(tx, candidate.destination!);
       if ((await findDuplicateMatches(tx, candidate)).length) throw new TRPCError({ code: "CONFLICT", message: "Se encontró un tour similar. Revisa el duplicado antes de continuar." });
       const claimed = await tx.catalogImportTour.updateMany({ where: { id: record.id, status: "READY", createdTourId: null }, data: { status: "VALIDATED" } });
       if (!claimed.count) throw new TRPCError({ code: "CONFLICT", message: "El candidato cambió; abre nuevamente la vista previa." });

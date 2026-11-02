@@ -11,6 +11,7 @@ export const tourListInputSchema = z.object({
   search: z.string().optional(),
   isFeatured: z.boolean().optional(),
   tourType: z.enum(["BOOKABLE", "INFORMATIONAL"]).optional(),
+  destination: z.string().optional(),
 });
 
 export type TourListInput = z.infer<typeof tourListInputSchema>;

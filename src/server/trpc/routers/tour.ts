@@ -13,6 +13,12 @@ import {
   tourUpdateSchema,
 } from "@/lib/validators/tour";
 import { CACHE_TAGS } from "@/server/lib/cache";
+import {
+  TOUR_DESTINATIONS_KEY,
+  assertValidDestination,
+  getTourDestinations,
+  normalizeDestinationList,
+} from "@/server/lib/tour-destinations";
 import { serializeDecimals } from "@/server/lib/serialize";
 
 const adminOrMarketing = roleProtectedProcedure(["ADMIN", "MARKETING"]);
@@ -31,6 +37,7 @@ export const tourRouter = router({
         ...(status && { status }),
         ...(input.tourType && { tourType: input.tourType }),
         ...(isFeatured !== undefined && { isFeatured }),
+        ...(input.destination && { destination: input.destination }),
         ...(search && {
           OR: [
             { nameEs: { contains: search, mode: "insensitive" as const } },
@@ -70,6 +77,61 @@ export const tourRouter = router({
         pages: Math.ceil(total / limit),
         page,
       };
+    }),
+
+  // Ciudades disponibles para el campo Destino
+  destinations: protectedProcedure.query(async ({ ctx }) => getTourDestinations(ctx.db)),
+
+  // Cantidad de tours por ciudad (incluye destinos que ya no están en la lista)
+  destinationSummary: protectedProcedure.query(async ({ ctx }) => {
+    const [destinations, groups] = await Promise.all([
+      getTourDestinations(ctx.db),
+      ctx.db.tour.groupBy({
+        by: ["destination", "status"],
+        where: { isActive: true },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const summary = new Map<string, { destination: string; total: number; published: number; draft: number; inList: boolean }>();
+    for (const destination of destinations) {
+      summary.set(destination, { destination, total: 0, published: 0, draft: 0, inList: true });
+    }
+    for (const group of groups) {
+      const row = summary.get(group.destination)
+        ?? { destination: group.destination, total: 0, published: 0, draft: 0, inList: false };
+      row.total += group._count._all;
+      if (group.status === "PUBLISHED") row.published += group._count._all;
+      if (group.status === "DRAFT") row.draft += group._count._all;
+      summary.set(group.destination, row);
+    }
+    return [...summary.values()];
+  }),
+
+  setDestinations: adminOrMarketing
+    .input(z.object({ destinations: z.array(z.string().max(60)).max(100) }))
+    .mutation(async ({ ctx, input }) => {
+      const destinations = normalizeDestinationList(input.destinations);
+      const removed = (await getTourDestinations(ctx.db)).filter((d) => !destinations.includes(d));
+      if (removed.length > 0) {
+        const inUse = await ctx.db.tour.findMany({
+          where: { isActive: true, destination: { in: removed } },
+          select: { destination: true },
+          distinct: ["destination"],
+        });
+        if (inUse.length > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `No se puede quitar ${inUse.map((t) => `"${t.destination}"`).join(", ")}: todavía tiene tours. Cámbialos de ciudad primero.`,
+          });
+        }
+      }
+      await ctx.db.setting.upsert({
+        where: { key: TOUR_DESTINATIONS_KEY },
+        create: { key: TOUR_DESTINATIONS_KEY, value: destinations },
+        update: { value: destinations },
+      });
+      return destinations;
     }),
 
   // Guardar borrador (auto-save)
@@ -144,6 +206,7 @@ export const tourRouter = router({
     .input(tourCreateSchema)
     .mutation(async ({ ctx, input }) => {
       const { itinerary, pricing, includes, excludes, conditions, images, departures, ...tourData } = input;
+      await assertValidDestination(ctx.db, tourData.destination);
 
       // Wrap in transaction to ensure atomicity (tour + all relations)
       const tour = await ctx.db.$transaction(async (tx) => {
@@ -237,6 +300,9 @@ export const tourRouter = router({
       const existing = await ctx.db.tour.findUnique({ where: { id } });
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Tour no encontrado" });
+      }
+      if (tourData.destination && tourData.destination !== existing.destination) {
+        await assertValidDestination(ctx.db, tourData.destination);
       }
 
       // Wrap all mutations in a transaction for atomicity
