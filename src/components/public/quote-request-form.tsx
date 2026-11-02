@@ -297,6 +297,7 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
                 title={t("phone_invalid")}
                 autoComplete="tel"
                 placeholder="+51 987 654 321"
+                className="placeholder:text-gray-400"
               />
             ) : (
               <Input key="email" id="quote-contact" name="contact" type="email" required autoComplete="email" />
