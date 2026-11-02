@@ -11,8 +11,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Mail, Phone, MapPin, FileText, Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-type Status = "PENDIENTE" | "EN_PROCESO" | "RESUELTO" | "RECHAZADO";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import {
+  complaintStatusConfig,
+  complaintTypeLabels,
+  complaintItemTypeLabels,
+  type ComplaintStatus as Status,
+} from "@/components/admin/complaint-labels";
 
 export default function ReclamacionDetailPage({
   params,
@@ -27,6 +32,7 @@ export default function ReclamacionDetailPage({
 
   const [status, setStatus] = useState<Status>("EN_PROCESO");
   const [response, setResponse] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (complaint) {
@@ -38,11 +44,12 @@ export default function ReclamacionDetailPage({
   const respondMut = trpc.complaint.respond.useMutation({
     onSuccess: () => {
       toast({ title: "Respuesta enviada", description: "Se notificó al consumidor por email." });
+      setConfirmOpen(false);
       utils.complaint.getById.invalidate({ id });
       utils.complaint.list.invalidate();
       utils.complaint.stats.invalidate();
     },
-    onError: (e) => toast({ title: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "No se pudo enviar la respuesta", description: e.message, variant: "destructive" }),
   });
 
   function handleSubmit(e: React.FormEvent) {
@@ -51,7 +58,7 @@ export default function ReclamacionDetailPage({
       toast({ title: "La respuesta debe tener al menos 5 caracteres", variant: "destructive" });
       return;
     }
-    respondMut.mutate({ id, status, response: response.trim() });
+    setConfirmOpen(true);
   }
 
   if (isLoading) {
@@ -79,9 +86,9 @@ export default function ReclamacionDetailPage({
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-2xl font-bold font-mono">{complaint.code}</h2>
-              <Badge variant="outline">{complaint.type}</Badge>
+              <Badge variant="outline">{complaintTypeLabels[complaint.type] ?? complaint.type}</Badge>
               <Badge variant={complaint.itemType === "SERVICIO" ? "secondary" : "default"}>
-                {complaint.itemType}
+                {complaintItemTypeLabels[complaint.itemType] ?? complaint.itemType}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -90,10 +97,10 @@ export default function ReclamacionDetailPage({
           </div>
           <div className="text-right">
             <Badge
-              variant={complaint.status === "PENDIENTE" ? "destructive" : complaint.status === "RESUELTO" ? "secondary" : "default"}
+              variant={complaintStatusConfig[complaint.status as Status]?.variant ?? "default"}
               className="text-sm"
             >
-              {complaint.status}
+              {complaintStatusConfig[complaint.status as Status]?.label ?? complaint.status}
             </Badge>
             {complaint.status !== "RESUELTO" && complaint.status !== "RECHAZADO" && (
               <p className={`text-xs mt-1 ${daysRemaining < 10 ? "text-rose-600 font-semibold" : "text-muted-foreground"}`}>
@@ -166,7 +173,9 @@ export default function ReclamacionDetailPage({
       {/* Detalle del reclamo */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Detalle del {complaint.type.toLowerCase()}</CardTitle>
+          <CardTitle className="text-base">
+            Detalle del {(complaintTypeLabels[complaint.type] ?? complaint.type).toLowerCase()}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div>
@@ -253,6 +262,31 @@ export default function ReclamacionDetailPage({
           </form>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={complaint.respondedAt ? "Reenviar respuesta" : "Enviar respuesta"}
+        description={
+          <>
+            {complaint.respondedAt && (
+              <p className="rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-900">
+                Este registro ya fue respondido el{" "}
+                {new Date(complaint.respondedAt).toLocaleString("es-PE", { dateStyle: "long", timeStyle: "short" })}.
+                Se enviará un nuevo correo con la respuesta actualizada.
+              </p>
+            )}
+            <p>
+              Se enviará la respuesta por email a <strong>{complaint.consumerEmail}</strong> y el
+              registro quedará como{" "}
+              <strong>{complaintStatusConfig[status]?.label ?? status}</strong>.
+            </p>
+          </>
+        }
+        confirmLabel={complaint.respondedAt ? "Reenviar" : "Enviar"}
+        isPending={respondMut.isPending}
+        onConfirm={() => respondMut.mutate({ id, status, response: response.trim() })}
+      />
 
       {/* Metadata técnica */}
       <details className="text-xs text-muted-foreground">

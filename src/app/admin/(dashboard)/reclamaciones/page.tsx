@@ -1,26 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, BookOpen, Eye, AlertTriangle, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, BookOpen, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  complaintStatusConfig as statusConfig,
+  complaintTypeLabels,
+  type ComplaintStatus as Status,
+} from "@/components/admin/complaint-labels";
 
-type Status = "PENDIENTE" | "EN_PROCESO" | "RESUELTO" | "RECHAZADO";
-
-const statusConfig: Record<Status, { label: string; variant: any; icon: any }> = {
-  PENDIENTE: { label: "Pendiente", variant: "destructive", icon: AlertTriangle },
-  EN_PROCESO: { label: "En Proceso", variant: "default", icon: Clock },
-  RESUELTO: { label: "Resuelto", variant: "secondary", icon: CheckCircle2 },
-  RECHAZADO: { label: "Rechazado", variant: "outline", icon: XCircle },
-};
+const PAGE_SIZE = 20;
 
 export default function ReclamacionesPage() {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<Status | "ALL">("ALL");
+  const [page, setPage] = useState(1);
+
+  // Debounce de la búsqueda (300 ms) y volver a la primera página al cambiar filtros.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const { data: stats } = trpc.complaint.stats.useQuery(undefined, {
     staleTime: 30_000,
@@ -28,13 +38,15 @@ export default function ReclamacionesPage() {
 
   const { data, isLoading } = trpc.complaint.list.useQuery(
     {
-      search: search || undefined,
+      search: debouncedSearch || undefined,
       status: statusFilter === "ALL" ? undefined : statusFilter,
-      page: 1,
-      pageSize: 50,
+      page,
+      pageSize: PAGE_SIZE,
     },
     { staleTime: 15_000 }
   );
+
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
   return (
     <div className="space-y-6">
@@ -93,7 +105,10 @@ export default function ReclamacionesPage() {
             className="pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+        <Select value={statusFilter} onValueChange={(v: any) => {
+            setStatusFilter(v);
+            setPage(1);
+          }}>
           <SelectTrigger className="w-full sm:w-48">
             <SelectValue />
           </SelectTrigger>
@@ -143,7 +158,7 @@ export default function ReclamacionesPage() {
                         <div className="flex items-center gap-2">
                           <p className="font-mono text-sm font-medium">{c.code}</p>
                           <Badge variant="outline" className="text-xs">
-                            {c.type}
+                            {complaintTypeLabels[c.type] ?? c.type}
                           </Badge>
                           {overdue && (
                             <Badge variant="destructive" className="text-xs">
@@ -164,6 +179,31 @@ export default function ReclamacionesPage() {
                   </Link>
                 );
               })}
+            </div>
+          )}
+          {data && totalPages > 1 && (
+            <div className="flex items-center justify-between border-t p-4">
+              <p className="text-sm font-serif italic text-brand-teal">
+                Página {data.page} de {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" /> Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page >= totalPages}
+                >
+                  Siguiente <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

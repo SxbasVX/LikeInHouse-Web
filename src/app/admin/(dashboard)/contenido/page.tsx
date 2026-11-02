@@ -54,6 +54,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { Pencil, Save, Plus, ChevronLeft, ChevronRight, XCircle, CheckCircle, Trash2, StarOff, Star, EyeOff, Eye, MoreHorizontal } from "lucide-react";
 import { ImageUpload } from "@/components/ui/image-upload";
 import Image from "next/image";
@@ -388,11 +389,15 @@ function TestimonialsSection() {
   const { toast } = useToast();
 
   const { data: testimonials, isLoading, refetch } = trpc.content.testimonialList.useQuery();
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; clientName: string } | null>(null);
 
   const updateTestimonial = trpc.content.testimonialUpdate.useMutation({
     onSuccess: () => {
       toast({ title: "Testimonio actualizado" });
       refetch();
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -400,6 +405,10 @@ function TestimonialsSection() {
     onSuccess: () => {
       toast({ title: "Testimonio eliminado" });
       refetch();
+      setDeleteTarget(null);
+    },
+    onError: (error) => {
+      toast({ title: "No se pudo eliminar el testimonio", description: error.message, variant: "destructive" });
     },
   });
 
@@ -481,7 +490,8 @@ function TestimonialsSection() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => deleteTestimonial.mutate({ id: t.id })}
+                    onClick={() => setDeleteTarget({ id: t.id, clientName: t.clientName })}
+                    aria-label={`Eliminar testimonio de ${t.clientName}`}
                   >
                     <Trash2 className="h-4 w-4 text-brand-darkRed" />
                   </Button>
@@ -491,6 +501,24 @@ function TestimonialsSection() {
           </TableBody>
         </Table>
       </CardContent>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="Eliminar testimonio"
+        description={
+          deleteTarget && (
+            <p>
+              Se eliminará el testimonio de <strong>{deleteTarget.clientName}</strong> y dejará de
+              mostrarse en la web. Esta acción no se puede deshacer.
+            </p>
+          )
+        }
+        confirmLabel="Eliminar"
+        destructive
+        isPending={deleteTestimonial.isPending}
+        onConfirm={() => deleteTarget && deleteTestimonial.mutate({ id: deleteTarget.id })}
+      />
     </Card>
   );
 }

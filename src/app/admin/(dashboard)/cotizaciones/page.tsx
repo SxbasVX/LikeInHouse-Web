@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import {
   Search,
   MoreHorizontal,
@@ -123,6 +124,10 @@ export default function CotizacionesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [linkDialog, setLinkDialog] = useState<{ url: string; token: string } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{
+    kind: "SENT" | "ACCEPTED" | "EMAIL";
+    quotation: Quotation;
+  } | null>(null);
   const { toast } = useToast();
 
   const { data, isLoading, refetch } = trpc.quotation.list.useQuery({
@@ -136,6 +141,7 @@ export default function CotizacionesPage() {
     onSuccess: () => {
       toast({ title: "Estado actualizado" });
       refetch();
+      setPendingAction(null);
     },
     onError: (error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -146,6 +152,7 @@ export default function CotizacionesPage() {
     onSuccess: () => {
       toast({ title: "Correo enviado exitosamente" });
       refetch();
+      setPendingAction(null);
     },
     onError: (error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -304,24 +311,20 @@ export default function CotizacionesPage() {
                           <DropdownMenuContent align="end">
                             {quotation.status === "DRAFT" && (
                               <DropdownMenuItem
-                                onClick={() =>
-                                  updateStatus.mutate({ id: quotation.id, status: "SENT" })
-                                }
+                                onClick={() => setPendingAction({ kind: "SENT", quotation })}
                               >
                                 <Send className="mr-2 h-4 w-4" /> Marcar como Enviada
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem
-                              onClick={() => sendEmail.mutate({ id: quotation.id })}
+                              onClick={() => setPendingAction({ kind: "EMAIL", quotation })}
                               disabled={sendEmail.isPending}
                             >
                               <Send className="mr-2 h-4 w-4" /> {sendEmail.isPending ? "Enviando..." : "Enviar por Correo"}
                             </DropdownMenuItem>
                             {quotation.status === "VIEWED" && (
                               <DropdownMenuItem
-                                onClick={() =>
-                                  updateStatus.mutate({ id: quotation.id, status: "ACCEPTED" })
-                                }
+                                onClick={() => setPendingAction({ kind: "ACCEPTED", quotation })}
                               >
                                 <CheckCircle className="mr-2 h-4 w-4" /> Marcar como Aceptada
                               </DropdownMenuItem>
@@ -447,6 +450,67 @@ export default function CotizacionesPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!pendingAction}
+        onOpenChange={(o) => !o && setPendingAction(null)}
+        title={
+          pendingAction?.kind === "EMAIL"
+            ? "Enviar cotización por correo"
+            : pendingAction?.kind === "ACCEPTED"
+              ? "Marcar como aceptada"
+              : "Marcar como enviada"
+        }
+        description={
+          pendingAction && (() => {
+            const q = pendingAction.quotation;
+            const client = `${q.client.firstName} ${q.client.lastName}`;
+            const amount = `${q.currency} ${Number(q.totalAmount).toFixed(2)}`;
+            if (pendingAction.kind === "EMAIL") {
+              return (
+                <>
+                  <p>
+                    Se enviará la cotización <span className="font-mono">{q.referenceCode}</span> ({amount}) a{" "}
+                    <strong>{client}</strong> al correo <strong>{q.client.email || "(sin email)"}</strong>.
+                  </p>
+                  <p>
+                    Si aún no tiene link de pago se generará uno, y la cotización quedará como «Enviada».
+                    {q.status !== "DRAFT" && " El cliente podría recibir este correo por segunda vez."}
+                  </p>
+                </>
+              );
+            }
+            if (pendingAction.kind === "ACCEPTED") {
+              return (
+                <p>
+                  La cotización <span className="font-mono">{q.referenceCode}</span> de <strong>{client}</strong>{" "}
+                  por <strong>{amount}</strong> quedará registrada como aceptada por el cliente.
+                </p>
+              );
+            }
+            return (
+              <p>
+                La cotización <span className="font-mono">{q.referenceCode}</span> de <strong>{client}</strong>{" "}
+                pasará a «Enviada». No se enviará ningún correo: úsalo sólo si ya la compartiste por otro medio.
+              </p>
+            );
+          })()
+        }
+        confirmLabel={
+          pendingAction?.kind === "EMAIL"
+            ? "Enviar correo"
+            : pendingAction?.kind === "ACCEPTED"
+              ? "Marcar como aceptada"
+              : "Marcar como enviada"
+        }
+        isPending={updateStatus.isPending || sendEmail.isPending}
+        onConfirm={() => {
+          if (!pendingAction) return;
+          const id = pendingAction.quotation.id;
+          if (pendingAction.kind === "EMAIL") sendEmail.mutate({ id });
+          else updateStatus.mutate({ id, status: pendingAction.kind });
+        }}
+      />
 
       {/* Delete confirmation */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

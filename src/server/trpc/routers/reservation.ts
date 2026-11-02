@@ -219,8 +219,12 @@ export const reservationRouter = router({
   // Calendar view: lightweight list of reservations in a date range
   listForCalendar: adminOrSales
     .input(z.object({
+      // Rango local del mes; se usa como respaldo (createdAt) cuando no hay fecha de viaje.
       startDate: z.string(),
       endDate: z.string(),
+      // Rango UTC del mes para fechas de viaje (guardadas a medianoche UTC).
+      travelStartDate: z.string().optional(),
+      travelEndDate: z.string().optional(),
       tourId: z.string().optional(),
       status: z.enum(["PENDING", "CONFIRMED", "PAID", "COMPLETED", "CANCELLED"]).optional(),
     }))
@@ -229,11 +233,23 @@ export const reservationRouter = router({
       const userRole = ctx.user.role;
       const isAdmin = userRole === "ADMIN";
 
+      const createdRange = {
+        gte: new Date(input.startDate),
+        lte: new Date(input.endDate),
+      };
+      const travelRange = {
+        gte: new Date(input.travelStartDate ?? input.startDate),
+        lte: new Date(input.travelEndDate ?? input.endDate),
+      };
+
+      // Se agrupa por fecha de viaje: salida programada, fecha solicitada
+      // (calendario abierto) o, si no hay ninguna, la fecha de creación.
       const where: any = {
-        createdAt: {
-          gte: new Date(input.startDate),
-          lte: new Date(input.endDate),
-        },
+        OR: [
+          { departure: { departureDate: travelRange } },
+          { departureId: null, travelDate: travelRange },
+          { departureId: null, travelDate: null, createdAt: createdRange },
+        ],
         ...(!isAdmin && { assignedUserId: userId }),
         ...(input.tourId && { tourId: input.tourId }),
         ...(input.status && { status: input.status }),

@@ -9,9 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Search, FileText, Globe, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 
 export default function DocumentosPage() {
   const [search, setSearch] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string; slug: string } | null>(null);
   const { toast } = useToast();
   const utils = trpc.useUtils();
 
@@ -24,14 +26,10 @@ export default function DocumentosPage() {
     onSuccess: () => {
       toast({ title: "Documento eliminado" });
       utils.docs.list.invalidate();
+      setDeleteTarget(null);
     },
-    onError: (e) => toast({ title: e.message, variant: "destructive" }),
+    onError: (e) => toast({ title: "No se pudo eliminar el documento", description: e.message, variant: "destructive" }),
   });
-
-  function handleDelete(id: string, title: string) {
-    if (!confirm(`¿Eliminar "${title}"?`)) return;
-    deleteMut.mutate({ id });
-  }
 
   return (
     <div className="space-y-6">
@@ -114,8 +112,9 @@ export default function DocumentosPage() {
                       variant="ghost"
                       size="icon"
                       className="text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(doc.id, doc.titleEs)}
+                      onClick={() => setDeleteTarget({ id: doc.id, title: doc.titleEs, slug: doc.slug })}
                       disabled={deleteMut.isPending}
+                      aria-label={`Eliminar documento ${doc.titleEs}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -126,6 +125,25 @@ export default function DocumentosPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="Eliminar documento"
+        description={
+          deleteTarget && (
+            <p>
+              Se eliminará <strong>{deleteTarget.title}</strong>. La página{" "}
+              <span className="font-mono">/docs/{deleteTarget.slug}</span> dejará de existir y los
+              enlaces que apunten a ella quedarán rotos. Esta acción no se puede deshacer.
+            </p>
+          )
+        }
+        confirmLabel="Eliminar"
+        destructive
+        isPending={deleteMut.isPending}
+        onConfirm={() => deleteTarget && deleteMut.mutate({ id: deleteTarget.id })}
+      />
 
       {/* Info box */}
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">

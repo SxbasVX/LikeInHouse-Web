@@ -72,6 +72,20 @@ function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// Las fechas de viaje se guardan a medianoche UTC: la clave del día se arma en UTC
+// para no desplazarlas al día anterior en zonas horarias negativas (Perú).
+function utcDateKey(d: Date): string {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+// Fecha que posiciona la reserva en el calendario: salida programada,
+// fecha solicitada o, como respaldo, la fecha de creación (hora local).
+export function reservationDayKey(r: Pick<CalendarReservation, "createdAt" | "departure" | "travelDate">): string {
+  const travel = r.departure?.departureDate ?? r.travelDate;
+  if (travel) return utcDateKey(new Date(travel));
+  return dateKey(new Date(r.createdAt));
+}
+
 export function BookingCalendar({ reservations, month, onMonthChange }: BookingCalendarProps) {
   const [selected, setSelected] = useState<CalendarReservation | null>(null);
 
@@ -79,12 +93,11 @@ export function BookingCalendar({ reservations, month, onMonthChange }: BookingC
   const m = month.getMonth();
   const days = useMemo(() => getMonthDays(year, m), [year, m]);
 
-  // Group reservations by date (use createdAt)
+  // Agrupar reservas por fecha de viaje (createdAt sólo como respaldo)
   const byDate = useMemo(() => {
     const map: Record<string, CalendarReservation[]> = {};
     for (const r of reservations) {
-      const d = new Date(r.createdAt);
-      const key = dateKey(d);
+      const key = reservationDayKey(r);
       if (!map[key]) map[key] = [];
       map[key].push(r);
     }

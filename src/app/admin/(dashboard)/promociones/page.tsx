@@ -21,6 +21,7 @@ import {
   Plus, Trash2, Pencil, CheckCircle2, XCircle, Tag, Image as ImageIcon, Percent,
   Power, PowerOff, Upload,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 
 // ─── BANNERS ─────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ function BannersTab() {
     startsAt: "", endsAt: "",
     sortOrder: 0,
   });
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; titleEs: string } | null>(null);
 
   const create = trpc.content.bannerCreate.useMutation({
     onSuccess: () => { utils.content.bannerList.invalidate(); toast({ title: "Banner creado" }); setOpen(false); },
@@ -50,7 +52,8 @@ function BannersTab() {
     onError: (e) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
   const del = trpc.content.bannerDelete.useMutation({
-    onSuccess: () => { utils.content.bannerList.invalidate(); toast({ title: "Banner eliminado" }); },
+    onSuccess: () => { utils.content.bannerList.invalidate(); toast({ title: "Banner eliminado" }); setDeleteTarget(null); },
+    onError: (e) => toast({ title: "No se pudo eliminar el banner", description: e.message, variant: "destructive" }),
   });
 
   function openNew() {
@@ -130,10 +133,15 @@ function BannersTab() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right space-x-2">
-                  <Button variant="ghost" size="icon" onClick={() => openEdit(b)}>
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(b)} aria-label={`Editar banner ${b.titleEs}`}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => del.mutate({ id: b.id })}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setDeleteTarget({ id: b.id, titleEs: b.titleEs })}
+                    aria-label={`Eliminar banner ${b.titleEs}`}
+                  >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </TableCell>
@@ -247,6 +255,24 @@ function BannersTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="Eliminar banner"
+        description={
+          deleteTarget && (
+            <p>
+              Se eliminará el banner <strong>{deleteTarget.titleEs}</strong> y dejará de mostrarse
+              en la home. Esta acción no se puede deshacer.
+            </p>
+          )
+        }
+        confirmLabel="Eliminar"
+        destructive
+        isPending={del.isPending}
+        onConfirm={() => deleteTarget && del.mutate({ id: deleteTarget.id })}
+      />
     </div>
   );
 }
@@ -259,22 +285,30 @@ function DiscountsTab() {
   const { data: discounts = [], isLoading } = trpc.content.globalDiscountList.useQuery();
   const [name, setName] = useState("");
   const [percent, setPercent] = useState("");
+  type DiscountRef = { id: string; name: string; percent: number };
+  const [activateTarget, setActivateTarget] = useState<DiscountRef | null>(null);
+  const [deactivateOpen, setDeactivateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DiscountRef | null>(null);
 
   const create = trpc.content.globalDiscountCreate.useMutation({
     onSuccess: () => { utils.content.globalDiscountList.invalidate(); setName(""); setPercent(""); toast({ title: "Descuento creado" }); },
     onError: (e) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
   const activate = trpc.content.globalDiscountActivate.useMutation({
-    onSuccess: () => { utils.content.globalDiscountList.invalidate(); utils.public.activeGlobalDiscount.invalidate(); toast({ title: "Descuento activado para todos los tours" }); },
+    onSuccess: () => { utils.content.globalDiscountList.invalidate(); utils.public.activeGlobalDiscount.invalidate(); toast({ title: "Descuento activado para todos los tours" }); setActivateTarget(null); },
+    onError: (e) => toast({ title: "No se pudo activar el descuento", description: e.message, variant: "destructive" }),
   });
   const deactivate = trpc.content.globalDiscountDeactivate.useMutation({
-    onSuccess: () => { utils.content.globalDiscountList.invalidate(); utils.public.activeGlobalDiscount.invalidate(); toast({ title: "Descuento desactivado" }); },
+    onSuccess: () => { utils.content.globalDiscountList.invalidate(); utils.public.activeGlobalDiscount.invalidate(); toast({ title: "Descuento desactivado" }); setDeactivateOpen(false); },
+    onError: (e) => toast({ title: "No se pudo desactivar el descuento", description: e.message, variant: "destructive" }),
   });
   const del = trpc.content.globalDiscountDelete.useMutation({
-    onSuccess: () => { utils.content.globalDiscountList.invalidate(); toast({ title: "Eliminado" }); },
+    onSuccess: () => { utils.content.globalDiscountList.invalidate(); toast({ title: "Descuento eliminado" }); setDeleteTarget(null); },
+    onError: (e) => toast({ title: "No se pudo eliminar el descuento", description: e.message, variant: "destructive" }),
   });
 
   const hasActive = discounts.some((d) => d.isActive);
+  const activeDiscount = discounts.find((d) => d.isActive);
 
   return (
     <div className="space-y-6">
@@ -288,7 +322,7 @@ function DiscountsTab() {
                 {Number(discounts.find((d) => d.isActive)?.percent)}% en todos los tours
               </span>
             </div>
-            <Button variant="outline" size="sm" className="border-green-300 text-green-700" onClick={() => deactivate.mutate()}>
+            <Button variant="outline" size="sm" className="border-green-300 text-green-700" onClick={() => setDeactivateOpen(true)}>
               <PowerOff className="h-4 w-4 mr-1" /> Desactivar
             </Button>
           </CardContent>
@@ -355,11 +389,17 @@ function DiscountsTab() {
                 </TableCell>
                 <TableCell className="text-right space-x-2">
                   {!d.isActive && (
-                    <Button variant="outline" size="sm" onClick={() => activate.mutate({ id: d.id })} disabled={activate.isPending}>
+                    <Button variant="outline" size="sm" onClick={() => setActivateTarget({ id: d.id, name: d.name, percent: Number(d.percent) })} disabled={activate.isPending}>
                       <Power className="h-3.5 w-3.5 mr-1" /> Activar
                     </Button>
                   )}
-                  <Button variant="ghost" size="icon" onClick={() => del.mutate({ id: d.id })} disabled={d.isActive}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setDeleteTarget({ id: d.id, name: d.name, percent: Number(d.percent) })}
+                    disabled={d.isActive}
+                    aria-label={`Eliminar descuento ${d.name}`}
+                  >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </TableCell>
@@ -368,6 +408,65 @@ function DiscountsTab() {
           </TableBody>
         </Table>
       )}
+
+      <ConfirmDialog
+        open={!!activateTarget}
+        onOpenChange={(o) => !o && setActivateTarget(null)}
+        title="Activar descuento global"
+        description={
+          activateTarget && (
+            <>
+              <p>
+                Se aplicará <strong>{activateTarget.percent}% de descuento</strong> («{activateTarget.name}») a
+                los precios de <strong>todos los tours</strong> en la web pública, de inmediato.
+              </p>
+              {activeDiscount && activeDiscount.id !== activateTarget.id && (
+                <p>
+                  El descuento activo actual, <strong>{activeDiscount.name}</strong> ({Number(activeDiscount.percent)}%),
+                  se desactivará.
+                </p>
+              )}
+            </>
+          )
+        }
+        confirmLabel={`Activar ${activateTarget?.percent ?? ""}%`}
+        isPending={activate.isPending}
+        onConfirm={() => activateTarget && activate.mutate({ id: activateTarget.id })}
+      />
+
+      <ConfirmDialog
+        open={deactivateOpen}
+        onOpenChange={setDeactivateOpen}
+        title="Desactivar descuento global"
+        description={
+          <p>
+            Se quitará el descuento <strong>{activeDiscount?.name}</strong> ({Number(activeDiscount?.percent ?? 0)}%)
+            y todos los tours volverán a mostrar su precio normal en la web pública.
+          </p>
+        }
+        confirmLabel="Desactivar"
+        destructive
+        isPending={deactivate.isPending}
+        onConfirm={() => deactivate.mutate()}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="Eliminar descuento"
+        description={
+          deleteTarget && (
+            <p>
+              Se eliminará el descuento guardado <strong>{deleteTarget.name}</strong> ({deleteTarget.percent}%).
+              Esta acción no se puede deshacer.
+            </p>
+          )
+        }
+        confirmLabel="Eliminar"
+        destructive
+        isPending={del.isPending}
+        onConfirm={() => deleteTarget && del.mutate({ id: deleteTarget.id })}
+      />
     </div>
   );
 }

@@ -26,6 +26,7 @@ import {
   Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 
 const navSections = [
   {
@@ -86,6 +87,8 @@ interface AdminSidebarProps {
 export function AdminSidebar({ user }: AdminSidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   // Cerrar al navegar
   useEffect(() => {
@@ -178,11 +181,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
 
         <button
           className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/40 transition-colors hover:bg-red-500/12 hover:text-red-300"
-          onClick={() => {
-            if (window.confirm("¿Seguro que deseas cerrar sesión?")) {
-              signOut({ callbackUrl: "/admin/login" });
-            }
-          }}
+          onClick={() => setLogoutOpen(true)}
         >
           <LogOut className="h-4 w-4" />
           Cerrar sesión
@@ -249,6 +248,19 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={logoutOpen}
+        onOpenChange={setLogoutOpen}
+        title="Cerrar sesión"
+        description={<p>Se cerrará tu sesión en el panel y volverás a la pantalla de inicio de sesión.</p>}
+        confirmLabel="Cerrar sesión"
+        isPending={signingOut}
+        onConfirm={() => {
+          setSigningOut(true);
+          signOut({ callbackUrl: "/admin/login" });
+        }}
+      />
     </>
   );
 }

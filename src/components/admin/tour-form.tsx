@@ -37,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import type { TourCreateInput } from "@/lib/validators/tour";
 import { parseItineraryDescription } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 
 interface TourFormProps {
   initialData?: Partial<TourFormData>;
@@ -184,6 +185,24 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
   const [showPreview, setShowPreview] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<string>("");
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const [discardOpen, setDiscardOpen] = useState(false);
+
+  // Avisar antes de cerrar/recargar la pestaña si hay cambios sin guardar
+  // (no mientras se está enviando el formulario).
+  useEffect(() => {
+    if (!isDirty || isLoading) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty, isLoading]);
+
+  const handleCancel = () => {
+    if (isDirty) setDiscardOpen(true);
+    else window.history.back();
+  };
 
   // Auto-slug
   const handleAutoSlug = () => {
@@ -241,6 +260,24 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
 
   return (
     <form onSubmit={handleSubmit(onFormSubmit as any, onFormError)} className="space-y-6 max-w-5xl pb-24">
+      <ConfirmDialog
+        open={discardOpen}
+        onOpenChange={setDiscardOpen}
+        title="¿Descartar cambios?"
+        description={
+          <p>
+            Tienes cambios sin guardar en este tour. Si sales ahora se perderán
+            {initialData?.slug && onAutoSave ? " (salvo lo que ya se haya guardado como borrador)" : ""}.
+          </p>
+        }
+        confirmLabel="Descartar cambios"
+        cancelLabel="Seguir editando"
+        destructive
+        onConfirm={() => {
+          setDiscardOpen(false);
+          window.history.back();
+        }}
+      />
       {/* Barra superior con estado - STICKY para facil acceso */}
       <div className="sticky top-0 z-40 flex items-center justify-between rounded-lg border bg-background/95 backdrop-blur shadow-sm p-4">
         <div className="flex items-center gap-3">
@@ -252,7 +289,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={() => window.history.back()}>
+          <Button type="button" variant="ghost" size="sm" onClick={handleCancel}>
             Cancelar
           </Button>
           {initialData?.slug && onAutoSave && (

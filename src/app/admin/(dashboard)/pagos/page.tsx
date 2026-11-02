@@ -38,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import {
   Search,
   MoreHorizontal,
@@ -73,10 +74,21 @@ const methodLabels: Record<string, string> = {
   CASH: "Efectivo",
 };
 
+function formatMoney(amount: number, currency: string): string {
+  return new Intl.NumberFormat("es-PE", { style: "currency", currency }).format(amount);
+}
+
+// "USD 1,234.00 · PEN 560.00": un total por moneda, nunca sumados entre sí.
+function formatTotals(totals: { currency: string; amount: number }[]): string {
+  if (totals.length === 0) return formatMoney(0, "USD");
+  return totals.map((t) => formatMoney(t.amount, t.currency)).join(" · ");
+}
+
 export default function PagosPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<string>("");
   const [method, setMethod] = useState<string>("");
+  const [verifyTarget, setVerifyTarget] = useState<Payment | null>(null);
   const { toast } = useToast();
 
   const { data, isLoading, refetch } = trpc.payment.list.useQuery({
@@ -86,12 +98,14 @@ export default function PagosPage() {
     method: (method as "CULQI_CARD" | "CULQI_YAPE" | "PAYPAL" | "BANK_TRANSFER" | "CASH") || undefined,
   });
 
-  const { data: stats } = trpc.payment.getStats.useQuery();
+  const { data: stats, refetch: refetchStats } = trpc.payment.getStats.useQuery();
 
   const verifyPayment = trpc.payment.markAsVerified.useMutation({
     onSuccess: () => {
       toast({ title: "Pago verificado exitosamente" });
       refetch();
+      refetchStats();
+      setVerifyTarget(null);
     },
     onError: (error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -115,7 +129,7 @@ export default function PagosPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-brand-teal">
-                USD {Number(stats.completed.total).toFixed(2)}
+                {formatTotals(stats.completed.totals)}
               </div>
               <p className="text-xs font-serif italic text-brand-teal">
                 {stats.completed.count} transacciones
@@ -129,7 +143,7 @@ export default function PagosPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-brand-orange">
-                USD {Number(stats.pending.total).toFixed(2)}
+                {formatTotals(stats.pending.totals)}
               </div>
               <p className="text-xs font-serif italic text-brand-teal">
                 {stats.pending.count} transacciones
@@ -143,7 +157,7 @@ export default function PagosPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-brand-darkTeal">
-                USD {Number(stats.refunded.total).toFixed(2)}
+                {formatTotals(stats.refunded.totals)}
               </div>
               <p className="text-xs font-serif italic text-brand-teal">
                 {stats.refunded.count} transacciones
@@ -267,9 +281,7 @@ export default function PagosPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() =>
-                                  verifyPayment.mutate({ id: payment.id })
-                                }
+                                onClick={() => setVerifyTarget(payment)}
                               >
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Verificar Pago
@@ -312,6 +324,32 @@ export default function PagosPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={!!verifyTarget}
+        onOpenChange={(open) => !open && setVerifyTarget(null)}
+        title="Verificar pago"
+        description={
+          verifyTarget && (
+            <>
+              <p>
+                Se marcará como <strong>completado</strong> el pago de{" "}
+                <strong>{formatMoney(Number(verifyTarget.amount), verifyTarget.currency)}</strong>
+                {verifyTarget.isDeposit ? " (depósito)" : ""} de{" "}
+                <strong>
+                  {verifyTarget.reservation.client.firstName} {verifyTarget.reservation.client.lastName}
+                </strong>{" "}
+                ({methodLabels[verifyTarget.method] || verifyTarget.method}), reserva{" "}
+                <span className="font-mono">{verifyTarget.reservation.referenceCode}</span>.
+              </p>
+              <p>Confirma sólo si el dinero ya ingresó a la cuenta. Quedará registrado con tu usuario.</p>
+            </>
+          )
+        }
+        confirmLabel="Verificar pago"
+        isPending={verifyPayment.isPending}
+        onConfirm={() => verifyTarget && verifyPayment.mutate({ id: verifyTarget.id })}
+      />
     </div>
   );
 }

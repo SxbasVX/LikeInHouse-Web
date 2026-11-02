@@ -61,37 +61,28 @@ export const paymentRouter = router({
     // Non-admin users only see stats for payments on their assigned reservations
     const ownershipFilter = isAdmin ? {} : { reservation: { assignedUserId: userId } };
 
-    const [totalCompleted, totalPending, totalRefunded] = await Promise.all([
-      ctx.db.payment.aggregate({
-        where: { status: "COMPLETED", ...ownershipFilter },
-        _sum: { amount: true },
-        _count: true,
-      }),
-      ctx.db.payment.aggregate({
-        where: { status: "PENDING", ...ownershipFilter },
-        _sum: { amount: true },
-        _count: true,
-      }),
-      ctx.db.payment.aggregate({
-        where: { status: "REFUNDED", ...ownershipFilter },
-        _sum: { amount: true },
-        _count: true,
-      }),
-    ]);
+    // Totales separados por moneda: sumar PEN y USD en un solo número sería incorrecto.
+    const groups = await ctx.db.payment.groupBy({
+      by: ["status", "currency"],
+      where: { status: { in: ["COMPLETED", "PENDING", "REFUNDED"] }, ...ownershipFilter },
+      _sum: { amount: true },
+      _count: { _all: true },
+    });
+
+    const summarize = (status: "COMPLETED" | "PENDING" | "REFUNDED") => {
+      const rows = groups.filter((g) => g.status === status);
+      return {
+        count: rows.reduce((n, g) => n + g._count._all, 0),
+        totals: rows
+          .map((g) => ({ currency: g.currency, amount: Number(g._sum.amount ?? 0) }))
+          .sort((a, b) => a.currency.localeCompare(b.currency)),
+      };
+    };
 
     return serializeDecimals({
-      completed: {
-        count: totalCompleted._count,
-        total: totalCompleted._sum.amount ?? 0,
-      },
-      pending: {
-        count: totalPending._count,
-        total: totalPending._sum.amount ?? 0,
-      },
-      refunded: {
-        count: totalRefunded._count,
-        total: totalRefunded._sum.amount ?? 0,
-      },
+      completed: summarize("COMPLETED"),
+      pending: summarize("PENDING"),
+      refunded: summarize("REFUNDED"),
     });
   }),
 

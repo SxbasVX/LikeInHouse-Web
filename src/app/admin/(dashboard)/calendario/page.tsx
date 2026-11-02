@@ -19,6 +19,16 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
+function formatTotals(totals: Record<string, number>): string {
+  const entries = Object.entries(totals);
+  if (entries.length === 0) return formatMoney(0, "USD");
+  return entries.map(([currency, amount]) => formatMoney(amount, currency)).join(" · ");
+}
+
+function formatMoney(amount: number, currency: string): string {
+  return new Intl.NumberFormat("es-PE", { style: "currency", currency }).format(amount);
+}
+
 export default function CalendarioPage() {
   const [month, setMonth] = useState(() => {
     const now = new Date();
@@ -27,19 +37,26 @@ export default function CalendarioPage() {
   const [tourFilter, setTourFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  // Calculate date range for the current month view
-  const { startDate, endDate } = useMemo(() => {
-    const start = new Date(month.getFullYear(), month.getMonth(), 1);
-    const end = new Date(month.getFullYear(), month.getMonth() + 1, 0, 23, 59, 59);
+  // Rango del mes visible. Las fechas de viaje se guardan a medianoche UTC, así que
+  // se filtran con límites UTC; createdAt (respaldo) usa los límites locales.
+  const { startDate, endDate, travelStartDate, travelEndDate } = useMemo(() => {
+    const y = month.getFullYear();
+    const m = month.getMonth();
+    const start = new Date(y, m, 1);
+    const end = new Date(y, m + 1, 0, 23, 59, 59, 999);
     return {
       startDate: start.toISOString(),
       endDate: end.toISOString(),
+      travelStartDate: new Date(Date.UTC(y, m, 1)).toISOString(),
+      travelEndDate: new Date(Date.UTC(y, m + 1, 0, 23, 59, 59, 999)).toISOString(),
     };
   }, [month]);
 
   const { data: reservations, isLoading } = trpc.reservation.listForCalendar.useQuery({
     startDate,
     endDate,
+    travelStartDate,
+    travelEndDate,
     tourId: tourFilter !== "all" ? tourFilter : undefined,
     status: statusFilter !== "all" ? (statusFilter as "PENDING" | "CONFIRMED" | "PAID" | "COMPLETED" | "CANCELLED") : undefined,
   });
@@ -56,9 +73,12 @@ export default function CalendarioPage() {
     const total = reservations.length;
     const pending = reservations.filter((r) => r.status === "PENDING").length;
     const paid = reservations.filter((r) => r.status === "PAID").length;
-    const revenue = reservations
-      .filter((r) => r.status !== "CANCELLED")
-      .reduce((sum, r) => sum + r.totalAmount, 0);
+    // Totales por moneda: no se suman soles con dólares.
+    const revenue: Record<string, number> = {};
+    for (const r of reservations) {
+      if (r.status === "CANCELLED") continue;
+      revenue[r.currency] = (revenue[r.currency] ?? 0) + r.totalAmount;
+    }
     return { total, pending, paid, revenue };
   }, [reservations]);
 
@@ -92,7 +112,7 @@ export default function CalendarioPage() {
           </Card>
           <Card>
             <CardContent className="pt-4 pb-3">
-              <p className="text-2xl font-bold">USD ${stats.revenue.toFixed(0)}</p>
+              <p className="text-2xl font-bold">{formatTotals(stats.revenue)}</p>
               <p className="text-xs font-serif italic text-brand-teal">Revenue estimado</p>
             </CardContent>
           </Card>

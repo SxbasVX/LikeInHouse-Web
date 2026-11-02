@@ -57,7 +57,11 @@ import {
   Trash2,
   Shield,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 
 const roleLabels: Record<string, string> = {
   ADMIN: "Administrador",
@@ -84,6 +88,7 @@ export default function UsuariosPage() {
     password?: string;
   } | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deactivateUser, setDeactivateUser] = useState<{ id: string; name: string; email: string } | null>(null);
   const { toast } = useToast();
 
   const [form, setForm] = useState({
@@ -96,7 +101,7 @@ export default function UsuariosPage() {
   const resetForm = () =>
     setForm({ name: "", email: "", password: "", role: "SALES" });
 
-  const { data, isLoading, refetch } = trpc.user.list.useQuery({
+  const { data, isLoading, isError, error, refetch } = trpc.user.list.useQuery({
     page,
     limit: 20,
   });
@@ -128,6 +133,7 @@ export default function UsuariosPage() {
     onSuccess: () => {
       toast({ title: "Estado actualizado" });
       refetch();
+      setDeactivateUser(null);
     },
     onError: (error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -251,7 +257,31 @@ export default function UsuariosPage() {
                 <Skeleton key={i} className="h-16 w-full" />
               ))}
             </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center gap-3 py-12 text-center">
+              <AlertCircle className="h-8 w-8 text-red-500" />
+              <p className="text-sm text-muted-foreground">
+                No se pudieron cargar los usuarios{error?.message ? `: ${error.message}` : "."}
+              </p>
+              <Button variant="outline" size="sm" onClick={() => refetch()}>
+                Reintentar
+              </Button>
+            </div>
+          ) : !data || data.users.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              {page > 1 ? (
+                <div className="flex flex-col items-center gap-3">
+                  <p>No hay usuarios en esta página.</p>
+                  <Button variant="outline" size="sm" onClick={() => setPage(1)}>
+                    Volver a la primera página
+                  </Button>
+                </div>
+              ) : (
+                <p>Aún no hay usuarios registrados. Crea el primero con «Nuevo Usuario».</p>
+              )}
+            </div>
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -266,7 +296,7 @@ export default function UsuariosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data?.users.map((user: User) => (
+                {data.users.map((user: User) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -315,7 +345,11 @@ export default function UsuariosPage() {
                             <Pencil className="mr-2 h-4 w-4" /> Editar
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => toggleActive.mutate({ id: user.id })}
+                            onClick={() =>
+                              user.isActive
+                                ? setDeactivateUser({ id: user.id, name: user.name, email: user.email })
+                                : toggleActive.mutate({ id: user.id })
+                            }
                           >
                             {user.isActive ? (
                               <>
@@ -340,6 +374,33 @@ export default function UsuariosPage() {
                 ))}
               </TableBody>
             </Table>
+
+            {data.pages > 1 && (
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm font-serif italic text-brand-teal">
+                  Página {data.page} de {data.pages}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" /> Anterior
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={page >= data.pages}
+                  >
+                    Siguiente <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -433,6 +494,26 @@ export default function UsuariosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Deactivate confirmation */}
+      <ConfirmDialog
+        open={!!deactivateUser}
+        onOpenChange={(open) => !open && setDeactivateUser(null)}
+        title="Desactivar usuario"
+        description={
+          deactivateUser && (
+            <p>
+              <strong>{deactivateUser.name}</strong> ({deactivateUser.email}) perderá el acceso
+              al panel hasta que vuelvas a activarlo. Sus reservas y cotizaciones se
+              conservan.
+            </p>
+          )
+        }
+        confirmLabel="Desactivar"
+        destructive
+        isPending={toggleActive.isPending}
+        onConfirm={() => deactivateUser && toggleActive.mutate({ id: deactivateUser.id })}
+      />
 
       {/* Delete confirmation */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
