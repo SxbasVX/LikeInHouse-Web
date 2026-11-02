@@ -20,7 +20,9 @@ export function isClaudeConfigured(): boolean {
 let client: Anthropic | undefined;
 function claude(): Anthropic {
   // The SDK retries 408/409/429/5xx and connection errors itself.
-  return (client ??= new Anthropic({ maxRetries: 2 }));
+  // An organization-level key (not created inside a workspace) must name the workspace that pays for each request.
+  const workspace = process.env.ANTHROPIC_WORKSPACE_ID?.trim();
+  return (client ??= new Anthropic({ maxRetries: 2, defaultHeaders: workspace ? { "anthropic-workspace-id": workspace } : undefined }));
 }
 
 export interface ClaudeCall {
