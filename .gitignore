@@ -45,3 +45,6 @@ Thumbs.db
 Docker Desktop Installer.exe
 # Private catalog QA artifacts
 .qa/
+
+# Capturas de pruebas con Playwright MCP
+.playwright-mcp/
