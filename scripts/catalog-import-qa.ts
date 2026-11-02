@@ -20,8 +20,7 @@ async function main() {
     sourcePages.push({ page: i, text: content.items.map((item) => "str" in item ? item.str : "").join(" ") });
   }
   await document.destroy();
-  const { GeminiProvider } = await import("../src/server/catalog-import/providers/gemini");
-  const { OpenAIProvider } = await import("../src/server/catalog-import/providers/openai");
+  const { AnthropicProvider, isClaudeConfigured } = await import("../src/server/catalog-import/providers/anthropic");
   const { catalogTourCandidateSchema } = await import("../src/server/catalog-import/schemas");
   const { validateCatalogTour } = await import("../src/server/catalog-import/validator");
   const { findDuplicateMatches } = await import("../src/server/catalog-import/duplicates");
@@ -32,8 +31,8 @@ async function main() {
   const snapshot = () => db.tour.findMany({ orderBy: { id: "asc" }, include: { images: true, pricing: { include: { tiers: true } }, itinerary: true, conditions: true, includes: true } });
   try {
     const before = hash(await snapshot());
-    const provider = process.env.GEMINI_API_KEY ? new GeminiProvider() : process.env.OPENAI_API_KEY ? new OpenAIProvider() : null;
-    if (!provider) throw new Error("No hay API key de Gemini/OpenAI en el entorno local. El PDF se leyó correctamente.");
+    if (!isClaudeConfigured()) throw new Error("No hay ANTHROPIC_API_KEY en el entorno local. El PDF se leyó correctamente.");
+    const provider = new AnthropicProvider();
     const started = Date.now();
     const result = await provider.analyzeCatalog({ filename: path.basename(filename), pdf, signal: AbortSignal.timeout(235_000) });
     const tours = [];

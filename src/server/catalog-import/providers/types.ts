@@ -1,6 +1,6 @@
 import type { CatalogExtractionEnvelope } from "../schemas";
 
-export type AIProviderName = "gemini" | "openai" | "anthropic";
+export type AIProviderName = "anthropic";
 
 export interface CatalogAnalysisInput {
   filename: string;
@@ -20,10 +20,4 @@ export interface ProviderResult {
   inputTokens: number | null;
   outputTokens: number | null;
   estimatedCost: number | null;
-}
-
-export interface ProviderSelection {
-  primary: AIProviderName;
-  fallback: AIProviderName;
-  review: AIProviderName;
 }

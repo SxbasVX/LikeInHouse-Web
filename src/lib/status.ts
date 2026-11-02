@@ -74,6 +74,23 @@ export const STATUS = {
     QUOTED: { label: "Cotizada", ...tone.teal },
     CLOSED: { label: "Cerrada", ...tone.slate },
   },
+  catalogTour: {
+    NEEDS_REVIEW: { label: "Por revisar", ...tone.amber },
+    DUPLICATE: { label: "Posible duplicado", ...tone.violet },
+    READY: { label: "Listo para crear", ...tone.sky },
+    VALIDATED: { label: "Creando…", ...tone.tealSolid },
+    DRAFT_CREATED: { label: "Tour creado", ...tone.teal },
+    BLOCKED: { label: "Omitido", ...tone.slate },
+    FAILED: { label: "Con error", ...tone.red },
+    EXTRACTED: { label: "Extraído", ...tone.beige },
+  },
+  catalogImport: {
+    UPLOADED: { label: "En cola", ...tone.slate },
+    PROCESSING: { label: "Claude trabajando", ...tone.sky },
+    COMPLETED: { label: "Completado", ...tone.teal },
+    PARTIAL: { label: "Incompleto", ...tone.amber },
+    FAILED: { label: "Falló", ...tone.red },
+  },
   crm: {
     PENDING: { label: "Enviando…", ...tone.slate },
     SENT: { label: "En CRM", ...tone.teal },

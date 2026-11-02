@@ -1,11 +1,10 @@
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/server/lib/auth";
 import { db } from "@/server/lib/db";
-import { assertCatalogImportGrant, isCatalogImportEnabled } from "@/server/catalog-import/access";
 import { allowedDocumentUrl, assertPdf, MAX_PDF_BYTES } from "@/server/catalog-import/documents";
 import { claimCatalogJob, runCatalogJob } from "@/server/catalog-import/jobs";
 import { checkRateLimit } from "@/server/lib/rate-limit";
+import { authorizeCatalogRequest } from "../authorize";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -13,14 +12,9 @@ const bodySchema = z.object({ fileUrl: z.string().url().max(2000), filename: z.s
 const retrySchema = z.object({ importId: z.string().cuid() });
 
 export async function POST(request: Request) {
-  if (!isCatalogImportEnabled()) return NextResponse.json({ error: "Importador deshabilitado." }, { status: 404 });
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "No autenticado." }, { status: 401 });
-  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { id: true, role: true, isActive: true } });
-  if (!user?.isActive || user.role !== "DEVELOPER") return NextResponse.json({ error: "Sin permisos." }, { status: 403 });
-  try { await assertCatalogImportGrant(user.id); } catch { return NextResponse.json({ error: "Autoriza nuevamente la sesión con el código privado." }, { status: 401 }); }
-  const origin = request.headers.get("origin");
-  if (!origin || origin !== new URL(request.url).origin) return NextResponse.json({ error: "Origen no permitido." }, { status: 403 });
+  const authorized = await authorizeCatalogRequest(request);
+  if (authorized instanceof NextResponse) return authorized;
+  const user = { id: authorized.userId };
   if (!checkRateLimit(`catalog-upload:${user.id}`, { maxRequests: 10, windowSeconds: 900 }).allowed) return NextResponse.json({ error: "Demasiados documentos. Espera 15 minutos." }, { status: 429 });
 
   try {

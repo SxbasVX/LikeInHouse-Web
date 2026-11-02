@@ -1,7 +1,8 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/server/lib/auth";
 import { isCatalogImportEnabled } from "@/server/catalog-import/access";
-import { CatalogImportAccess } from "@/components/admin/catalog-import/catalog-import-access";
+import { CatalogImportScreen } from "@/components/admin/catalog-import/catalog-import-screen";
 
 export default async function CatalogImportPage() {
   if (!isCatalogImportEnabled()) redirect("/admin");
@@ -11,16 +12,10 @@ export default async function CatalogImportPage() {
   if (session.user.role !== "DEVELOPER") redirect("/admin");
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-8">
-      <div>
-        <h1 className="font-heading text-3xl font-bold tracking-tight text-brand-darkRed">
-          AI Catalog Importer
-        </h1>
-        <p className="font-serif italic text-brand-teal">
-          Herramienta privada para analizar catálogos y preparar borradores.
-        </p>
+    <div className="min-h-screen bg-[hsl(26,44%,97%)]">
+      <div className="mx-auto max-w-7xl p-4 sm:p-8">
+        <Suspense><CatalogImportScreen /></Suspense>
       </div>
-      <CatalogImportAccess />
     </div>
   );
 }

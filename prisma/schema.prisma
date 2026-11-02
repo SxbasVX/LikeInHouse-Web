@@ -802,6 +802,11 @@ model CatalogImport {
   completedAt    DateTime?
   lastError      String?            @db.Text
   extractionJson Json?
+  // Claude Message Batch in flight: "extraction" of the PDF, then "enrichment" of its candidates.
+  batchId        String?
+  batchStage     String?
+  batchCheckedAt DateTime?
+  batchFailures  Int                @default(0)
   status         CatalogImportStatus @default(UPLOADED)
   totalTours     Int                @default(0)
   readyCount     Int                @default(0)
@@ -833,6 +838,9 @@ model CatalogImportTour {
   existingTour    Tour?                 @relation("CatalogImportExistingTour", fields: [existingTourId], references: [id])
   createdTourId   String?
   createdTour     Tour?                 @relation("CatalogImportCreatedTour", fields: [createdTourId], references: [id])
+  // Reviewer's unapproved edits, autosaved. tourDataJson only changes on approval.
+  reviewDraftJson Json?
+  reviewDraftAt   DateTime?
   providerUsed    String?
   modelUsed       String?
   confidence      Decimal?              @db.Decimal(5, 4)
@@ -861,6 +869,9 @@ model ImportIssue {
   resolvedById   String?
   resolvedBy     User?               @relation("ImportIssueResolver", fields: [resolvedById], references: [id])
   resolvedAt     DateTime?
+  // Reviewer marked it as seen before approving; survives revalidation by (type, field).
+  checkedAt      DateTime?
+  checkedById    String?
   createdAt      DateTime            @default(now())
 
   @@index([importTourId, resolved])
@@ -876,6 +887,8 @@ model AIProviderOperation {
   provider      String
   model         String
   operation     String
+  // Claude Message Batch that produced it; makes collecting batch results idempotent.
+  batchId       String?
   success       Boolean
   fallbackUsed  Boolean             @default(false)
   latencyMs     Int?
@@ -887,6 +900,7 @@ model AIProviderOperation {
 
   @@index([importId, createdAt])
   @@index([importTourId])
+  @@index([batchId])
 }
 
 model EmailTemplate {
