@@ -293,7 +293,7 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
                 name="contact"
                 type="tel"
                 required
-                pattern="\+?[\d\s\-().]{6,20}"
+                pattern="\+?[0-9\s\-\(\)\.]{6,20}"
                 title={t("phone_invalid")}
                 autoComplete="tel"
                 placeholder="+51 987 654 321"

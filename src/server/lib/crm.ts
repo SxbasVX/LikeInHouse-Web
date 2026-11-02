@@ -33,10 +33,12 @@ export function isCrmConfigured() {
   return Boolean(process.env.CRM_LEADS_URL && process.env.CRM_API_KEY);
 }
 
-export async function sendCrmLead(lead: CrmLead): Promise<boolean> {
+export type CrmResult = { ok: true } | { ok: false; disabled?: boolean; error: string };
+
+export async function sendCrmLead(lead: CrmLead): Promise<CrmResult> {
   const url = process.env.CRM_LEADS_URL;
   const apiKey = process.env.CRM_API_KEY;
-  if (!url || !apiKey) return false;
+  if (!url || !apiKey) return { ok: false, disabled: true, error: "Integración no configurada (CRM_LEADS_URL / CRM_API_KEY)" };
 
   const body = Object.fromEntries(
     Object.entries(lead).filter(([, value]) => value !== undefined && value !== "")
@@ -58,12 +60,14 @@ export async function sendCrmLead(lead: CrmLead): Promise<boolean> {
       /* respuesta no JSON */
     }
     if (!res.ok || data?.ok === false) {
-      console.error(`[CRM] lead_create respondió ${res.status}: ${data?.msg ?? text.slice(0, 300)}`);
-      return false;
+      const reason = `HTTP ${res.status}: ${data?.msg ?? text.slice(0, 300)}`;
+      console.error(`[CRM] lead_create respondió ${reason}`);
+      return { ok: false, error: reason };
     }
-    return true;
+    return { ok: true };
   } catch (error) {
     console.error("[CRM] No se pudo enviar el lead:", error);
-    return false;
+    const reason = error instanceof Error && error.name === "TimeoutError" ? "El CRM no respondió a tiempo" : "No se pudo conectar con el CRM";
+    return { ok: false, error: reason };
   }
 }

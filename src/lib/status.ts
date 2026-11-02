@@ -68,6 +68,18 @@ export const STATUS = {
     PUBLISHED: { label: "Publicado", ...tone.teal },
     ARCHIVED: { label: "Archivado", ...tone.beige },
   },
+  quoteRequest: {
+    NEW: { label: "Nueva", ...tone.amber },
+    CONTACTED: { label: "Contactado", ...tone.sky },
+    QUOTED: { label: "Cotizada", ...tone.teal },
+    CLOSED: { label: "Cerrada", ...tone.slate },
+  },
+  crm: {
+    PENDING: { label: "Enviando…", ...tone.slate },
+    SENT: { label: "En CRM", ...tone.teal },
+    FAILED: { label: "Falló", ...tone.red },
+    DISABLED: { label: "Sin integración", ...tone.beige },
+  },
 } satisfies Record<string, Record<string, StatusStyle>>;
 
 export type StatusDomain = keyof typeof STATUS;

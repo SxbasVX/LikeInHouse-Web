@@ -66,7 +66,7 @@ export function ContactForm() {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="phone">{t("phone")}</Label>
-          <Input id="phone" name="phone" type="tel" pattern="\+?[\d\s\-().]{6,20}" title={t("phone_invalid")} />
+          <Input id="phone" name="phone" type="tel" pattern="\+?[0-9\s\-\(\)\.]{6,20}" title={t("phone_invalid")} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="subject">{t("subject")}</Label>

@@ -289,10 +289,65 @@ model Client {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  reservations Reservation[]
-  quotations   Quotation[]
+  reservations  Reservation[]
+  quotations    Quotation[]
+  quoteRequests QuoteRequest[]
 
   @@index([createdAt])
+}
+
+// ============================================================
+// SOLICITUDES DE COTIZACIÓN (formulario web → también se envían al CRM)
+// ============================================================
+
+enum QuoteRequestStatus {
+  NEW
+  CONTACTED
+  QUOTED
+  CLOSED
+}
+
+enum CrmSyncStatus {
+  PENDING
+  SENT
+  FAILED
+  DISABLED // El CRM no estaba configurado cuando llegó la solicitud
+}
+
+model QuoteRequest {
+  id     String             @id @default(cuid())
+  status QuoteRequestStatus @default(NEW)
+
+  name   String
+  phone  String?
+  email  String?
+  locale String  @default("es")
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  tourSlug      String?
+  tourName      String?
+  destination   String?
+  travelWindow  String?
+  departureDate DateTime? @db.Date
+  returnDate    DateTime? @db.Date
+  adults        Int       @default(1)
+  children      Int       @default(0)
+  infants       Int       @default(0)
+  message       String?   @db.Text
+
+  crmStatus   CrmSyncStatus @default(PENDING)
+  crmError    String?
+  crmAttempts Int           @default(0)
+  crmSyncedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([crmStatus])
+  @@index([clientId])
 }
 
 // ============================================================

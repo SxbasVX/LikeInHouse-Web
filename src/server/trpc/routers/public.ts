@@ -15,14 +15,7 @@ import {
 } from "@/server/lib/cache";
 import { serializeDecimals } from "@/server/lib/serialize";
 import { getExchangeRates } from "@/server/lib/exchange";
-import { sendCrmLead } from "@/server/lib/crm";
-
-const TRAVEL_WINDOW_LABELS = {
-  this_month: "Este mes",
-  "1_3_months": "En 1 a 3 meses",
-  "3_6_months": "En 3 a 6 meses",
-  undecided: "Aún no lo sabe",
-} as const;
+import { linkQuoteRequestClient, syncQuoteRequestToCrm } from "@/server/lib/quote-requests";
 
 export const publicRouter = router({
   // Tours publicados con paginación y filtros
@@ -306,44 +299,33 @@ export const publicRouter = router({
       const destinations = tour
         ? [tour.destination]
         : [...new Set(input.destinations.map((d) => sanitizePlainText(d)).filter(Boolean))];
-      const destination = destinations.length > 0 ? destinations.join(", ") : undefined;
       const name = sanitizePlainText(input.name);
-      const message = input.message ? sanitizePlainText(input.message) : undefined;
-      const travelers = `${input.adults} adultos, ${input.children} niños, ${input.infants} infantes`;
-      const when = input.travelWindow && input.travelWindow !== "exact" ? TRAVEL_WINDOW_LABELS[input.travelWindow] : undefined;
+      const email = input.email ? input.email.toLowerCase() : null;
+      const phone = input.phone || null;
 
-      await ctx.db.contactMessage.create({
+      // Primero se guarda en la base propia: aunque el CRM falle, la solicitud no se pierde
+      const clientId = await linkQuoteRequestClient(ctx.db, { name, email, phone, locale: input.locale });
+      const quoteRequest = await ctx.db.quoteRequest.create({
         data: {
           name,
-          email: input.email || "",
-          phone: input.phone || undefined,
-          subject: `Cotización: ${tour?.nameEs ?? destination ?? "general"}`,
-          message: [
-            tour && `Tour: ${tour.nameEs}`,
-            `Destino: ${destination ?? "Aún no decide"}`,
-            when && `Cuándo: ${when}`,
-            input.departureDate && `Salida: ${input.departureDate}`,
-            input.returnDate && `Retorno: ${input.returnDate}`,
-            `Viajeros: ${travelers}`,
-            message && `\n${message}`,
-          ].filter(Boolean).join("\n"),
+          email,
+          phone,
+          locale: input.locale,
+          clientId,
+          tourSlug: tour ? input.tourSlug : null,
+          tourName: tour?.nameEs ?? null,
+          destination: destinations.length > 0 ? destinations.join(", ") : null,
+          travelWindow: input.travelWindow ?? null,
+          departureDate: input.departureDate ? new Date(`${input.departureDate}T00:00:00Z`) : null,
+          returnDate: input.returnDate ? new Date(`${input.returnDate}T00:00:00Z`) : null,
+          adults: input.adults,
+          children: input.children,
+          infants: input.infants,
+          message: input.message ? sanitizePlainText(input.message) : null,
         },
       });
 
-      await sendCrmLead({
-        nombre: name,
-        telefono: input.phone || undefined,
-        correo: input.email || undefined,
-        destino: destination,
-        fecha_salida: input.departureDate || undefined,
-        fecha_retorno: input.returnDate || undefined,
-        adultos: input.adults,
-        ninos: input.children,
-        infantes: input.infants,
-        mensaje: [when && `Cuándo viaja: ${when}`, message].filter(Boolean).join("\n") || undefined,
-        tour: tour?.nameEs,
-        idioma: input.locale,
-      });
+      await syncQuoteRequestToCrm(ctx.db, quoteRequest);
 
       return { success: true };
     }),

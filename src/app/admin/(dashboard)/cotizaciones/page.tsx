@@ -54,6 +54,8 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { PageHeader } from "@/components/admin/page-header";
+import { CrmIntegrationBanner, QuoteRequestsPanel } from "@/components/admin/quote-requests-panel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pagination } from "@/components/admin/pagination";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/admin/list-states";
@@ -115,6 +117,7 @@ export default function CotizacionesPage() {
     quotation: Quotation;
   } | null>(null);
   const { toast } = useToast();
+  const { data: requestsSummary } = trpc.quoteRequest.list.useQuery({ page: 1, limit: 1, status: "NEW" });
 
   const { data, isLoading, error, refetch, isRefetching } = trpc.quotation.list.useQuery({
     page,
@@ -186,6 +189,22 @@ export default function CotizacionesPage() {
         }
       />
 
+      <CrmIntegrationBanner />
+
+      <Tabs defaultValue="requests" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="requests" className="gap-2">
+            Solicitudes web
+            {!!requestsSummary?.newCount && (
+              <span className="rounded-full bg-brand-orange px-1.5 text-[11px] font-bold text-white">{requestsSummary.newCount}</span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="quotations">Cotizaciones</TabsTrigger>
+        </TabsList>
+        <TabsContent value="requests">
+          <QuoteRequestsPanel />
+        </TabsContent>
+        <TabsContent value="quotations">
       <Card>
         <CardHeader>
           <CardTitle>Lista de Cotizaciones</CardTitle>
@@ -380,6 +399,8 @@ export default function CotizacionesPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Create Quotation Dialog */}
       <CreateQuotationDialog

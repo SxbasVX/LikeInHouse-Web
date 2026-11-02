@@ -15,6 +15,7 @@ import { documentRouter } from "./routers/document";
 import { culqiChargeRouter } from "./routers/culqi-charge";
 import { complaintRouter } from "./routers/complaint";
 import { catalogImportRouter } from "./routers/catalog-import";
+import { quoteRequestRouter } from "./routers/quote-request";
 
 export const appRouter = router({
   auth: authRouter,
@@ -26,6 +27,7 @@ export const appRouter = router({
   reservation: reservationRouter,
   payment: paymentRouter,
   quotation: quotationRouter,
+  quoteRequest: quoteRequestRouter,
   user: userRouter,
   content: contentRouter,
   public: publicRouter,
