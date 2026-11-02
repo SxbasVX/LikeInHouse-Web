@@ -16,14 +16,14 @@ const LABELS: Record<string, string> = {
   difficulty: "Dificultad", durationDays: "Días", durationNights: "Noches", durationHours: "Horas",
   shortDescEs: "Descripción corta (ES)", shortDescEn: "Descripción corta (EN)", longDescEs: "Descripción completa (ES)", longDescEn: "Descripción completa (EN)",
   metaTitleEs: "Título SEO (ES)", metaTitleEn: "Título SEO (EN)", metaDescEs: "Descripción SEO (ES)", metaDescEn: "Descripción SEO (EN)",
-  prices: "Tarifas", schedule: "Salidas y horarios", itinerary: "Itinerario", attractions: "Atractivos", imageSuggestions: "Imágenes sugeridas",
+  prices: "Tarifas", priceAdjustment: "Tipo de cambio y margen", schedule: "Salidas y horarios", itinerary: "Itinerario", attractions: "Atractivos", imageSuggestions: "Imágenes sugeridas",
   includesEs: "Incluye (ES)", includesEn: "Incluye (EN)", excludesEs: "No incluye (ES)", excludesEn: "No incluye (EN)",
   conditions: "Condiciones", conditionsEs: "Otras condiciones (ES)", conditionsEn: "Otras condiciones (EN)",
   tour: "Tour existente parecido", schema: "Estructura", processing: "Procesamiento", sourcePages: "Páginas del PDF",
 };
 
 const TAB_OF: Record<string, ReviewTab> = {
-  prices: "prices", schedule: "prices", itinerary: "itinerary",
+  prices: "prices", priceAdjustment: "prices", schedule: "prices", itinerary: "itinerary",
   includesEs: "services", includesEn: "services", excludesEs: "services", excludesEn: "services",
   conditions: "services", conditionsEs: "services", conditionsEn: "services",
   metaTitleEs: "seo", metaTitleEn: "seo", metaDescEs: "seo", metaDescEn: "seo", attractions: "seo", imageSuggestions: "seo",

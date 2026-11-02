@@ -11,7 +11,7 @@ import { catalogTourCandidateSchema } from "@/server/catalog-import/schemas";
 import { validateCatalogTour } from "@/server/catalog-import/validator";
 import { findDuplicateMatches } from "@/server/catalog-import/duplicates";
 import { draftCreateData } from "@/server/catalog-import/draft";
-import { persistCandidateReview, refreshImportCounts } from "@/server/catalog-import/service";
+import { currentPriceAdjustment, persistCandidateReview, refreshImportCounts } from "@/server/catalog-import/service";
 import { CLAUDE_MODEL, isClaudeConfigured } from "@/server/catalog-import/providers/anthropic";
 import { checkRateLimit } from "@/server/lib/rate-limit";
 import { assertValidDestination } from "@/server/lib/tour-destinations";
@@ -122,6 +122,8 @@ export const catalogImportRouter = router({
       const previous = catalogTourCandidateSchema.safeParse(record.tourDataJson);
       // Existing provenance stays unchanged until the reviewer explicitly confirms the field.
       candidate.provenance = previous.success ? { ...previous.data.provenance } : {};
+      // The exchange rate and markup are server-set; only "Actualizar tipo de cambio" changes them.
+      candidate.priceAdjustment = previous.success ? previous.data.priceAdjustment : undefined;
       for (const field of ["category", "difficulty", "destination", "durationDays", "durationNights", "durationHours", "prices", "schedule"] as const) {
         if (!previous.success || JSON.stringify(previous.data[field]) !== JSON.stringify(candidate[field])) {
           candidate.provenance[field] = { source: "manual", requiresReview: false, sourcePages: candidate.sourcePages, evidence: input.reviewNote };
@@ -137,6 +139,23 @@ export const catalogImportRouter = router({
     }, { timeout: 15_000, maxWait: 10_000 });
     await refreshImportCounts(result.importId);
     return result;
+  }),
+  // Re-prices the candidate with today's SUNAT rate and the current markup.
+  refreshPriceAdjustment: authorized.input(idInput).mutation(async ({ ctx, input }) => {
+    const adjustment = await currentPriceAdjustment();
+    const result = await ctx.db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "CatalogImportTour" WHERE "id" = ${input.importTourId} FOR UPDATE`;
+      const record = await tx.catalogImportTour.findUnique({ where: { id: input.importTourId } });
+      if (!record) throw new TRPCError({ code: "NOT_FOUND" });
+      if (record.createdTourId || record.status === "DRAFT_CREATED") throw new TRPCError({ code: "CONFLICT", message: "El tour ya fue creado; ajusta el precio desde Tours." });
+      if (record.reviewDraftAt) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Aprueba o descarta tus cambios antes de actualizar el tipo de cambio." });
+      const candidate = parseCandidate(record.tourDataJson);
+      candidate.priceAdjustment = adjustment;
+      const review = await persistCandidateReview(tx, record.id, candidate, ctx.user.id, [], { keepChecks: true });
+      return { ...review, importId: record.importId };
+    }, { timeout: 15_000, maxWait: 10_000 });
+    await refreshImportCounts(result.importId);
+    return { status: result.status, adjustment };
   }),
   skipCandidate: authorized.input(idInput.extend({ reason: z.string().trim().min(10).max(2000) })).mutation(async ({ ctx, input }) => {
     const result = await ctx.db.catalogImportTour.updateMany({ where: { id: input.importTourId, createdTourId: null, status: { not: "DRAFT_CREATED" } }, data: { status: "BLOCKED", reviewDraftJson: Prisma.DbNull, reviewDraftAt: null } });

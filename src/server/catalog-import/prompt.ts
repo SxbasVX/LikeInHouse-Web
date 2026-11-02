@@ -10,7 +10,8 @@ ${EDITORIAL_RULES}
 No publiques, actualices ni elimines registros. Solo prepara candidatos para revisión humana.`;
 }
 
-export const candidateJsonSchema = () => JSON.stringify(z.toJSONSchema(catalogTourCandidateSchema));
+// priceAdjustment is set by the server (SUNAT rate + markup); the model never sees or fills it.
+export const candidateJsonSchema = () => JSON.stringify(z.toJSONSchema(catalogTourCandidateSchema.omit({ priceAdjustment: true })));
 
 export const EDITORIAL_RULES = `REGLAS EDITORIALES:
 - schemaVersion=2. Identifica cada tour independiente, sin fusionar variantes ni omitir fichas. sourceDocument es el nombre exacto y sourcePages son las páginas físicas PDF (desde 1).
@@ -19,7 +20,8 @@ export const EDITORIAL_RULES = `REGLAS EDITORIALES:
 - Incluye y excluye: listas independientes, traducciones en el mismo orden. Condiciones: objetos con tipo, título y descripción ES/EN. No mezclar recomendaciones con políticas legales. conditionsEs/En quedan vacíos si usas conditions.
 - Categoría y dificultad solo son oficiales si el PDF las indica. Si sugieres una, provenance debe decir source=inferred, requiresReview=true. Nunca presentarla como documentada.
 - provenance: registrar evidencia literal breve y páginas para datos críticos (category, difficulty, durationDays, durationNights, durationHours, destination, prices.N.amount, prices.N.currency, schedule). No usar source=manual: está reservado al humano. Las inferencias no sustituyen datos críticos ausentes: usar null.
-- Tarifas: preservar unidad (per_person/per_group/unknown), moneda ISO original, modalidad, límites de pasajeros y edades. No convertir monedas ni tarifas por grupo. Ausencias son null, nunca cero. source=document o derived. Descuento infantil explícito: calculation={baseAmount,discount,expression}, incluir tarifa base e importe calculado.
+- Tarifas: preservar unidad (per_person/per_group/unknown), moneda ISO original (PEN para soles, USD para dólares), modalidad, límites de pasajeros y edades. Copia el importe tal cual figura: NO conviertas monedas ni apliques márgenes; el sistema convierte a USD con el tipo de cambio SUNAT. Ausencias son null, nunca cero. source=document o derived. Descuento infantil explícito: calculation={baseAmount,discount,expression}, incluir tarifa base e importe calculado.
+- Tarifa estándar: la web publica pocas tarifas por persona (Adulto y, si el PDF las indica, Niño u otras edades). Si el tour tiene muchas combinaciones (categoría de hotel, tipo de habitación, temporada, cantidad de pasajeros…), NO las listes todas: elige UNA opción estándar real del PDF, la intermedia (categoría de hotel media, habitación doble o compartida, temporada regular) y crea solo sus tarifas por persona, con labelEs/labelEn claros (p. ej. "Adulto · hotel 3★ · doble"). Nunca promedies ni inventes importes. En provenance["prices"] pon source=document, requiresReview=true, las páginas y en evidence qué opción elegiste y por qué. Resume las demás opciones en una condición GENERAL titulada "Otras tarifas" / "Other rates" (categorías, suplementos y rangos de precio tal como figuran, indicando que se cotizan a pedido).
 - Horarios: schedule frequency=daily/selected_days/on_request/unknown, days=0 domingo a 6 sábado, times HH:mm, dates si figuran, notas ES/EN. No confundir itinerario con turnos de salida.
 - sourceIssues: contradicciones entre páginas con field, valueA, valueB, sourcePages, reason. No elegir arbitrariamente; campo conflictivo null o preservado con issue.
 - imageSuggestions: 5 a 10 sujetos documentados cuando haya suficientes sujetos distintos; usar menos antes que inventar. Incluye order, subject, recommendedForCover y reason. No buscar ni subir imágenes.

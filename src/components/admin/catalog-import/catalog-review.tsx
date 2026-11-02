@@ -86,6 +86,7 @@ export function CatalogReview({ importTourId }: { importTourId: string }) {
   const discard = trpc.catalogImport.discardReviewDraft.useMutation();
   const skip = trpc.catalogImport.skipCandidate.useMutation();
   const create = trpc.catalogImport.createDraft.useMutation();
+  const refreshRate = trpc.catalogImport.refreshPriceAdjustment.useMutation();
 
   const groups = useMemo(() => groupPending(data?.record.issues ?? []), [data?.record.issues]);
   // Open issues highlight their field; a price card or itinerary activity also collects its sub-fields (amount, time…).
@@ -158,7 +159,12 @@ export function CatalogReview({ importTourId }: { importTourId: string }) {
         </TabsList>
         {data.candidate || data.draft ? <>
           <TabsContent value="general"><GeneralSection {...sectionProps} destinations={destinations.data ?? []} categories={categories.data?.categories ?? []} /></TabsContent>
-          <TabsContent value="prices"><PricesSection {...sectionProps} /></TabsContent>
+          <TabsContent value="prices"><PricesSection {...sectionProps} refreshingRate={refreshRate.isPending}
+            refreshHint={hasDraft ? "Aprueba o descarta tus cambios para actualizar el tipo de cambio." : undefined}
+            onRefreshRate={readOnly ? undefined : () => refreshRate.mutate({ importTourId }, {
+              onSuccess: async ({ adjustment }) => { await reload(); toast({ title: "Tipo de cambio actualizado", description: `SUNAT ${adjustment.penPerUsd.toFixed(3)} del ${adjustment.rateDate} · +${adjustment.markupPercent} %` }); },
+              onError: fail("No se pudo actualizar el tipo de cambio"),
+            })} /></TabsContent>
           <TabsContent value="itinerary"><ItinerarySection {...sectionProps} /></TabsContent>
           <TabsContent value="services"><ServicesSection {...sectionProps} /></TabsContent>
           <TabsContent value="seo"><SeoSection {...sectionProps} /></TabsContent>

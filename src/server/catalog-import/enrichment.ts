@@ -5,7 +5,7 @@ import { catalogTourCandidateSchema, type CatalogTourCandidate } from "./schemas
 // Facts that only the PDF may supply (services, policies, ages, prices, times). Whatever Claude returns for them is discarded.
 export const DOCUMENT_ONLY_FIELDS = [
   "schemaVersion", "sourceDocument", "sourcePages", "destination", "durationDays", "durationNights", "durationHours",
-  "prices", "schedule", "sourceIssues", "includesEs", "includesEn", "excludesEs", "excludesEn",
+  "prices", "priceAdjustment", "schedule", "sourceIssues", "includesEs", "includesEn", "excludesEs", "excludesEn",
   "conditions", "conditionsEs", "conditionsEn",
 ] as const satisfies readonly (keyof CatalogTourCandidate)[];
 

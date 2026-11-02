@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import type { CatalogTourCandidate } from "./schemas";
 import { conditionRows, renderItineraryDay } from "./editorial";
 import { validateCatalogTour } from "./validator";
+import { publishedPrice } from "./pricing";
 
 export function draftCreateData(candidate: CatalogTourCandidate): Prisma.TourCreateInput {
   if (validateCatalogTour(candidate).length) throw new Error("El candidato necesita revisión.");
@@ -18,9 +19,10 @@ export function draftCreateData(candidate: CatalogTourCandidate): Prisma.TourCre
       descriptionEs: renderItineraryDay(day, "Es"), descriptionEn: renderItineraryDay(day, "En"),
     })) },
     // Tiers are the source of price truth. Leave legacy defaults to the existing schema.
+    // Published USD: converted at the stored SUNAT rate, plus the markup (validation guarantees both exist).
     pricing: { create: { tiers: { create: candidate.prices.map((price, sortOrder) => ({
       labelEs: price.labelEs!, labelEn: price.labelEn!, ageMin: price.ageMin, ageMax: price.ageMax,
-      priceUsd: price.amount!, isDefault: sortOrder === 0, sortOrder,
+      priceUsd: publishedPrice(price, candidate.priceAdjustment)!.final, isDefault: sortOrder === 0, sortOrder,
     })) } } },
     includes: { create: [
       ...candidate.includesEs.map((textEs, sortOrder) => ({ type: "INCLUDE", textEs, textEn: candidate.includesEn[sortOrder], sortOrder })),

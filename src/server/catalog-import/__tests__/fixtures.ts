@@ -17,5 +17,6 @@ export function readyCandidate(): CatalogTourCandidate {
     conditionsEs: [], conditionsEn: [], conditions: [{ type: "GENERAL", titleEs: "Documentación", titleEn: "Documentation", descriptionEs: "Llevar documento de identidad.", descriptionEn: "Bring an identity document." }],
     imageSuggestions: [{ order: 1, subject: "Cusco", recommendedForCover: true, reason: "Destino indicado en el documento." }],
     provenance, sourceIssues: [], attractions: ["Cusco"], schedule: null,
+    priceAdjustment: { penPerUsd: 3.75, rateDate: "2026-11-02", rateSource: "SUNAT", markupPercent: 4.5 },
   };
 }

@@ -1,4 +1,5 @@
 import type { CatalogTourCandidate } from "./schemas";
+import { CONVERTIBLE_CURRENCIES } from "./pricing";
 
 export interface CatalogValidationIssue {
   type: "DATA_REVIEW" | "MISSING_REQUIRED" | "INVALID_VALUE" | "CONTRADICTION";
@@ -25,10 +26,12 @@ export function validateCatalogTour(c: CatalogTourCandidate): CatalogValidationI
   }
   for (const issue of c.sourceIssues ?? []) issues.push({ ...issue, type: "CONTRADICTION" });
   if (!c.prices.length) add("prices", "No se encontraron tarifas.");
+  if (c.prices.length && !c.priceAdjustment) add("priceAdjustment", "Falta el tipo de cambio SUNAT y el margen para publicar en USD. Usa «Actualizar tipo de cambio».", "MISSING_REQUIRED");
+  if (c.priceAdjustment?.rateSource === "fallback") add("priceAdjustment", "SUNAT no respondió: se usó un tipo de cambio de emergencia. Actualízalo antes de crear el tour.");
   c.prices.forEach((p, index) => {
     const key = `prices.${index}`;
     if (p.amount === null) add(`${key}.amount`, "Importe ausente.", "MISSING_REQUIRED");
-    if (p.currency !== "USD") add(`${key}.currency`, "Moneda ausente o incompatible con las tarifas USD del admin. No se convertirá automáticamente.", "INVALID_VALUE");
+    if (!CONVERTIBLE_CURRENCIES.includes(p.currency as "USD")) add(`${key}.currency`, "Moneda ausente o no soportada: solo se convierten soles (PEN) y dólares (USD).", "INVALID_VALUE");
     if (!p.labelEs || !p.labelEn) add(`${key}.label`, "La tarifa necesita etiqueta ES/EN.");
     if (p.ageMin !== null && p.ageMax !== null && p.ageMin > p.ageMax) add(`${key}.ageMax`, "Rango de edades invertido.", "INVALID_VALUE");
     if (p.minPassengers != null && p.maxPassengers != null && p.minPassengers > p.maxPassengers) add(key, "Rango de pasajeros invertido.", "INVALID_VALUE");

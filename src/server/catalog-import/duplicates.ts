@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import type { CatalogTourCandidate } from "./schemas";
 import { renderItineraryDay } from "./editorial";
+import { publishedPrice } from "./pricing";
 
 export function normalize(value: string | null): string {
   return (value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -57,7 +58,8 @@ export async function findDuplicateMatches(db: PrismaClient | Prisma.Transaction
     if (itinerary && existingItinerary && similarity(itinerary, existingItinerary) >= 0.65) match("itinerary", 0.22, "El recorrido tiene contenido muy similar.");
     const times = candidate.schedule?.times ?? [];
     if (times.length && times.every((time) => `${existingItinerary} ${tour.conditions.map((c) => c.textEs).join(" ")}`.includes(time))) match("schedule", 0.06, "Coinciden horarios.");
-    if (candidate.prices.some((p) => p.amount !== null && p.currency === "USD" && tour.pricing?.tiers.some((t) => Math.abs(Number(t.priceUsd) - p.amount!) < 0.005))) match("price", 0.05, "Coincide una tarifa USD.");
+    const published = candidate.prices.map((p) => publishedPrice(p, candidate.priceAdjustment)?.final ?? (p.currency === "USD" ? p.amount : null));
+    if (published.some((usd) => usd !== null && tour.pricing?.tiers.some((t) => Math.abs(Number(t.priceUsd) - usd) < 0.005))) match("price", 0.05, "Coincide una tarifa USD.");
     return { tourId: tour.id, score: Math.min(score, 1), reasons, matchingFields,
       existing: { nameEs: tour.nameEs, nameEn: tour.nameEn, destination: tour.destination, durationDays: tour.durationDays,
         durationNights: tour.durationNights, durationHours: tour.durationHours, slug: tour.slug,

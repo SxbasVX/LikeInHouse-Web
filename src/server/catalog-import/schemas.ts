@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { priceAdjustmentSchema } from "./pricing";
 
 export const catalogImportStatusSchema = z.enum([
   "UPLOADED",
@@ -111,6 +112,8 @@ export const catalogTourCandidateSchema = z.object({
     field: z.string(), valueA: nullableString, valueB: nullableString,
     sourcePages: z.array(z.number().int().positive()).min(1), reason: z.string().min(1),
   })).optional(),
+  // Server-set: SUNAT rate and markup used to publish the USD prices (never filled by the model).
+  priceAdjustment: priceAdjustmentSchema.optional(),
   schedule: z.object({
     frequency: z.enum(["daily", "selected_days", "on_request", "unknown"]),
     days: z.array(z.number().int().min(0).max(6)),

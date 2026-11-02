@@ -4,8 +4,17 @@ import { db } from "@/server/lib/db";
 import { catalogTourCandidateSchema, type CatalogExtractionEnvelope, type CatalogTourCandidate } from "./schemas";
 import { validateCatalogTour } from "./validator";
 import { findDuplicateMatches } from "./duplicates";
+import type { PriceAdjustment } from "./pricing";
+import { getSunatQuote } from "@/server/lib/exchange";
 
-export const jsonData = (value: unknown): Prisma.InputJsonValue => JSON.parse(JSON.stringify(value));
+// Published prices: soles at today's SUNAT selling rate, then CATALOG_PRICE_MARKUP_PERCENT (4.5 % by default) on every price.
+export async function currentPriceAdjustment(): Promise<PriceAdjustment> {
+  const quote = await getSunatQuote();
+  const markup = Number(process.env.CATALOG_PRICE_MARKUP_PERCENT ?? "4.5");
+  return { penPerUsd: quote.rate, rateDate: quote.date, rateSource: quote.source, markupPercent: Number.isFinite(markup) && markup >= 0 && markup <= 100 ? markup : 4.5 };
+}
+
+export const jsonData =(value: unknown): Prisma.InputJsonValue => JSON.parse(JSON.stringify(value));
 
 export async function refreshImportCounts(importId: string) {
   const counts = await db.catalogImportTour.groupBy({ by: ["status"], where: { importId }, _count: true });
@@ -45,6 +54,7 @@ export async function persistCandidateReview(tx: Prisma.TransactionClient, impor
 // Returns false when the deadline stopped it before every candidate was stored.
 export async function persistExtractedCandidates(importId: string, filename: string, extraction: CatalogExtractionEnvelope, model: string, deadline: number): Promise<boolean> {
   const record = { id: importId };
+  const adjustment = await currentPriceAdjustment();
   for (const [sourceIndex, raw] of extraction.tours.entries()) {
     if (Date.now() > deadline) return false;
     if (await db.catalogImportTour.findUnique({ where: { importId_sourceIndex: { importId: record.id, sourceIndex } }, select: { id: true } })) continue;
@@ -61,6 +71,8 @@ export async function persistExtractedCandidates(importId: string, filename: str
         }
         const candidate = parsed.data;
         candidate.sourceDocument = filename;
+        // Rate and markup always come from the server, never from the model.
+        candidate.priceAdjustment = adjustment;
         // A provider cannot impersonate a manual reviewer.
         for (const proof of Object.values(candidate.provenance ?? {})) {
           if (proof.source === "manual") { proof.source = "suggested"; proof.requiresReview = true; }

@@ -74,20 +74,26 @@ async function getExchangeConfig(): Promise<ExchangeConfig> {
 }
 
 export async function getUsdToPenRate(manualRate?: number): Promise<number> {
-  const FALLBACK = parseFloat(process.env.USD_TO_PEN_RATE_FALLBACK || String(FALLBACK_RATES.PEN));
   if (manualRate !== undefined) return manualRate;
+  return (await getSunatQuote()).rate;
+}
+
+/** SUNAT selling rate with its date, or the emergency rate (source "fallback") when SUNAT doesn't answer. */
+export async function getSunatQuote(): Promise<{ rate: number; date: string; source: "SUNAT" | "fallback" }> {
+  const fallback = { rate: parseFloat(process.env.USD_TO_PEN_RATE_FALLBACK || String(FALLBACK_RATES.PEN)), date: new Date().toISOString().slice(0, 10), source: "fallback" as const };
   try {
     const res = await fetch("https://api.apis.net.pe/v1/tipo-cambio-sunat", {
       next: { revalidate: 14400 }, // caché Next.js: 4 horas
       headers: { Accept: "application/json", Referer: "https://likeinhouse.com" },
     });
-    if (!res.ok) return FALLBACK;
+    if (!res.ok) return fallback;
     // { origen: "SUNAT", compra: 3.389, venta: 3.399, moneda: "USD", fecha: "2026-04-09" }
     const data = await res.json();
     const rate = parseFloat(data?.venta ?? "");
-    return isNaN(rate) || rate <= 0 ? FALLBACK : rate;
+    if (isNaN(rate) || rate <= 0) return fallback;
+    return { rate, date: typeof data?.fecha === "string" ? data.fecha : fallback.date, source: "SUNAT" };
   } catch {
-    return FALLBACK;
+    return fallback;
   }
 }
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { AlertCircle, Plus, Trash2 } from "lucide-react";
+import { AlertCircle, ArrowRight, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { publishedPrice, type PriceAdjustment } from "@/server/catalog-import/pricing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -111,12 +112,37 @@ export function GeneralSection(props: SectionProps & { destinations: string[]; c
   </div>;
 }
 
-export function PricesSection({ draft, update, issuesFor, readOnly }: SectionProps) {
+const money = (currency: string, value: number) => `${currency === "PEN" ? "S/" : "US$"} ${value.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+function PriceBreakdown({ price, adjustment }: { price: Draft["prices"][number]; adjustment: PriceAdjustment | undefined }) {
+  const result = publishedPrice(price, adjustment);
+  if (!result || !adjustment || price.amount === null) return null;
+  return <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-brand-teal/5 px-3 py-2 text-xs">
+    <span>PDF: <strong>{money(price.currency!, price.amount)}</strong></span>
+    {price.currency === "PEN" && <><ArrowRight className="h-3 w-3 text-muted-foreground" /><span>al TC: <strong>{money("USD", result.usdAtRate)}</strong></span></>}
+    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+    <span className="text-brand-darkTeal">publicado (+{adjustment.markupPercent} %): <strong className="text-sm">{money("USD", result.final)}</strong></span>
+  </div>;
+}
+
+export function PricesSection({ draft, update, issuesFor, readOnly, onRefreshRate, refreshingRate, refreshHint }: SectionProps & { onRefreshRate?: () => void; refreshingRate?: boolean; refreshHint?: string }) {
   const setPrice = (index: number, change: Partial<Draft["prices"][number]>) => set(update, "prices", draft.prices.map((p, i) => (i === index ? { ...p, ...change } : p)));
   const num = (value: string) => (value === "" ? null : Number(value));
   const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  const adjustment = draft.priceAdjustment;
   return <div className="space-y-4">
-    <Card title="Tarifas" description="El sitio cobra en USD por persona. Otras unidades o monedas quedan marcadas para revisión."
+    <Card title="Tipo de cambio y margen" description="Los precios se publican en USD: los soles se convierten al tipo de cambio SUNAT (venta) y a todo se le suma el margen."
+      action={onRefreshRate && <Button size="sm" variant="outline" disabled={refreshingRate || Boolean(refreshHint)} title={refreshHint} onClick={onRefreshRate}>
+        {refreshingRate ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1 h-4 w-4" />}Actualizar tipo de cambio</Button>}>
+      {adjustment ? <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+        <span>TC SUNAT (venta): <strong>S/ {adjustment.penPerUsd.toFixed(3)}</strong> por US$ 1</span>
+        <span>Fecha: <strong>{adjustment.rateDate}</strong>{adjustment.rateSource === "fallback" && <span className="ml-1 text-amber-700">(de emergencia: SUNAT no respondió)</span>}</span>
+        <span>Margen: <strong>+{adjustment.markupPercent} %</strong></span>
+      </div> : <p className="text-sm text-amber-800">Sin tipo de cambio todavía: pulsa «Actualizar tipo de cambio».</p>}
+      {issuesFor("priceAdjustment").map((reason, i) => <p key={i} className="flex gap-1 text-[11px] text-amber-800"><AlertCircle className="mt-px h-3 w-3 shrink-0" />{reason}</p>)}
+      {refreshHint && <p className="text-[11px] text-muted-foreground">{refreshHint}</p>}
+    </Card>
+    <Card title="Tarifas" description="Tarifas por persona tal como figuran en el PDF. Si había muchas combinaciones, aquí va la opción estándar y el resto queda en Condiciones › «Otras tarifas»."
       action={!readOnly && <Button size="sm" variant="outline" onClick={() => set(update, "prices", [...draft.prices, { labelEs: null, labelEn: null, ageMin: null, ageMax: null, amount: null, currency: "USD", priceType: "per_person", source: "document" }])}><Plus className="mr-1 h-4 w-4" />Tarifa</Button>}>
       {!draft.prices.length && <p className="text-sm text-muted-foreground">El PDF no indica tarifas.</p>}
       {draft.prices.map((price, index) => <div key={index} className={cn("space-y-3 rounded-lg border p-3", issuesFor(`prices.${index}`).length > 0 && "border-amber-300 bg-amber-50/40")}>
@@ -128,12 +154,15 @@ export function PricesSection({ draft, update, issuesFor, readOnly }: SectionPro
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <Field label="Importe"><Input type="number" min={0} step="0.01" readOnly={readOnly} value={price.amount ?? ""} onChange={(e) => setPrice(index, { amount: num(e.target.value) })} /></Field>
-          <Field label="Moneda"><Input maxLength={3} readOnly={readOnly} value={price.currency ?? ""} onChange={(e) => setPrice(index, { currency: orNull(e.target.value.toUpperCase()) })} /></Field>
+          <Field label="Moneda del PDF"><select className={selectClass} disabled={readOnly} value={price.currency ?? ""} onChange={(e) => setPrice(index, { currency: orNull(e.target.value) })}>
+            {price.currency && !["USD", "PEN"].includes(price.currency) && <option value={price.currency}>{price.currency} (no soportada)</option>}
+            <option value="">Sin indicar</option><option value="PEN">Soles (S/)</option><option value="USD">Dólares (US$)</option></select></Field>
           <Field label="Unidad"><select className={selectClass} disabled={readOnly} value={price.priceType ?? "unknown"} onChange={(e) => setPrice(index, { priceType: e.target.value as "per_person" })}>
             <option value="per_person">Por persona</option><option value="per_group">Por grupo</option><option value="unknown">Sin definir</option></select></Field>
           <Field label="Edad mín."><Input type="number" min={0} readOnly={readOnly} value={price.ageMin ?? ""} onChange={(e) => setPrice(index, { ageMin: num(e.target.value) })} /></Field>
           <Field label="Edad máx."><Input type="number" min={0} readOnly={readOnly} value={price.ageMax ?? ""} onChange={(e) => setPrice(index, { ageMax: num(e.target.value) })} /></Field>
         </div>
+        <PriceBreakdown price={price} adjustment={adjustment} />
         {issuesFor(`prices.${index}`).map((reason, i) => <p key={i} className="flex gap-1 text-[11px] text-amber-800"><AlertCircle className="mt-px h-3 w-3 shrink-0" />{reason}</p>)}
       </div>)}
     </Card>

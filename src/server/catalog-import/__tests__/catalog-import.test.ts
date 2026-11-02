@@ -62,12 +62,12 @@ describe("AI Catalog Importer", () => {
     expect(issues.some((issue) => issue.type === "MISSING_REQUIRED")).toBe(true);
   });
 
-  it("rechaza contradicciones de duración y monedas no cobrables", () => {
+  it("rechaza contradicciones de duración y monedas que no se convierten", () => {
     const issues = validateCatalogTour({
       ...candidate,
       durationDays: 1,
       durationNights: 2,
-      prices: [{ ...candidate.prices[0], currency: "PEN" }],
+      prices: [{ ...candidate.prices[0], currency: "EUR" }],
     });
     expect(issues.some((issue) => issue.type === "CONTRADICTION")).toBe(true);
     expect(issues.some((issue) => issue.field === "prices.0.currency")).toBe(true);
