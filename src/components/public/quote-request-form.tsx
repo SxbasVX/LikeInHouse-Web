@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Check, CheckCircle2, Mail, MessageCircle, Minus, Plus } from "lucide-react";
+import { Check, CheckCircle2, ChevronDown, Mail, MessageCircle, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { COUNTRIES } from "@/lib/countries";
 
 interface QuoteRequestFormProps {
   /** Si viene de la ficha de un tour, el destino se toma del tour. */
@@ -149,6 +150,9 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
   const [contactVia, setContactVia] = useState<"whatsapp" | "email">("whatsapp");
+  // Código de país del WhatsApp; "Other" = el viajero escribe el número completo con su prefijo
+  const [phoneCountry, setPhoneCountry] = useState("Peru");
+  const dial = COUNTRIES.find((c) => c.value === phoneCountry)?.dial ?? "";
   const [showMessage, setShowMessage] = useState(false);
 
   const { data: destinationOptions } = trpc.public.destinations.useQuery(undefined, {
@@ -171,7 +175,7 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
       destinations: !tour && destination ? [destination] : [],
       travelWindow,
       name: text("name"),
-      phone: contactVia === "whatsapp" ? text("contact") : "",
+      phone: contactVia === "whatsapp" ? (dial ? `${dial} ${text("contact")}` : text("contact")) : "",
       email: contactVia === "email" ? text("contact") : "",
       departureDate: exact ? departureDate : "",
       returnDate: exact ? returnDate : "",
@@ -287,18 +291,44 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
               {contactVia === "whatsapp" ? t("phone") : t("email")}
             </Label>
             {contactVia === "whatsapp" ? (
-              <Input
-                key="phone"
-                id="quote-contact"
-                name="contact"
-                type="tel"
-                required
-                pattern="\+?[0-9\s\-\(\)\.]{6,20}"
-                title={t("phone_invalid")}
-                autoComplete="tel"
-                placeholder="+51 987 654 321"
-                className="placeholder:text-gray-400"
-              />
+              <div className="flex gap-2">
+                {/* El select nativo va invisible encima: en el celular abre la lista del sistema */}
+                <div className="relative shrink-0">
+                  <div
+                    aria-hidden="true"
+                    className="flex h-10 items-center gap-1 rounded-md border border-input bg-background px-3 text-sm font-medium text-gray-700"
+                  >
+                    {dial || "+"}
+                    <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+                  </div>
+                  <select
+                    aria-label={t("country_code")}
+                    value={phoneCountry}
+                    onChange={(e) => setPhoneCountry(e.target.value)}
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {locale === "en" ? c.labelEn : c.labelEs}
+                        {c.dial ? ` (${c.dial})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Input
+                  key={dial ? "phone-local" : "phone-full"}
+                  id="quote-contact"
+                  name="contact"
+                  type="tel"
+                  required
+                  pattern={dial ? String.raw`[0-9\s\-\(\)\.]{6,15}` : String.raw`\+?[0-9\s\-\(\)\.]{6,20}`}
+                  title={t("phone_invalid")}
+                  autoComplete={dial ? "tel-national" : "tel"}
+                  inputMode="tel"
+                  placeholder={dial ? "987 654 321" : "+00 123 456 789"}
+                  className="placeholder:text-gray-400"
+                />
+              </div>
             ) : (
               <Input key="email" id="quote-contact" name="contact" type="email" required autoComplete="email" />
             )}

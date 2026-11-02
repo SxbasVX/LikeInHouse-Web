@@ -210,6 +210,7 @@
     "send": "Enviar solicitud",
     "sending": "Enviando...",
     "phone_invalid": "Ingresa un teléfono válido",
+    "country_code": "Código de país",
     "success_title": "¡Solicitud enviada!",
     "success": "Te contactaremos muy pronto con tu cotización."
   },

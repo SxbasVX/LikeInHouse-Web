@@ -210,6 +210,7 @@
     "send": "Send request",
     "sending": "Sending...",
     "phone_invalid": "Enter a valid phone number",
+    "country_code": "Country code",
     "success_title": "Request sent!",
     "success": "We'll get back to you very soon with your quote."
   },
