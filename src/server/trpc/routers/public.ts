@@ -17,6 +17,13 @@ import { serializeDecimals } from "@/server/lib/serialize";
 import { getExchangeRates } from "@/server/lib/exchange";
 import { sendCrmLead } from "@/server/lib/crm";
 
+const TRAVEL_WINDOW_LABELS = {
+  this_month: "Este mes",
+  "1_3_months": "En 1 a 3 meses",
+  "3_6_months": "En 3 a 6 meses",
+  undecided: "Aún no lo sabe",
+} as const;
+
 export const publicRouter = router({
   // Tours publicados con paginación y filtros
   tours: publicProcedure
@@ -266,11 +273,11 @@ export const publicRouter = router({
     .input(
       z.object({
         tourSlug: z.string().max(200).optional(),
-        destination: z.string().max(60).optional(),
+        destinations: z.array(z.string().max(60)).max(15).default([]),
+        travelWindow: z.enum(["this_month", "1_3_months", "3_6_months", "undecided", "exact"]).optional(),
         name: z.string().trim().min(2, "Nombre requerido").max(100),
-        phone: z.string().trim().regex(/^\+?[\d\s\-().]{6,20}$/, "Teléfono inválido"),
+        phone: z.string().trim().regex(/^\+?[\d\s\-().]{6,20}$/, "Teléfono inválido").optional().or(z.literal("")),
         email: z.string().trim().email("Email inválido").optional().or(z.literal("")),
-        originCity: z.string().trim().max(100).optional(),
         departureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
         returnDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
         adults: z.number().int().min(1).max(50),
@@ -278,10 +285,15 @@ export const publicRouter = router({
         infants: z.number().int().min(0).max(20),
         message: z.string().trim().max(2000).optional(),
         locale: z.enum(["es", "en"]).default("es"),
-      }).refine((v) => !v.departureDate || !v.returnDate || v.returnDate >= v.departureDate, {
-        message: "La fecha de retorno debe ser posterior a la de salida",
-        path: ["returnDate"],
       })
+        .refine((v) => Boolean(v.phone || v.email), {
+          message: "Déjanos un WhatsApp o un correo para contactarte",
+          path: ["phone"],
+        })
+        .refine((v) => !v.departureDate || !v.returnDate || v.returnDate >= v.departureDate, {
+          message: "La fecha de retorno debe ser posterior a la de salida",
+          path: ["returnDate"],
+        })
     )
     .mutation(async ({ ctx, input }) => {
       // El tour y su destino se toman de la base, no del navegador
@@ -291,22 +303,25 @@ export const publicRouter = router({
             select: { nameEs: true, destination: true },
           })
         : null;
-      const destination = tour?.destination ?? (input.destination ? sanitizePlainText(input.destination) : undefined);
+      const destinations = tour
+        ? [tour.destination]
+        : [...new Set(input.destinations.map((d) => sanitizePlainText(d)).filter(Boolean))];
+      const destination = destinations.length > 0 ? destinations.join(", ") : undefined;
       const name = sanitizePlainText(input.name);
-      const originCity = input.originCity ? sanitizePlainText(input.originCity) : undefined;
       const message = input.message ? sanitizePlainText(input.message) : undefined;
       const travelers = `${input.adults} adultos, ${input.children} niños, ${input.infants} infantes`;
+      const when = input.travelWindow && input.travelWindow !== "exact" ? TRAVEL_WINDOW_LABELS[input.travelWindow] : undefined;
 
       await ctx.db.contactMessage.create({
         data: {
           name,
           email: input.email || "",
-          phone: input.phone,
+          phone: input.phone || undefined,
           subject: `Cotización: ${tour?.nameEs ?? destination ?? "general"}`,
           message: [
             tour && `Tour: ${tour.nameEs}`,
-            destination && `Destino: ${destination}`,
-            originCity && `Ciudad de origen: ${originCity}`,
+            `Destino: ${destination ?? "Aún no decide"}`,
+            when && `Cuándo: ${when}`,
             input.departureDate && `Salida: ${input.departureDate}`,
             input.returnDate && `Retorno: ${input.returnDate}`,
             `Viajeros: ${travelers}`,
@@ -317,16 +332,15 @@ export const publicRouter = router({
 
       await sendCrmLead({
         nombre: name,
-        telefono: input.phone,
+        telefono: input.phone || undefined,
         correo: input.email || undefined,
         destino: destination,
-        ciudad_origen: originCity,
         fecha_salida: input.departureDate || undefined,
         fecha_retorno: input.returnDate || undefined,
         adultos: input.adults,
         ninos: input.children,
         infantes: input.infants,
-        mensaje: message,
+        mensaje: [when && `Cuándo viaja: ${when}`, message].filter(Boolean).join("\n") || undefined,
         tour: tour?.nameEs,
         idioma: input.locale,
       });

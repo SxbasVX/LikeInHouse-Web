@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Mail, MessageCircle, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface QuoteRequestFormProps {
   /** Si viene de la ficha de un tour, el destino se toma del tour. */
@@ -17,18 +18,101 @@ interface QuoteRequestFormProps {
   defaultDate?: string;
 }
 
-const selectClass =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const TRAVEL_WINDOWS = ["this_month", "1_3_months", "3_6_months", "undecided", "exact"] as const;
+type TravelWindow = (typeof TRAVEL_WINDOWS)[number];
+
+function Chip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal",
+        selected
+          ? "border-brand-teal bg-brand-teal text-white"
+          : "border-gray-200 bg-white text-gray-600 hover:border-brand-teal/50 hover:text-brand-darkTeal"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Stepper({
+  label,
+  hint,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+}) {
+  const t = useTranslations("quote");
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 px-4 py-2.5">
+      <div>
+        <p className="text-sm font-medium text-gray-800">{label}</p>
+        {hint && <p className="text-[11px] text-gray-400">{hint}</p>}
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          aria-label={`${t("decrease")} ${label.toLowerCase()}`}
+          disabled={value <= min}
+          onClick={() => onChange(value - 1)}
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:border-brand-teal disabled:opacity-30"
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </button>
+        <span className="w-5 text-center text-sm font-semibold tabular-nums" aria-live="polite">{value}</span>
+        <button
+          type="button"
+          aria-label={`${t("increase")} ${label.toLowerCase()}`}
+          disabled={value >= max}
+          onClick={() => onChange(value + 1)}
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:border-brand-teal disabled:opacity-30"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="space-y-3">
+      <legend className="mb-3 text-sm font-semibold text-gray-900">{title}</legend>
+      {children}
+    </fieldset>
+  );
+}
 
 export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
   const t = useTranslations("quote");
   const locale = useLocale();
   const { toast } = useToast();
-  const [submitted, setSubmitted] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
-  const [departureDate, setDepartureDate] = useState(defaultDate ?? "");
 
-  const { data: destinations } = trpc.public.destinations.useQuery(undefined, {
+  const [submitted, setSubmitted] = useState(false);
+  const [destinations, setDestinations] = useState<string[]>([]);
+  const [travelWindow, setTravelWindow] = useState<TravelWindow | undefined>(defaultDate ? "exact" : undefined);
+  const [departureDate, setDepartureDate] = useState(defaultDate ?? "");
+  const [returnDate, setReturnDate] = useState("");
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
+  const [infants, setInfants] = useState(0);
+  const [contactVia, setContactVia] = useState<"whatsapp" | "email">("whatsapp");
+  const [showMessage, setShowMessage] = useState(false);
+
+  const { data: destinationOptions } = trpc.public.destinations.useQuery(undefined, {
     enabled: !tour,
     staleTime: 10 * 60 * 1000,
   });
@@ -38,22 +122,26 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
     onError: (error) => toast({ title: "Error", description: error.message, variant: "destructive" }),
   });
 
+  const toggleDestination = (d: string) =>
+    setDestinations((current) => (current.includes(d) ? current.filter((x) => x !== d) : [...current, d]));
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const text = (key: string) => ((form.get(key) as string | null) ?? "").trim();
+    const exact = travelWindow === "exact";
     requestQuote.mutate({
       tourSlug: tour?.slug,
-      destination: tour ? undefined : text("destination") || undefined,
+      destinations: tour ? [] : destinations,
+      travelWindow,
       name: text("name"),
-      phone: text("phone"),
-      email: text("email"),
-      originCity: text("originCity") || undefined,
-      departureDate: text("departureDate"),
-      returnDate: text("returnDate"),
-      adults: Number(text("adults") || 1),
-      children: Number(text("children") || 0),
-      infants: Number(text("infants") || 0),
+      phone: contactVia === "whatsapp" ? text("contact") : "",
+      email: contactVia === "email" ? text("contact") : "",
+      departureDate: exact ? departureDate : "",
+      returnDate: exact ? returnDate : "",
+      adults,
+      children,
+      infants,
       message: text("message") || undefined,
       locale: locale === "en" ? "en" : "es",
     });
@@ -72,7 +160,7 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-7">
       {tour ? (
         <div className="rounded-xl bg-[#faf8f5] px-4 py-3 text-sm">
           <span className="text-gray-400">{t("tour")}: </span>
@@ -80,88 +168,132 @@ export function QuoteRequestForm({ tour, defaultDate }: QuoteRequestFormProps) {
           <span className="text-gray-400"> · {tour.destination}</span>
         </div>
       ) : (
-        <div className="space-y-2">
-          <Label htmlFor="quote-destination">{t("destination")}</Label>
-          <select id="quote-destination" name="destination" className={selectClass} defaultValue="">
-            <option value="">{t("destination_any")}</option>
-            {destinations?.map((d) => (
-              <option key={d} value={d}>{d}</option>
+        <Section title={t("destinations")}>
+          <div className="flex flex-wrap gap-2">
+            {destinationOptions?.map((d) => (
+              <Chip key={d} selected={destinations.includes(d)} onClick={() => toggleDestination(d)}>
+                {d}
+              </Chip>
             ))}
-          </select>
-        </div>
+            <Chip selected={destinations.length === 0} onClick={() => setDestinations([])}>
+              {t("destination_any")}
+            </Chip>
+          </div>
+        </Section>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="quote-name">{t("name")}</Label>
-          <Input id="quote-name" name="name" required minLength={2} maxLength={100} autoComplete="name" />
+      <Section title={t("when")}>
+        <div className="flex flex-wrap gap-2">
+          {TRAVEL_WINDOWS.map((w) => (
+            <Chip key={w} selected={travelWindow === w} onClick={() => setTravelWindow(travelWindow === w ? undefined : w)}>
+              {t(`when_${w}`)}
+            </Chip>
+          ))}
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="quote-phone">{t("phone")}</Label>
-          <Input
-            id="quote-phone"
-            name="phone"
-            type="tel"
-            required
-            pattern="\+?[\d\s\-().]{6,20}"
-            title={t("phone_invalid")}
-            autoComplete="tel"
-          />
-        </div>
-      </div>
+        {travelWindow === "exact" && (
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="quote-departure" className="text-xs text-gray-500">{t("departure_date")}</Label>
+              <Input
+                id="quote-departure"
+                type="date"
+                min={today}
+                value={departureDate}
+                onChange={(e) => setDepartureDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="quote-return" className="text-xs text-gray-500">{t("return_date")}</Label>
+              <Input
+                id="quote-return"
+                type="date"
+                min={departureDate || today}
+                value={returnDate}
+                onChange={(e) => setReturnDate(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+      </Section>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="quote-email">{t("email")}</Label>
-          <Input id="quote-email" name="email" type="email" autoComplete="email" />
+      <Section title={t("travelers")}>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Stepper label={t("adults")} value={adults} min={1} max={50} onChange={setAdults} />
+          <Stepper label={t("children")} hint={t("children_hint")} value={children} min={0} max={50} onChange={setChildren} />
+          <Stepper label={t("infants")} hint={t("infants_hint")} value={infants} min={0} max={20} onChange={setInfants} />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="quote-origin">{t("origin_city")}</Label>
-          <Input id="quote-origin" name="originCity" maxLength={100} />
-        </div>
-      </div>
+      </Section>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="quote-departure">{t("departure_date")}</Label>
-          <Input
-            id="quote-departure"
-            name="departureDate"
-            type="date"
-            min={today}
-            value={departureDate}
-            onChange={(e) => setDepartureDate(e.target.value)}
-          />
+      <Section title={t("contact")}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="quote-name" className="text-xs text-gray-500">{t("name")}</Label>
+            <Input id="quote-name" name="name" required minLength={2} maxLength={100} autoComplete="given-name" />
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="quote-contact" className="text-xs text-gray-500">
+                {contactVia === "whatsapp" ? t("phone") : t("email")}
+              </Label>
+              <div className="flex gap-1" role="group" aria-label={t("contact")}>
+                {(["whatsapp", "email"] as const).map((via) => (
+                  <button
+                    key={via}
+                    type="button"
+                    aria-pressed={contactVia === via}
+                    onClick={() => setContactVia(via)}
+                    className={cn(
+                      "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors",
+                      contactVia === via ? "bg-brand-teal/15 text-brand-darkTeal" : "text-gray-400 hover:text-gray-600"
+                    )}
+                  >
+                    {via === "whatsapp" ? <MessageCircle className="h-3 w-3" /> : <Mail className="h-3 w-3" />}
+                    {via === "whatsapp" ? t("via_whatsapp") : t("via_email")}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {contactVia === "whatsapp" ? (
+              <Input
+                key="phone"
+                id="quote-contact"
+                name="contact"
+                type="tel"
+                required
+                pattern="\+?[\d\s\-().]{6,20}"
+                title={t("phone_invalid")}
+                autoComplete="tel"
+                placeholder="+51 987 654 321"
+              />
+            ) : (
+              <Input key="email" id="quote-contact" name="contact" type="email" required autoComplete="email" />
+            )}
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="quote-return">{t("return_date")}</Label>
-          <Input id="quote-return" name="returnDate" type="date" min={departureDate || today} />
-        </div>
-      </div>
+      </Section>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="quote-adults">{t("adults")}</Label>
-          <Input id="quote-adults" name="adults" type="number" min={1} max={50} defaultValue={2} required />
+      {showMessage ? (
+        <div className="space-y-1.5">
+          <Label htmlFor="quote-message" className="text-xs text-gray-500">{t("message")}</Label>
+          <Textarea id="quote-message" name="message" rows={3} maxLength={2000} placeholder={t("message_placeholder")} autoFocus />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="quote-children">{t("children")}</Label>
-          <Input id="quote-children" name="children" type="number" min={0} max={50} defaultValue={0} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="quote-infants">{t("infants")}</Label>
-          <Input id="quote-infants" name="infants" type="number" min={0} max={20} defaultValue={0} />
-        </div>
-      </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowMessage(true)}
+          className="flex items-center gap-1.5 text-sm font-medium text-brand-darkTeal hover:underline"
+        >
+          <Plus className="h-4 w-4" />
+          {t("add_message")}
+        </button>
+      )}
 
-      <div className="space-y-2">
-        <Label htmlFor="quote-message">{t("message")}</Label>
-        <Textarea id="quote-message" name="message" rows={4} maxLength={2000} placeholder={t("message_placeholder")} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-gray-400">{t("privacy")}</p>
+        <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={requestQuote.isPending}>
+          {requestQuote.isPending ? t("sending") : t("send")}
+        </Button>
       </div>
-
-      <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={requestQuote.isPending}>
-        {requestQuote.isPending ? t("sending") : t("send")}
-      </Button>
     </form>
   );
 }
