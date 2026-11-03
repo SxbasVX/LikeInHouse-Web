@@ -6,7 +6,7 @@ import { createAuditLog } from "@/server/lib/audit";
 import { CACHE_TAGS } from "@/server/lib/cache";
 import { claudeBatchResults, isClaudeBatchDone, isPermanentBatchError, submitClaudeBatch } from "@/server/catalog-import/providers/anthropic";
 import { parseJsonReply } from "@/server/catalog-import/providers/result";
-import { buildProposedContent, changedGroups, sameGroup, tourContentSchema, tourProposalSchema, withGroup, type ReviewGroup, type TourContent } from "./content";
+import { buildProposedContent, changedGroups, keepsTimes, sameGroup, tourContentSchema, tourProposalSchema, withGroup, type ReviewGroup, type TourContent } from "./content";
 import { catalogReviewSystemPrompt, catalogReviewUserContent, REFERENCE_TOUR_SLUG, type TourFacts } from "./prompt";
 
 type Db = PrismaClient | Prisma.TransactionClient;
@@ -114,13 +114,13 @@ async function storeOutcome(revisionId: string, outcome: { reply?: { text: strin
   try { raw = parseJsonReply("anthropic", outcome.reply.text); } catch { return fail("Claude devolvió una propuesta que no es JSON."); }
   const proposal = tourProposalSchema.safeParse(raw);
   if (!proposal.success) return fail(`Propuesta con formato inválido: ${proposal.error.issues.slice(0, 3).map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`);
-  const revision = await db.tourRevision.findUniqueOrThrow({ where: { id: revisionId }, select: { beforeJson: true } });
+  const revision = await db.tourRevision.findUniqueOrThrow({ where: { id: revisionId }, select: { beforeJson: true, tour: { select: { durationDays: true } } } });
   const before = tourContentSchema.parse(revision.beforeJson);
-  const { after, rejected } = buildProposedContent(before, proposal.data);
+  const { after, rejected, linked } = buildProposedContent(before, proposal.data, Math.max(1, revision.tour.durationDays));
   const groups = changedGroups(before, after);
   await db.tourRevision.updateMany({ where: { id: revisionId, status: "PENDING" }, data: {
     status: groups.length ? "PROPOSED" : "NO_CHANGES",
-    proposalJson: { after, rejected, notes: proposal.data.notes, groups } as unknown as Prisma.InputJsonValue, ...usage,
+    proposalJson: { after, rejected, linked, notes: proposal.data.notes, groups } as unknown as Prisma.InputJsonValue, ...usage,
   } });
 }
 
@@ -131,7 +131,10 @@ async function finishRun(runId: string, error?: string) {
 
 // ─── Apply / undo ───
 
-export const proposalOf = (json: unknown) => json as { after: TourContent; rejected: Partial<Record<ReviewGroup, string>>; notes: Array<{ field: string; reason: string }>; groups: ReviewGroup[] };
+export const proposalOf = (json: unknown) => {
+  const proposal = json as { after: TourContent; rejected: Partial<Record<ReviewGroup, string>>; linked?: ReviewGroup[]; notes: Array<{ field: string; reason: string }>; groups: ReviewGroup[] };
+  return { ...proposal, linked: proposal.linked ?? [] };
+};
 
 async function writeGroups(tx: Prisma.TransactionClient, tourId: string, content: TourContent, groups: ReviewGroup[]) {
   const scalar: Prisma.TourUpdateInput = {};
@@ -140,7 +143,14 @@ async function writeGroups(tx: Prisma.TransactionClient, tourId: string, content
   if (groups.includes("longDesc")) Object.assign(scalar, { longDescEs: content.longDescEs, longDescEn: content.longDescEn });
   if (groups.includes("seo")) Object.assign(scalar, { metaTitleEs: content.metaTitleEs, metaTitleEn: content.metaTitleEn, metaDescEs: content.metaDescEs, metaDescEn: content.metaDescEn });
   if (Object.keys(scalar).length) await tx.tour.update({ where: { id: tourId }, data: scalar });
-  if (groups.includes("itinerary")) for (const d of content.itinerary) await tx.itineraryDay.update({ where: { id: d.id }, data: { titleEs: d.titleEs, titleEn: d.titleEn, descriptionEs: d.descriptionEs, descriptionEn: d.descriptionEn } });
+  if (groups.includes("itinerary")) {
+    // By day number: a review may create days (an itinerary that lived in the description) and undo removes them again.
+    await tx.itineraryDay.deleteMany({ where: { tourId, dayNumber: { notIn: content.itinerary.map((d) => d.dayNumber) } } });
+    for (const d of content.itinerary) {
+      const data = { titleEs: d.titleEs, titleEn: d.titleEn, descriptionEs: d.descriptionEs, descriptionEn: d.descriptionEn };
+      await tx.itineraryDay.upsert({ where: { tourId_dayNumber: { tourId, dayNumber: d.dayNumber } }, create: { tourId, dayNumber: d.dayNumber, ...data }, update: data });
+    }
+  }
   if (groups.includes("includes")) for (const i of content.includes) await tx.tourInclude.update({ where: { id: i.id }, data: { textEs: i.textEs, textEn: i.textEn } });
   if (groups.includes("conditions")) for (const c of content.conditions) await tx.tourCondition.update({ where: { id: c.id }, data: { type: c.type as never, textEs: c.textEs, textEn: c.textEn } });
 }
@@ -153,9 +163,14 @@ export async function applyRevision(revisionId: string, groups: ReviewGroup[], u
     await tx.$queryRaw`SELECT "id" FROM "Tour" WHERE "id" = ${revision.tourId} FOR UPDATE`;
     const current = await loadTourContent(tx, revision.tourId);
     if (!current) throw new ReviewError("El tour ya no existe.");
-    const before = tourContentSchema.parse(revision.beforeJson), { after, groups: proposed } = proposalOf(revision.proposalJson);
+    const before = tourContentSchema.parse(revision.beforeJson), { after, groups: proposed, linked } = proposalOf(revision.proposalJson);
     const chosen = groups.filter((g) => proposed.includes(g));
     if (!chosen.length) throw new ReviewError("Elige al menos un bloque para aplicar.");
+    if (linked.some((g) => chosen.includes(g)) && !linked.every((g) => chosen.includes(g))) {
+      throw new ReviewError("La descripción y el itinerario se aplican juntos: el itinerario sale de la descripción.");
+    }
+    // Last guard, also for proposals made before descriptions could hand their schedule to the itinerary.
+    if (!keepsTimes(before, after, chosen)) throw new ReviewError("Con esos bloques se perderían horarios del tour. Aplica la descripción junto con el itinerario.");
     const edited = chosen.filter((g) => !sameGroup(current, before, g));
     if (edited.length) throw new ReviewError(`El tour se editó después de la revisión (${edited.join(", ")}). Vuelve a revisar el catálogo para este tour.`);
     await writeGroups(tx, revision.tourId, after, chosen);

@@ -28,6 +28,7 @@ const Lang = ({ code, children }: { code: string; children: ReactNode }) =>
   <div className="space-y-0.5"><span className="rounded bg-white px-1 text-[10px] font-semibold text-muted-foreground ring-1 ring-border">{code}</span><div className="whitespace-pre-wrap text-sm">{children}</div></div>;
 
 function Itinerary({ content }: { content: TourContent }) {
+  if (!content.itinerary.length) return <p className="text-sm text-muted-foreground">Sin itinerario.</p>;
   return <div className="space-y-3">{content.itinerary.map((day) => <div key={day.id} className="space-y-1.5">
     <p className="text-sm font-semibold">Día {day.dayNumber} · {day.titleEs}</p>
     {parseItineraryDescription(day.descriptionEs).map((block, i) => block.type === "heading"
@@ -79,7 +80,11 @@ export function CatalogRevision({ revisionId }: { revisionId: string }) {
 
   const { proposal, before } = data;
   const shownGroups = REVIEW_GROUPS.filter((g) => proposal?.groups.includes(g) || proposal?.rejected[g]);
-  const toggle = (g: ReviewGroup, on: boolean) => setSelected((current) => (on ? [...new Set([...current, g])] : current.filter((x) => x !== g)));
+  // Linked groups (itinerary moved out of the description) are selected and unselected together.
+  const toggle = (g: ReviewGroup, on: boolean) => {
+    const together = proposal?.linked.includes(g) ? proposal.linked : [g];
+    setSelected((current) => (on ? [...new Set([...current, ...together])] : current.filter((x) => !together.includes(x))));
+  };
 
   return <div className="space-y-5 pb-24">
     <header className="flex flex-wrap items-center gap-3">
@@ -105,6 +110,7 @@ export function CatalogRevision({ revisionId }: { revisionId: string }) {
           <span className="font-medium">{GROUP_LABELS[group]}</span>
           {data.status === "APPLIED" && data.appliedFields.includes(group) && <span className="rounded-full bg-brand-teal/15 px-2 py-0.5 text-[11px] font-medium text-brand-darkTeal">Aplicado</span>}
         </label>
+        {proposal.linked.includes(group) && <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-900">El itinerario que estaba en la descripción pasa a la sección Itinerario: descripción e itinerario se aplican juntos.</p>}
         {rejected && <p className="flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />No se propone: {rejected}</p>}
         {edited && !rejected && data.status === "PROPOSED" && <p className="flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />Este bloque se editó en Tours después de la revisión; no se aplica para no pisar ese cambio.</p>}
         {!rejected && <div className="grid gap-3 lg:grid-cols-2">

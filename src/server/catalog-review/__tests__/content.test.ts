@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildProposedContent, changedGroups, extractTimes, sameGroup, withGroup, type TourContent, type TourProposal } from "../content";
+import { buildProposedContent, changedGroups, extractTimes, keepsTimes, sameGroup, withGroup, type TourContent, type TourProposal } from "../content";
 
 const before: TourContent = {
   nameEs: "Tour Uros", nameEn: "Uros tour", shortDescEs: "Visita a Uros.", shortDescEn: "Visit Uros.",
@@ -48,7 +48,7 @@ describe("catalog review proposals", () => {
 
   it("rejects a different number of days and lists that add or remove items", () => {
     const extraDay = proposal(); extraDay.itinerary.push({ ...extraDay.itinerary[0], dayNumber: 2 });
-    expect(buildProposedContent(before, extraDay).rejected.itinerary).toMatch(/mismos días/);
+    expect(buildProposedContent(before, extraDay).rejected.itinerary).toMatch(/supera los 1 días/);
     const lessIncludes = proposal({ includes: [{ id: "i1", textEs: "Transporte.", textEn: "Transport." }] });
     expect(buildProposedContent(before, lessIncludes).rejected.includes).toBeTruthy();
     const otherCondition = proposal({ conditions: [{ id: "c9", type: "GENERAL", textEs: "Nueva política.", textEn: "New policy." }] });
@@ -67,5 +67,29 @@ describe("catalog review proposals", () => {
     expect(applied.nameEs).toBe(after.nameEs);
     expect(sameGroup(applied, before, "shortDesc")).toBe(true);
     expect(withGroup(applied, before, "name")).toEqual(before);
+  });
+
+  it("moves an itinerary written inside the description into new itinerary days, applied together", () => {
+    const inDescription: TourContent = { ...before, itinerary: [], longDescEs: "4:20 AM Recojo en Lima. Primera parada en Paracas. 4:30 pm retorno a Lima." };
+    const moved = proposal({ longDescEs: "Vive un día lleno de mar y aventura en Paracas.", itinerary: [{ dayNumber: 1, titleEs: "Paracas", titleEn: "Paracas", items: [
+      { time: "04:20", titleEs: "Recojo en Lima", titleEn: "Pickup in Lima", descriptionEs: "Te recogemos en tu hotel.", descriptionEn: "Hotel pickup." },
+      { time: null, labelEs: "Mañana", labelEn: "Morning", titleEs: "Parada en Paracas", titleEn: "Stop in Paracas", descriptionEs: null, descriptionEn: null },
+      { time: "16:30", titleEs: "Retorno a Lima", titleEn: "Return to Lima", descriptionEs: null, descriptionEn: null },
+    ] }] });
+    const result = buildProposedContent(inDescription, moved, 1);
+    expect(result.rejected.itinerary).toBeUndefined();
+    expect(result.linked).toEqual(["longDesc", "itinerary"]);
+    expect(result.after.itinerary).toEqual([expect.objectContaining({ id: "new-day-1", dayNumber: 1, descriptionEs: expect.stringContaining("**04:20 a. m. | Recojo en Lima**") })]);
+    expect(keepsTimes(inDescription, result.after, ["longDesc"])).toBe(false);
+    expect(keepsTimes(inDescription, result.after, ["longDesc", "itinerary"])).toBe(true);
+  });
+
+  it("never lets a description drop times that don't reach the itinerary", () => {
+    const inDescription: TourContent = { ...before, itinerary: [], longDescEs: "4:20 AM recojo y 4:30 pm retorno." };
+    const lost = proposal({ longDescEs: "Vive Paracas.", itinerary: [{ dayNumber: 1, titleEs: "Paracas", titleEn: "Paracas", items: [{ time: "04:20", titleEs: "Recojo", titleEn: "Pickup", descriptionEs: null, descriptionEn: null }] }] });
+    const result = buildProposedContent(inDescription, lost, 1);
+    expect(result.rejected.itinerary).toMatch(/horas no coinciden/);
+    expect(result.rejected.longDesc).toBeTruthy();
+    expect(result.after.longDescEs).toBe(inDescription.longDescEs);
   });
 });
