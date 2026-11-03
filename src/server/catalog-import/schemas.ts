@@ -49,6 +49,9 @@ export const priceTierSchema = z.object({
 
 export const itineraryItemSchema = z.object({
   time: nullableString,
+  // When the PDF gives no exact time: the moment or place ("Tarde", "Uros"), shown as "Tarde | Caminata".
+  labelEs: nullableString.optional(),
+  labelEn: nullableString.optional(),
   titleEs: nullableString,
   titleEn: nullableString,
   descriptionEs: nullableString,

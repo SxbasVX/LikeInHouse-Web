@@ -1,12 +1,24 @@
 import type { CatalogTourCandidate } from "./schemas";
 
 // Uses the existing Markdown paragraph renderer; only newly created drafts pass here.
+// Each activity becomes "**07:45 a. m. | Recojo desde el hotel**" followed by its description paragraph.
 export function renderItineraryDay(day: CatalogTourCandidate["itinerary"][number], locale: "Es" | "En"): string {
   if (!day.items?.length) return day[`description${locale}`] ?? "";
   return day.items.map((item) => {
-    const heading = [item.time, item[`title${locale}`]].filter(Boolean).join(" | ");
-    return `**${plain(heading)}**\n\n${plain(item[`description${locale}`] ?? "")}`;
+    const moment = item.time ? formatItineraryTime(item.time, locale) : item[`label${locale}`];
+    const heading = [moment, item[`title${locale}`]].filter(Boolean).join(" | ");
+    const description = plain(item[`description${locale}`] ?? "");
+    return description ? `**${plain(heading)}**\n\n${description}` : `**${plain(heading)}**`;
   }).join("\n\n");
+}
+
+// "07:45" -> "07:45 a. m." (ES) / "07:45 a.m." (EN); ranges "14:00 - 16:00" are formatted on both ends.
+export function formatItineraryTime(value: string, locale: "Es" | "En"): string {
+  return value.replace(/\b([01]\d|2[0-3]):([0-5]\d)\b/g, (_, h: string, m: string) => {
+    const hour = Number(h), twelve = hour % 12 || 12;
+    const suffix = locale === "Es" ? (hour < 12 ? "a. m." : "p. m.") : (hour < 12 ? "a.m." : "p.m.");
+    return `${String(twelve).padStart(2, "0")}:${m} ${suffix}`;
+  });
 }
 
 function plain(value: string): string {

@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { AlertCircle, ArrowRight, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { publishedPrice, type PriceAdjustment } from "@/server/catalog-import/pricing";
+import { formatItineraryTime } from "@/server/catalog-import/editorial";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -184,15 +185,21 @@ export function ItinerarySection({ draft, update, issuesFor, readOnly }: Section
   const setItem = (d: number, it: number, change: Partial<Item>) => setDay(d, { items: draft.itinerary[d].items?.map((item, i) => (i === it ? { ...item, ...change } : item)) });
   if (!draft.itinerary.length) return <Card title="Itinerario"><p className="text-sm text-muted-foreground">El PDF no incluye itinerario. Puedes agregarlo en «Avanzado».</p></Card>;
   return <div className="space-y-4">{draft.itinerary.map((day, d) => <Card key={d} title={`Día ${day.dayNumber}`}
-    action={!readOnly && <Button size="sm" variant="outline" onClick={() => setDay(d, { items: [...(day.items ?? []), { time: null, titleEs: null, titleEn: null, descriptionEs: null, descriptionEn: null }] })}><Plus className="mr-1 h-4 w-4" />Actividad</Button>}>
+    action={!readOnly && <Button size="sm" variant="outline" onClick={() => setDay(d, { items: [...(day.items ?? []), { time: null, labelEs: null, labelEn: null, titleEs: null, titleEn: null, descriptionEs: null, descriptionEn: null }] })}><Plus className="mr-1 h-4 w-4" />Actividad</Button>}>
     <div className="grid gap-3 sm:grid-cols-2">
       <Text label="Título del día ES" value={day.titleEs} onChange={(v) => setDay(d, { titleEs: v })} readOnly={readOnly} issues={issuesFor(`itinerary.${d}`)} />
       <Text label="Título del día EN" value={day.titleEn} onChange={(v) => setDay(d, { titleEn: v })} readOnly={readOnly} />
     </div>
     <ol className="space-y-3">{(day.items ?? []).map((item, it) => <li key={it} className={cn("space-y-3 rounded-lg border-l-4 border-brand-teal/40 bg-muted/20 p-3", issuesFor(`itinerary.${d}.items.${it}`).length > 0 && "border-amber-400 bg-amber-50/40")}>
       <div className="flex items-center gap-2">
-        <Input aria-label="Hora" placeholder="HH:mm" className="w-36" readOnly={readOnly} value={item.time ?? ""} onChange={(e) => setItem(d, it, { time: orNull(e.target.value) })} />
-        <span className="flex-1 text-xs text-muted-foreground">Actividad {it + 1}</span>
+        <Input aria-label="Hora" placeholder="HH:mm" className="w-28" readOnly={readOnly} value={item.time ?? ""} onChange={(e) => setItem(d, it, { time: orNull(e.target.value) })} />
+        {!item.time && <>
+          <Input aria-label="Momento o lugar ES" placeholder="Tarde / Uros" className="w-32" readOnly={readOnly} value={item.labelEs ?? ""} onChange={(e) => setItem(d, it, { labelEs: orNull(e.target.value) })} />
+          <Input aria-label="Momento o lugar EN" placeholder="Afternoon" className="w-32" readOnly={readOnly} value={item.labelEn ?? ""} onChange={(e) => setItem(d, it, { labelEn: orNull(e.target.value) })} />
+        </>}
+        <span className="flex-1 truncate text-xs text-muted-foreground" title="Así se verá en la web">
+          Se verá: <strong className="text-foreground">{[item.time ? formatItineraryTime(item.time, "Es") : item.labelEs, item.titleEs].filter(Boolean).join(" | ") || `Actividad ${it + 1}`}</strong>
+        </span>
         {!readOnly && <button type="button" aria-label="Quitar actividad" onClick={() => setDay(d, { items: day.items?.filter((_, i) => i !== it) })} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-red-700"><Trash2 className="h-4 w-4" /></button>}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">

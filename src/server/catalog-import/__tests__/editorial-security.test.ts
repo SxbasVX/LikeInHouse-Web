@@ -15,7 +15,7 @@ describe("editorial validation and draft safety", () => {
     const c = readyCandidate();
     const blocks = parseItineraryDescription(renderItineraryDay(c.itinerary[0], "Es"));
     expect(blocks.map((b) => b.type)).toEqual(["heading", "paragraph", "heading", "paragraph"]);
-    expect(blocks[0].text).toBe("08:00 | Recojo");
+    expect(blocks[0].text).toBe("08:00 a. m. | Recojo");
     expect(blocks[2].text).toBe("Recorrido");
     expect(renderItineraryDay(c.itinerary[0], "En")).toContain("Pickup");
   });
