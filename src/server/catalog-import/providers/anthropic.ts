@@ -31,6 +31,8 @@ export interface ClaudeCall {
   effort: Effort;
   maxTokens: number;
   web?: { searches: number; fetches: number };
+  /** The same long system prompt for many requests (a batch): cache it so each request pays it at the cached rate. */
+  cacheSystem?: boolean;
   signal?: AbortSignal;
 }
 
@@ -45,7 +47,8 @@ export interface ClaudeReply {
 
 function requestParams(call: ClaudeCall): RequestParams {
   return {
-    model: CLAUDE_MODEL, max_tokens: call.maxTokens, system: call.system, messages: [{ role: "user", content: call.content }],
+    model: CLAUDE_MODEL, max_tokens: call.maxTokens, messages: [{ role: "user", content: call.content }],
+    system: call.cacheSystem ? [{ type: "text", text: call.system, cache_control: { type: "ephemeral" } }] : call.system,
     thinking: { type: "adaptive" }, output_config: { effort: call.effort },
     tools: call.web ? [
       { type: "web_search_20260209", name: "web_search", max_uses: call.web.searches },

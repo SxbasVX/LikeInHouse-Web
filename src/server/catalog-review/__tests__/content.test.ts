@@ -1,0 +1,71 @@
+import { describe, expect, it } from "vitest";
+import { buildProposedContent, changedGroups, extractTimes, sameGroup, withGroup, type TourContent, type TourProposal } from "../content";
+
+const before: TourContent = {
+  nameEs: "Tour Uros", nameEn: "Uros tour", shortDescEs: "Visita a Uros.", shortDescEn: "Visit Uros.",
+  longDescEs: "Texto largo.", longDescEn: "Long text.", metaTitleEs: null, metaTitleEn: null, metaDescEs: null, metaDescEn: null,
+  itinerary: [{ id: "d1", dayNumber: 1, titleEs: "Uros", titleEn: "Uros", descriptionEs: "**7:45 a. m. | Recojo**\n\nRecojo del hotel.\n\n**14:00 | Almuerzo**\n\nAlmuerzo típico.", descriptionEn: "Pickup and lunch." }],
+  includes: [{ id: "i1", type: "INCLUDE", textEs: "transporte", textEn: "transport" }, { id: "e1", type: "EXCLUDE", textEs: "propinas", textEn: "tips" }],
+  conditions: [{ id: "c1", type: "GENERAL", textEs: "llevar zapatillas", textEn: "wear sneakers" }],
+};
+
+const proposal = (overrides: Partial<TourProposal> = {}): TourProposal => ({
+  nameEs: "Tour Uros 1D – Islas flotantes del Titicaca", nameEn: "Uros Tour 1D – Floating islands of Titicaca",
+  shortDescEs: "Descubre las islas flotantes de los Uros en el lago Titicaca.", shortDescEn: "Discover the Uros floating islands on Lake Titicaca.",
+  longDescEs: "Navega hacia los Uros y conoce su cultura.", longDescEn: "Sail to the Uros and meet their culture.",
+  metaTitleEs: "Tour Uros desde Puno", metaTitleEn: "Uros tour from Puno", metaDescEs: "Reserva tu visita a los Uros.", metaDescEn: "Book your Uros visit.",
+  itinerary: [{ dayNumber: 1, titleEs: "Islas flotantes", titleEn: "Floating islands", items: [
+    { time: "07:45", titleEs: "Recojo desde el hotel", titleEn: "Hotel pickup", descriptionEs: "Te recogemos en tu hotel.", descriptionEn: "We pick you up at your hotel." },
+    { time: "14:00", titleEs: "Almuerzo típico", titleEn: "Traditional lunch", descriptionEs: "Almuerzo con una familia local.", descriptionEn: "Lunch with a local family." },
+  ] }],
+  includes: [{ id: "i1", textEs: "Transporte turístico.", textEn: "Tourist transport." }, { id: "e1", textEs: "Propinas.", textEn: "Tips." }],
+  conditions: [{ id: "c1", type: "PHYSICAL", textEs: "Lleva zapatillas cómodas.", textEn: "Wear comfortable sneakers." }],
+  notes: [],
+  ...overrides,
+});
+
+describe("catalog review proposals", () => {
+  it("normalizes 24-hour and a. m./p. m. times the same way", () => {
+    expect(extractTimes("7:45 a. m. y 02:00 p.m. luego 14:00, 12:30 am")).toEqual(["00:30", "07:45", "14:00"]);
+  });
+
+  it("accepts a faithful rewrite and renders the uniform itinerary format", () => {
+    const { after, rejected } = buildProposedContent(before, proposal());
+    expect(rejected).toEqual({});
+    expect(after.itinerary[0].descriptionEs).toBe("**07:45 a. m. | Recojo desde el hotel**\n\nTe recogemos en tu hotel.\n\n**02:00 p. m. | Almuerzo típico**\n\nAlmuerzo con una familia local.");
+    expect(after.conditions[0].type).toBe("PHYSICAL");
+    expect(changedGroups(before, after)).toEqual(["name", "shortDesc", "longDesc", "seo", "itinerary", "includes", "conditions"]);
+  });
+
+  it("rejects an itinerary that invents, moves or drops a time", () => {
+    const moved = proposal(); moved.itinerary[0].items[1].time = "13:00";
+    expect(buildProposedContent(before, moved).rejected.itinerary).toMatch(/horas no coinciden/);
+    const added = proposal(); added.itinerary[0].items.push({ time: "18:00", titleEs: "Cena", titleEn: "Dinner", descriptionEs: null, descriptionEn: null });
+    expect(buildProposedContent(before, added).rejected.itinerary).toMatch(/horas no coinciden/);
+    const { after } = buildProposedContent(before, moved);
+    expect(after.itinerary).toEqual(before.itinerary);
+  });
+
+  it("rejects a different number of days and lists that add or remove items", () => {
+    const extraDay = proposal(); extraDay.itinerary.push({ ...extraDay.itinerary[0], dayNumber: 2 });
+    expect(buildProposedContent(before, extraDay).rejected.itinerary).toMatch(/mismos días/);
+    const lessIncludes = proposal({ includes: [{ id: "i1", textEs: "Transporte.", textEn: "Transport." }] });
+    expect(buildProposedContent(before, lessIncludes).rejected.includes).toBeTruthy();
+    const otherCondition = proposal({ conditions: [{ id: "c9", type: "GENERAL", textEs: "Nueva política.", textEn: "New policy." }] });
+    expect(buildProposedContent(before, otherCondition).rejected.conditions).toBeTruthy();
+  });
+
+  it("keeps current text when a proposal is too long", () => {
+    const { after, rejected } = buildProposedContent(before, proposal({ shortDescEs: "a".repeat(161) }));
+    expect(rejected.shortDesc).toBeTruthy();
+    expect(after.shortDescEs).toBe(before.shortDescEs);
+  });
+
+  it("applies and undoes one group without touching the others", () => {
+    const { after } = buildProposedContent(before, proposal());
+    const applied = withGroup(before, after, "name");
+    expect(applied.nameEs).toBe(after.nameEs);
+    expect(sameGroup(applied, before, "shortDesc")).toBe(true);
+    expect(withGroup(applied, before, "name")).toEqual(before);
+  });
+});

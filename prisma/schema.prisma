@@ -169,6 +169,7 @@ model Tour {
   quotationItems QuotationItem[]
   catalogImportsExisting CatalogImportTour[] @relation("CatalogImportExistingTour")
   catalogImportsCreated CatalogImportTour[] @relation("CatalogImportCreatedTour")
+  revisions      TourRevision[]
 
   @@index([status, isFeatured])
   @@index([destination])
@@ -1093,4 +1094,60 @@ model ComplaintBook {
   @@index([status, createdAt])
   @@index([code])
   @@index([consumerEmail])
+}
+
+// Catalog standardization: Claude proposes editorial rewrites of existing tours (text only), a reviewer applies them.
+enum CatalogReviewStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum TourRevisionStatus {
+  PENDING
+  PROPOSED
+  NO_CHANGES
+  APPLIED
+  DISMISSED
+  FAILED
+}
+
+model CatalogReviewRun {
+  id              String              @id @default(cuid())
+  status          CatalogReviewStatus @default(PROCESSING)
+  batchId         String?
+  batchCheckedAt  DateTime?
+  batchFailures   Int                 @default(0)
+  referenceTourId String?
+  createdById     String
+  lastError       String?             @db.Text
+  createdAt       DateTime            @default(now())
+  completedAt     DateTime?
+  revisions       TourRevision[]
+
+  @@index([createdAt])
+}
+
+model TourRevision {
+  id            String             @id @default(cuid())
+  runId         String
+  run           CatalogReviewRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
+  tourId        String
+  tour          Tour               @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  status        TourRevisionStatus @default(PENDING)
+  // Editable content when the run started; the baseline for diffs, conflict checks and undo.
+  beforeJson    Json
+  proposalJson  Json?
+  appliedFields String[]
+  error         String?            @db.Text
+  inputTokens   Int?
+  outputTokens  Int?
+  estimatedCost Decimal?           @db.Decimal(12, 6)
+  appliedAt     DateTime?
+  appliedById   String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([runId, status])
+  @@index([tourId])
 }

@@ -15,6 +15,7 @@ import { documentRouter } from "./routers/document";
 import { culqiChargeRouter } from "./routers/culqi-charge";
 import { complaintRouter } from "./routers/complaint";
 import { catalogImportRouter } from "./routers/catalog-import";
+import { catalogReviewRouter } from "./routers/catalog-review";
 import { quoteRequestRouter } from "./routers/quote-request";
 
 export const appRouter = router({
@@ -35,6 +36,7 @@ export const appRouter = router({
   culqiCharge: culqiChargeRouter,
   complaint: complaintRouter,
   catalogImport: catalogImportRouter,
+  catalogReview: catalogReviewRouter,
 });
 
 export type AppRouter = typeof appRouter;
