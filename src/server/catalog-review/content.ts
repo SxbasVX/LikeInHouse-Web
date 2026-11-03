@@ -32,7 +32,8 @@ export const tourProposalSchema = z.object({
       descriptionEs: z.string().trim().nullable(), descriptionEn: z.string().trim().nullable(),
     })).min(1).max(30),
   })),
-  includes: z.array(z.object({ id: z.string(), textEs: text, textEn: text })),
+  // Existing items keep their id; items moved out of the long description come with id null and their type.
+  includes: z.array(z.object({ id: z.string().nullable(), type: z.enum(["INCLUDE", "EXCLUDE"]).optional(), textEs: text, textEn: text })),
   conditions: z.array(z.object({ id: z.string(), type: z.enum(CONDITION_TYPES), textEs: text, textEn: text })),
   notes: z.array(z.object({ field: z.string(), reason: z.string() })).max(40).default([]),
 });
@@ -53,7 +54,8 @@ export function groupValue(content: TourContent, group: ReviewGroup): unknown {
     case "seo": return [content.metaTitleEs, content.metaTitleEn, content.metaDescEs, content.metaDescEn];
     // By day number, not id: a day created by a review has no database id until it is applied.
     case "itinerary": return content.itinerary.map((d) => [d.dayNumber, d.titleEs, d.titleEn, d.descriptionEs, d.descriptionEn]);
-    case "includes": return content.includes.map((i) => [i.id, i.textEs, i.textEn]);
+    // By content, not id: items created by a review get their database id only when applied.
+    case "includes": return content.includes.map((i) => [i.type, i.textEs, i.textEn]);
     case "conditions": return content.conditions.map((c) => [c.id, c.type, c.textEs, c.textEn]);
   }
 }
@@ -85,6 +87,16 @@ export function extractTimes(value: string): string[] {
     times.add(`${String(hour).padStart(2, "0")}:${m[2]}`);
   }
   return [...times].sort();
+}
+
+const STOP_WORDS = new Set(["para", "desde", "hasta", "con", "los", "las", "del", "una", "uno", "por", "que", "the", "and", "with", "from"]);
+const normalizeWords = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ");
+// Most of the item's meaningful words already appear in the source text ("Transporte turístico." ← "...transporte turístico desde Lima...").
+function mentionedIn(item: string, normalizedSource: string): boolean {
+  const words = normalizeWords(item).split(" ").filter((w) => w.length > 3 && !STOP_WORDS.has(w));
+  if (!words.length) return false;
+  const source = ` ${normalizedSource} `;
+  return words.filter((w) => source.includes(` ${w}`)).length / words.length >= 0.6;
 }
 
 const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((v, i) => v === b[i]);
@@ -155,10 +167,35 @@ export function buildProposedContent(before: TourContent, proposal: TourProposal
   const moved = extractTimes(before.longDescEs).some((t) => !extractTimes(after.longDescEs).includes(t));
   const linked: ReviewGroup[] = moved && !rejected.itinerary && !rejected.longDesc ? ["longDesc", "itinerary"] : [];
 
-  // Lists: reworded only. Same items (by id), so no service or policy is added or removed.
-  const includes = new Map(proposal.includes.map((i) => [i.id, i]));
-  if (proposal.includes.length !== before.includes.length || before.includes.some((i) => !includes.has(i.id))) rejected.includes = "La propuesta agrega o quita elementos de Incluye / No incluye.";
-  else after = { ...after, includes: before.includes.map((i) => ({ ...i, textEs: includes.get(i.id)!.textEs, textEn: includes.get(i.id)!.textEn })) };
+  // Includes: every existing item stays (reworded). New items are only accepted when they were written in the
+  // current long description (a list moved out of it), never as services Claude came up with.
+  const known = new Map(before.includes.map((i) => [i.id, i]));
+  const reworded = proposal.includes.filter((i) => i.id !== null && known.has(i.id));
+  const added = proposal.includes.filter((i) => i.id === null);
+  const sourceText = normalizeWords(`${before.longDescEs} ${before.longDescEn}`);
+  const invented = added.filter((i) => !mentionedIn(i.textEs, sourceText));
+  const includesProblem = reworded.length !== before.includes.length || proposal.includes.some((i) => i.id !== null && !known.has(i.id))
+    ? "La propuesta quita o cambia elementos existentes de Incluye / No incluye."
+    : added.some((i) => !i.type) ? "Un elemento nuevo no indica si es Incluye o No incluye."
+    : invented.length ? `Agrega servicios que no figuran en la descripción actual: ${invented.map((i) => `«${i.textEs}»`).join(", ")}.`
+    : null;
+  if (includesProblem) {
+    rejected.includes = includesProblem;
+    // A description that handed its list to a rejected Incluye would lose it: keep the current description too.
+    if (added.length && !rejected.longDesc && !sameGroup(before, after, "longDesc")) {
+      rejected.longDesc = "La descripción traslada servicios a Incluye / No incluye, pero ese bloque no se pudo validar.";
+      after = withGroup(after, before, "longDesc");
+      linked.length = 0;
+    }
+  } else {
+    const rewordedById = new Map(reworded.map((i) => [i.id!, i]));
+    after = { ...after, includes: [
+      ...before.includes.map((i) => ({ ...i, textEs: rewordedById.get(i.id)!.textEs, textEn: rewordedById.get(i.id)!.textEn })),
+      ...added.map((i, index) => ({ id: `new-include-${index + 1}`, type: i.type!, textEs: i.textEs, textEn: i.textEn })),
+    // Same order the database returns (by type, then position), so apply/undo comparisons line up.
+    ].sort((a, b) => (a.type < b.type ? -1 : a.type > b.type ? 1 : 0)) };
+    if (added.length && !rejected.longDesc) for (const group of ["longDesc", "includes"] as const) if (!linked.includes(group)) linked.push(group);
+  }
 
   const conditions = new Map(proposal.conditions.map((c) => [c.id, c]));
   if (proposal.conditions.length !== before.conditions.length || before.conditions.some((c) => !conditions.has(c.id))) rejected.conditions = "La propuesta agrega o quita condiciones.";

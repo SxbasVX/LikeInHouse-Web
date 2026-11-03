@@ -151,7 +151,16 @@ async function writeGroups(tx: Prisma.TransactionClient, tourId: string, content
       await tx.itineraryDay.upsert({ where: { tourId_dayNumber: { tourId, dayNumber: d.dayNumber } }, create: { tourId, dayNumber: d.dayNumber, ...data }, update: data });
     }
   }
-  if (groups.includes("includes")) for (const i of content.includes) await tx.tourInclude.update({ where: { id: i.id }, data: { textEs: i.textEs, textEn: i.textEn } });
+  if (groups.includes("includes")) {
+    // Items moved out of the description are created ("new-include-…"); undo deletes them again (they aren't in `before`).
+    await tx.tourInclude.deleteMany({ where: { tourId, id: { notIn: content.includes.filter((i) => !i.id.startsWith("new-")).map((i) => i.id) } } });
+    const position: Record<string, number> = {};
+    for (const i of content.includes) {
+      const sortOrder = (position[i.type] = (position[i.type] ?? -1) + 1);
+      if (i.id.startsWith("new-")) await tx.tourInclude.create({ data: { tourId, type: i.type, textEs: i.textEs, textEn: i.textEn, sortOrder } });
+      else await tx.tourInclude.update({ where: { id: i.id }, data: { textEs: i.textEs, textEn: i.textEn, sortOrder } });
+    }
+  }
   if (groups.includes("conditions")) for (const c of content.conditions) await tx.tourCondition.update({ where: { id: c.id }, data: { type: c.type as never, textEs: c.textEs, textEn: c.textEn } });
 }
 

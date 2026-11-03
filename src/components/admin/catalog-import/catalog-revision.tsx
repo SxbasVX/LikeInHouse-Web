@@ -110,7 +110,7 @@ export function CatalogRevision({ revisionId }: { revisionId: string }) {
           <span className="font-medium">{GROUP_LABELS[group]}</span>
           {data.status === "APPLIED" && data.appliedFields.includes(group) && <span className="rounded-full bg-brand-teal/15 px-2 py-0.5 text-[11px] font-medium text-brand-darkTeal">Aplicado</span>}
         </label>
-        {proposal.linked.includes(group) && <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-900">El itinerario que estaba en la descripción pasa a la sección Itinerario: descripción e itinerario se aplican juntos.</p>}
+        {proposal.linked.includes(group) && <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-900">Contenido que estaba en la descripción pasa a su sección propia: {proposal.linked.map((g) => GROUP_LABELS[g]).join(", ")} se aplican juntos.</p>}
         {rejected && <p className="flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />No se propone: {rejected}</p>}
         {edited && !rejected && data.status === "PROPOSED" && <p className="flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900"><AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" />Este bloque se editó en Tours después de la revisión; no se aplica para no pisar ese cambio.</p>}
         {!rejected && <div className="grid gap-3 lg:grid-cols-2">

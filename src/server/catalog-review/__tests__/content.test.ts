@@ -5,7 +5,7 @@ const before: TourContent = {
   nameEs: "Tour Uros", nameEn: "Uros tour", shortDescEs: "Visita a Uros.", shortDescEn: "Visit Uros.",
   longDescEs: "Texto largo.", longDescEn: "Long text.", metaTitleEs: null, metaTitleEn: null, metaDescEs: null, metaDescEn: null,
   itinerary: [{ id: "d1", dayNumber: 1, titleEs: "Uros", titleEn: "Uros", descriptionEs: "**7:45 a. m. | Recojo**\n\nRecojo del hotel.\n\n**14:00 | Almuerzo**\n\nAlmuerzo típico.", descriptionEn: "Pickup and lunch." }],
-  includes: [{ id: "i1", type: "INCLUDE", textEs: "transporte", textEn: "transport" }, { id: "e1", type: "EXCLUDE", textEs: "propinas", textEn: "tips" }],
+  includes: [{ id: "e1", type: "EXCLUDE", textEs: "propinas", textEn: "tips" }, { id: "i1", type: "INCLUDE", textEs: "transporte", textEn: "transport" }],
   conditions: [{ id: "c1", type: "GENERAL", textEs: "llevar zapatillas", textEn: "wear sneakers" }],
 };
 
@@ -18,7 +18,7 @@ const proposal = (overrides: Partial<TourProposal> = {}): TourProposal => ({
     { time: "07:45", titleEs: "Recojo desde el hotel", titleEn: "Hotel pickup", descriptionEs: "Te recogemos en tu hotel.", descriptionEn: "We pick you up at your hotel." },
     { time: "14:00", titleEs: "Almuerzo típico", titleEn: "Traditional lunch", descriptionEs: "Almuerzo con una familia local.", descriptionEn: "Lunch with a local family." },
   ] }],
-  includes: [{ id: "i1", textEs: "Transporte turístico.", textEn: "Tourist transport." }, { id: "e1", textEs: "Propinas.", textEn: "Tips." }],
+  includes: [{ id: "e1", textEs: "Propinas.", textEn: "Tips." }, { id: "i1", textEs: "Transporte turístico.", textEn: "Tourist transport." }],
   conditions: [{ id: "c1", type: "PHYSICAL", textEs: "Lleva zapatillas cómodas.", textEn: "Wear comfortable sneakers." }],
   notes: [],
   ...overrides,
@@ -91,5 +91,24 @@ describe("catalog review proposals", () => {
     expect(result.rejected.itinerary).toMatch(/horas no coinciden/);
     expect(result.rejected.longDesc).toBeTruthy();
     expect(result.after.longDescEs).toBe(inDescription.longDescEs);
+  });
+
+  it("moves an Incluye list written in the description, but never accepts services that aren't there", () => {
+    const withList: TourContent = { ...before, longDescEs: "Gran tour. Incluye: transporte turístico desde Lima, desayuno buffet. No incluye: entradas al museo." };
+    const moved = proposal({ longDescEs: "Gran tour por la costa.", includes: [
+      { id: "e1", textEs: "Propinas.", textEn: "Tips." }, { id: "i1", textEs: "Transporte turístico.", textEn: "Tourist transport." },
+      { id: null, type: "INCLUDE", textEs: "Desayuno buffet.", textEn: "Buffet breakfast." },
+      { id: null, type: "EXCLUDE", textEs: "Entradas al museo.", textEn: "Museum tickets." },
+    ] });
+    const ok = buildProposedContent(withList, moved);
+    expect(ok.rejected.includes).toBeUndefined();
+    expect(ok.linked).toEqual(expect.arrayContaining(["longDesc", "includes"]));
+    expect(ok.after.includes.map((i) => [i.type, i.textEs])).toEqual([["EXCLUDE", "Propinas."], ["EXCLUDE", "Entradas al museo."], ["INCLUDE", "Transporte turístico."], ["INCLUDE", "Desayuno buffet."]]);
+
+    const invented = proposal({ longDescEs: "Gran tour por la costa.", includes: [...moved.includes, { id: null, type: "INCLUDE", textEs: "Almuerzo marino.", textEn: "Seafood lunch." }] });
+    const bad = buildProposedContent(withList, invented);
+    expect(bad.rejected.includes).toMatch(/Almuerzo marino/);
+    expect(bad.rejected.longDesc).toBeTruthy();
+    expect(bad.after.longDescEs).toBe(withList.longDescEs);
   });
 });
