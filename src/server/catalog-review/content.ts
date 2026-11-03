@@ -56,7 +56,8 @@ export function groupValue(content: TourContent, group: ReviewGroup): unknown {
     case "itinerary": return content.itinerary.map((d) => [d.dayNumber, d.titleEs, d.titleEn, d.descriptionEs, d.descriptionEn]);
     // By content, not id: items created by a review get their database id only when applied.
     case "includes": return content.includes.map((i) => [i.type, i.textEs, i.textEn]);
-    case "conditions": return content.conditions.map((c) => [c.id, c.type, c.textEs, c.textEn]);
+    // By content too: saving the tour in the admin form recreates these rows with new ids.
+    case "conditions": return content.conditions.map((c) => [c.type, c.textEs, c.textEn]);
   }
 }
 export const sameGroup = (a: TourContent, b: TourContent, group: ReviewGroup) => JSON.stringify(groupValue(a, group)) === JSON.stringify(groupValue(b, group));
@@ -151,20 +152,23 @@ export function buildProposedContent(before: TourContent, proposal: TourProposal
   const withBoth = { ...after, itinerary: proposedItinerary, longDescEs: proposal.longDescEs, longDescEn: proposal.longDescEn };
   const withDescOnly = { ...after, longDescEs: proposal.longDescEs, longDescEn: proposal.longDescEn };
   const had = documentedTimes(before);
+  // New days mean the itinerary was taken from the description (with or without times): both go live together or not at all.
+  const fromDescription = proposedItinerary.length > before.itinerary.length;
   if (dayProblem) {
     rejected.itinerary = dayProblem;
-    if (sameSet(had, documentedTimes(withDescOnly))) after = withDescOnly;
+    if (fromDescription) rejected.longDesc = "La descripción traslada su itinerario, pero el itinerario propuesto no se pudo validar.";
+    else if (sameSet(had, documentedTimes(withDescOnly))) after = withDescOnly;
     else rejected.longDesc = "La descripción propuesta quita horarios que no pasan al itinerario.";
   } else if (sameSet(had, documentedTimes(withBoth))) {
     after = withBoth;
   } else {
     const reason = `Las horas no coinciden con las actuales (${had.join(", ") || "sin horas"} → ${documentedTimes(withBoth).join(", ") || "sin horas"}).`;
     rejected.itinerary = reason;
-    if (sameSet(had, documentedTimes(withDescOnly))) after = withDescOnly;
+    if (!fromDescription && sameSet(had, documentedTimes(withDescOnly))) after = withDescOnly;
     else rejected.longDesc = reason;
   }
-  // Times that leave the description only survive if the itinerary goes live with it.
-  const moved = extractTimes(before.longDescEs).some((t) => !extractTimes(after.longDescEs).includes(t));
+  // Times or days that leave the description only survive if the itinerary goes live with it.
+  const moved = fromDescription || extractTimes(before.longDescEs).some((t) => !extractTimes(after.longDescEs).includes(t));
   const linked: ReviewGroup[] = moved && !rejected.itinerary && !rejected.longDesc ? ["longDesc", "itinerary"] : [];
 
   // Includes: every existing item stays (reworded). New items are only accepted when they were written in the
@@ -174,7 +178,8 @@ export function buildProposedContent(before: TourContent, proposal: TourProposal
   const added = proposal.includes.filter((i) => i.id === null);
   const sourceText = normalizeWords(`${before.longDescEs} ${before.longDescEn}`);
   const invented = added.filter((i) => !mentionedIn(i.textEs, sourceText));
-  const includesProblem = reworded.length !== before.includes.length || proposal.includes.some((i) => i.id !== null && !known.has(i.id))
+  const includesProblem = reworded.length !== before.includes.length || new Set(reworded.map((i) => i.id)).size !== before.includes.length
+    || proposal.includes.some((i) => i.id !== null && !known.has(i.id))
     ? "La propuesta quita o cambia elementos existentes de Incluye / No incluye."
     : added.some((i) => !i.type) ? "Un elemento nuevo no indica si es Incluye o No incluye."
     : invented.length ? `Agrega servicios que no figuran en la descripción actual: ${invented.map((i) => `«${i.textEs}»`).join(", ")}.`
@@ -198,7 +203,7 @@ export function buildProposedContent(before: TourContent, proposal: TourProposal
   }
 
   const conditions = new Map(proposal.conditions.map((c) => [c.id, c]));
-  if (proposal.conditions.length !== before.conditions.length || before.conditions.some((c) => !conditions.has(c.id))) rejected.conditions = "La propuesta agrega o quita condiciones.";
+  if (proposal.conditions.length !== before.conditions.length || conditions.size !== before.conditions.length || before.conditions.some((c) => !conditions.has(c.id))) rejected.conditions = "La propuesta agrega o quita condiciones.";
   else after = { ...after, conditions: before.conditions.map((c) => ({ ...c, type: conditions.get(c.id)!.type, textEs: conditions.get(c.id)!.textEs, textEn: conditions.get(c.id)!.textEn })) };
 
   return { after, rejected, linked };

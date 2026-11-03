@@ -114,10 +114,13 @@ export function calculateTotalWithDiscount(
 }
 
 /**
- * "Adquiérelo desde": the lowest per-person tier of an informational tour.
+ * "Adquiérelo desde": the lowest adult rate of an informational tour (a child rate would understate the price).
+ * Adult = no upper age limit; tours whose tiers all have age limits fall back to every tier.
  * These tours are quoted, not booked online, so promos and global discounts don't apply here.
  */
-export function lowestTierPrice(pricing: { tiers?: Array<{ priceUsd: unknown }> | null } | null | undefined): number | null {
-  const prices = (pricing?.tiers ?? []).map((tier) => Number(tier.priceUsd)).filter((value) => isFinite(value) && value > 0);
+export function lowestTierPrice(pricing: { tiers?: Array<{ priceUsd: unknown; ageMax?: number | null }> | null } | null | undefined): number | null {
+  const valid = (pricing?.tiers ?? []).filter((tier) => isFinite(Number(tier.priceUsd)) && Number(tier.priceUsd) > 0);
+  const adults = valid.filter((tier) => tier.ageMax == null);
+  const prices = (adults.length ? adults : valid).map((tier) => Number(tier.priceUsd));
   return prices.length ? Math.min(...prices) : null;
 }

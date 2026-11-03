@@ -4,7 +4,7 @@ import { db } from "@/server/lib/db";
 import { catalogTourCandidateSchema, type CatalogExtractionEnvelope, type CatalogTourCandidate } from "./schemas";
 import { validateCatalogTour } from "./validator";
 import { findDuplicateMatches } from "./duplicates";
-import { isBlockingIssue, statusFromIssues } from "./severity";
+import { issueKind, statusFromIssues } from "./severity";
 import type { PriceAdjustment } from "./pricing";
 import { getSunatQuote } from "@/server/lib/exchange";
 
@@ -31,14 +31,17 @@ export async function refreshImportCounts(importId: string) {
 export async function persistCandidateReview(tx: Prisma.TransactionClient, importTourId: string, candidate: CatalogTourCandidate, userId: string,
   extraIssues: Prisma.ImportIssueCreateManyInput[], { keepChecks = false } = {}) {
   const issues = validateCatalogTour(candidate), duplicates = await findDuplicateMatches(tx, candidate);
-  const checked = keepChecks ? await tx.importIssue.findMany({ where: { importTourId, resolved: false, checkedAt: { not: null } }, select: { type: true, field: true, checkedAt: true, checkedById: true } }) : [];
-  const checkOf = (issue: { type: string; field?: string | null }) => checked.find((c) => c.type === issue.type && c.field === (issue.field ?? null));
+  const checked = keepChecks ? await tx.importIssue.findMany({ where: { importTourId, resolved: false, checkedAt: { not: null } }, select: { type: true, field: true, reason: true, checkedAt: true, checkedById: true } }) : [];
+  // Same type, field and wording: a different warning on the same field must be seen again.
+  const checkOf = (issue: { type: string; field?: string | null; reason: string }) => checked.find((c) => c.type === issue.type && c.field === (issue.field ?? null) && c.reason === issue.reason);
   const fresh: Prisma.ImportIssueCreateManyInput[] = [
     ...issues.map((issue) => ({ ...issue, importTourId })),
     ...duplicates.slice(0, 3).map((d) => ({ importTourId, type: "POSSIBLE_DUPLICATE" as const, field: "tour", valueA: d.tourId, valueB: String(d.score), reason: d.reasons.join(" "), sourcePages: candidate.sourcePages })),
   ].map((issue) => { const mark = checkOf(issue); return mark ? { ...issue, checkedAt: mark.checkedAt, checkedById: mark.checkedById } : issue; });
   // Accepted warnings (kept marks) don't hold the tour back; anything blocking or not yet seen does.
-  const status = statusFromIssues(fresh.map((i) => ({ type: i.type, field: i.field ?? null, checkedAt: i.checkedAt as Date | null | undefined })), duplicates.length > 0);
+  // Unresolved extra issues (Claude's suggestions) count too.
+  const open = [...fresh, ...extraIssues.filter((i) => !i.resolved)];
+  const status = statusFromIssues(open.map((i) => ({ type: i.type, field: i.field ?? null, reason: i.reason, checkedAt: i.checkedAt as Date | null | undefined })), duplicates.length > 0);
   await tx.catalogImportTour.update({ where: { id: importTourId }, data: {
     tourDataJson: jsonData(candidate), sourcePages: candidate.sourcePages, status,
     existingTourId: duplicates[0]?.tourId ?? null, confidence: duplicates[0]?.score ?? null,
@@ -46,8 +49,11 @@ export async function persistCandidateReview(tx: Prisma.TransactionClient, impor
   } });
   await tx.importIssue.updateMany({ where: { importTourId, resolved: false }, data: { resolved: true, resolvedAt: new Date(), resolvedById: userId } });
   await tx.importIssue.createMany({ data: [...fresh, ...extraIssues] });
-  const blocking = fresh.filter((i) => isBlockingIssue({ type: i.type, field: i.field ?? null })).length;
-  return { status, issues, duplicateMatches: duplicates, blocking, warnings: fresh.length - blocking, unaccepted: fresh.filter((i) => !i.checkedAt && !isBlockingIssue({ type: i.type, field: i.field ?? null })).length };
+  const kinds = open.map((i) => ({ kind: issueKind({ type: i.type, field: i.field ?? null, reason: i.reason }), checked: Boolean(i.checkedAt) }));
+  return { status, issues, duplicateMatches: duplicates,
+    blocking: kinds.filter((k) => k.kind === "blocking").length,
+    toConfirm: kinds.filter((k) => k.kind === "confirm").length,
+    unaccepted: kinds.filter((k) => k.kind === "warning" && !k.checked).length };
 }
 
 // Each candidate is atomic and independent: stored indexes are skipped, so a run cut off by the deadline resumes safely.

@@ -55,6 +55,7 @@ export default async function TourDetailPage({
 
   const tripJsonLd = touristTripJsonLd({
     locale,
+    informational: tour.tourType === "INFORMATIONAL",
     slug: tour.slug,
     nameEs: tour.nameEs,
     nameEn: tour.nameEn,

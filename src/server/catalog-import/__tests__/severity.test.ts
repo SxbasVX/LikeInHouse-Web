@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isBlockingIssue, statusFromIssues } from "../severity";
+import { isBlockingIssue, issueKind, statusFromIssues } from "../severity";
+import { CONFIRM_REASONS } from "../validator";
 import { validateCatalogTour } from "../validator";
 import { draftCreateData } from "../draft";
 import { readyCandidate } from "./fixtures";
@@ -38,5 +39,15 @@ describe("blocking issues vs warnings the reviewer can accept", () => {
     expect(data.itinerary).toMatchObject({ create: [expect.objectContaining({ titleEs: "Día 1" })] });
     const blocked = readyCandidate(); blocked.prices[0].amount = null;
     expect(() => draftCreateData(blocked)).toThrow("revisión");
+  });
+
+  it("needs an explicit confirmation on approval for doubtful prices and durations, never just a tick", () => {
+    expect(issueKind({ type: "DATA_REVIEW", field: "prices.0.amount", reason: CONFIRM_REASONS.foreignPages })).toBe("confirm");
+    expect(issueKind({ type: "DATA_REVIEW", field: "durationDays", reason: CONFIRM_REASONS.proposal })).toBe("confirm");
+    expect(issueKind({ type: "CONTRADICTION", field: "prices.0.amount" })).toBe("confirm");
+    expect(issueKind({ type: "DATA_REVIEW", field: "category", reason: CONFIRM_REASONS.proposal })).toBe("warning");
+    const ticked = new Date();
+    expect(statusFromIssues([{ type: "CONTRADICTION", field: "prices.0.amount", checkedAt: ticked }], false)).toBe("NEEDS_REVIEW");
+    expect(statusFromIssues([{ type: "DATA_REVIEW", field: "category", reason: CONFIRM_REASONS.proposal, checkedAt: ticked }], false)).toBe("READY");
   });
 });

@@ -42,27 +42,35 @@ export async function loadTourContent(tx: Db, tourId: string): Promise<TourConte
 
 // ─── Start ───
 
+const STALE_START_MS = 10 * 60_000;
+
 export async function startCatalogReview(userId: string): Promise<{ runId: string; tours: number }> {
+  // A start that died before its batch was saved would otherwise block every later run.
+  await db.catalogReviewRun.updateMany({ where: { status: "PROCESSING", batchId: null, createdAt: { lt: new Date(Date.now() - STALE_START_MS) } },
+    data: { status: "FAILED", lastError: "El envío a Claude no terminó.", completedAt: new Date() } });
   if (await db.catalogReviewRun.count({ where: { status: "PROCESSING" } })) throw new ReviewError("Ya hay una revisión del catálogo en curso.");
   const tours = await db.tour.findMany({ where: { isActive: true }, select: tourSelect, orderBy: { nameEs: "asc" } });
   if (!tours.length) throw new ReviewError("No hay tours activos para revisar.");
   const reference = tours.find((t) => t.slug === REFERENCE_TOUR_SLUG) ?? null;
   const system = catalogReviewSystemPrompt(reference ? { content: contentOf(reference), facts: factsOf(reference) } : null);
 
-  // A new run replaces earlier proposals that were never applied, so only one current proposal exists per tour.
-  await db.tourRevision.updateMany({ where: { status: "PROPOSED" }, data: { status: "DISMISSED" } });
   const run = await db.catalogReviewRun.create({ data: { createdById: userId, referenceTourId: reference?.id } });
-  const revisions: Array<{ id: string; tour: LoadedTour }> = [];
-  for (const tour of tours) {
-    const revision = await db.tourRevision.create({ data: { runId: run.id, tourId: tour.id, beforeJson: contentOf(tour) as unknown as Prisma.InputJsonValue }, select: { id: true } });
-    revisions.push({ id: revision.id, tour });
-  }
+  const created = await db.tourRevision.createManyAndReturn({
+    data: tours.map((tour) => ({ runId: run.id, tourId: tour.id, beforeJson: contentOf(tour) as unknown as Prisma.InputJsonValue })),
+    select: { id: true, tourId: true },
+  });
+  const byTour = new Map(tours.map((t) => [t.id, t]));
+  const revisions = created.map((r) => ({ id: r.id, tour: byTour.get(r.tourId)! }));
   try {
     const batchId = await submitClaudeBatch(revisions.map(({ id, tour }) => ({
       customId: id,
       call: { system, cacheSystem: true, effort: "medium", maxTokens: 32_000, content: [{ type: "text", text: catalogReviewUserContent(contentOf(tour), factsOf(tour)) }] },
     })));
-    await db.catalogReviewRun.update({ where: { id: run.id }, data: { batchId, batchCheckedAt: new Date() } });
+    // Only now that the new proposals are on their way: earlier unapplied ones are replaced (one current proposal per tour).
+    await db.$transaction([
+      db.catalogReviewRun.update({ where: { id: run.id }, data: { batchId, batchCheckedAt: new Date() } }),
+      db.tourRevision.updateMany({ where: { status: "PROPOSED", runId: { not: run.id } }, data: { status: "DISMISSED" } }),
+    ]);
   } catch (error) {
     const message = error instanceof Error ? error.message : "No se pudo enviar a Claude.";
     await db.catalogReviewRun.update({ where: { id: run.id }, data: { status: "FAILED", lastError: message, completedAt: new Date() } });
@@ -94,7 +102,9 @@ export async function advanceCatalogReviews(): Promise<void> {
       for await (const outcome of claudeBatchResults(run.batchId!)) {
         if (Date.now() > deadline) { finished = false; break; }
         if (!pending.has(outcome.customId)) continue;
-        await storeOutcome(outcome.customId, outcome);
+        // One malformed reply fails only its own tour, never the rest of the batch.
+        await storeOutcome(outcome.customId, outcome).catch((error) => db.tourRevision.updateMany({ where: { id: outcome.customId, status: "PENDING" },
+          data: { status: "FAILED", error: `No se pudo procesar la propuesta: ${error instanceof Error ? error.message : "error desconocido"}`.slice(0, 1000) } }));
       }
       if (finished) await finishRun(run.id);
       else await db.catalogReviewRun.update({ where: { id: run.id }, data: { batchCheckedAt: null } });
@@ -151,17 +161,18 @@ async function writeGroups(tx: Prisma.TransactionClient, tourId: string, content
       await tx.itineraryDay.upsert({ where: { tourId_dayNumber: { tourId, dayNumber: d.dayNumber } }, create: { tourId, dayNumber: d.dayNumber, ...data }, update: data });
     }
   }
+  // Lists are rewritten whole, as the Tours form does: their ids change on every form save, so content (already
+  // checked against the snapshot under the row lock) is the only stable reference. Nothing else points at these rows.
   if (groups.includes("includes")) {
-    // Items moved out of the description are created ("new-include-…"); undo deletes them again (they aren't in `before`).
-    await tx.tourInclude.deleteMany({ where: { tourId, id: { notIn: content.includes.filter((i) => !i.id.startsWith("new-")).map((i) => i.id) } } });
     const position: Record<string, number> = {};
-    for (const i of content.includes) {
-      const sortOrder = (position[i.type] = (position[i.type] ?? -1) + 1);
-      if (i.id.startsWith("new-")) await tx.tourInclude.create({ data: { tourId, type: i.type, textEs: i.textEs, textEn: i.textEn, sortOrder } });
-      else await tx.tourInclude.update({ where: { id: i.id }, data: { textEs: i.textEs, textEn: i.textEn, sortOrder } });
-    }
+    await tx.tourInclude.deleteMany({ where: { tourId } });
+    await tx.tourInclude.createMany({ data: content.includes.map((i) => ({ tourId, type: i.type, textEs: i.textEs, textEn: i.textEn, sortOrder: (position[i.type] = (position[i.type] ?? -1) + 1) })) });
   }
-  if (groups.includes("conditions")) for (const c of content.conditions) await tx.tourCondition.update({ where: { id: c.id }, data: { type: c.type as never, textEs: c.textEs, textEn: c.textEn } });
+  if (groups.includes("conditions")) {
+    // Inactive conditions aren't part of the review and stay untouched.
+    await tx.tourCondition.deleteMany({ where: { tourId, isActive: true } });
+    await tx.tourCondition.createMany({ data: content.conditions.map((c, sortOrder) => ({ tourId, type: c.type as never, textEs: c.textEs, textEn: c.textEn, isActive: true, sortOrder })) });
+  }
 }
 
 /** Applies the chosen groups, only where the tour still has exactly the content Claude saw. */

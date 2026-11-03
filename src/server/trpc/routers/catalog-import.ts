@@ -77,14 +77,18 @@ export const catalogImportRouter = router({
       import: { select: { id: true, filename: true, status: true, batchStage: true } },
     } });
     if (!record) throw new TRPCError({ code: "NOT_FOUND" });
-    // Tours reviewed before warnings could be accepted: settle their status with the current rule when opened.
-    if (["NEEDS_REVIEW", "READY"].includes(record.status)) {
-      const status = statusFromIssues(record.issues, false);
-      if (status !== record.status) {
-        await ctx.db.catalogImportTour.update({ where: { id: record.id }, data: { status } });
-        await refreshImportCounts(record.importId);
-        record.status = status;
-      }
+    // Tours reviewed before warnings could be accepted: settle their status with the current rule when opened
+    // (under the same row lock as setIssueChecked, so a concurrent untick can't be overwritten).
+    if (["NEEDS_REVIEW", "READY"].includes(record.status) && statusFromIssues(record.issues, false) !== record.status) {
+      const settled = await ctx.db.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "CatalogImportTour" WHERE "id" = ${record.id} FOR UPDATE`;
+        const fresh = await tx.catalogImportTour.findUniqueOrThrow({ where: { id: record.id }, select: { status: true, issues: { where: { resolved: false }, select: { type: true, field: true, reason: true, checkedAt: true } } } });
+        if (!["NEEDS_REVIEW", "READY"].includes(fresh.status)) return fresh.status;
+        const status = statusFromIssues(fresh.issues, false);
+        if (status !== fresh.status) await tx.catalogImportTour.update({ where: { id: record.id }, data: { status } });
+        return status;
+      });
+      if (settled !== record.status) { await refreshImportCounts(record.importId); record.status = settled; }
     }
     const parsed = catalogTourCandidateSchema.safeParse(record.tourDataJson);
     // Siblings in document order power "previous / next to review" without loading the whole history.
@@ -120,7 +124,7 @@ export const catalogImportRouter = router({
       await tx.importIssue.updateMany({ where: { id: { in: input.issueIds }, importTourId: first.importTourId, resolved: false },
         data: input.checked ? { checkedAt: new Date(), checkedById: ctx.user.id } : { checkedAt: null, checkedById: null } });
       const record = await tx.catalogImportTour.findUniqueOrThrow({ where: { id: first.importTourId },
-        include: { issues: { where: { resolved: false }, select: { type: true, field: true, checkedAt: true } } } });
+        include: { issues: { where: { resolved: false }, select: { type: true, field: true, reason: true, checkedAt: true } } } });
       if (!["NEEDS_REVIEW", "READY"].includes(record.status)) return { status: record.status, importId: record.importId };
       const status = statusFromIssues(record.issues, false);
       if (status !== record.status) await tx.catalogImportTour.update({ where: { id: record.id }, data: { status } });
@@ -157,6 +161,8 @@ export const catalogImportRouter = router({
       for (const field of input.confirmedFields) candidate.provenance[field] = {
         source: "manual", requiresReview: false, sourcePages: candidate.sourcePages, evidence: input.reviewNote,
       };
+      // Confirming a field settles the PDF contradiction recorded on it (the note says which value is right).
+      if (candidate.sourceIssues?.length) candidate.sourceIssues = candidate.sourceIssues.filter((issue) => !input.confirmedFields.includes(issue.field));
       const review = await persistCandidateReview(tx, record.id, candidate, ctx.user.id, [
         { importTourId: record.id, type: "DATA_REVIEW", field: "manual_review", reason: input.reviewNote, sourcePages: candidate.sourcePages, resolved: true, resolvedAt: new Date(), resolvedById: ctx.user.id },
       ], { keepChecks: true });

@@ -111,4 +111,22 @@ describe("catalog review proposals", () => {
     expect(bad.rejected.longDesc).toBeTruthy();
     expect(bad.after.longDescEs).toBe(withList.longDescEs);
   });
+
+  it("links description and a new itinerary even when the description had no times", () => {
+    const noTimes: TourContent = { ...before, itinerary: [], longDescEs: "Día 1: visita a Uros. Día 2: Taquile y retorno." };
+    const moved = proposal({ longDescEs: "Vive el Titicaca.", itinerary: [
+      { dayNumber: 1, titleEs: "Uros", titleEn: "Uros", items: [{ time: null, titleEs: "Visita a Uros", titleEn: "Visit Uros", descriptionEs: null, descriptionEn: null }] },
+      { dayNumber: 2, titleEs: "Taquile", titleEn: "Taquile", items: [{ time: null, titleEs: "Taquile y retorno", titleEn: "Taquile and return", descriptionEs: null, descriptionEn: null }] },
+    ] });
+    expect(buildProposedContent(noTimes, moved, 2).linked).toEqual(["longDesc", "itinerary"]);
+    const tooManyDays = buildProposedContent(noTimes, moved, 1);
+    expect(tooManyDays.rejected.itinerary).toBeTruthy();
+    expect(tooManyDays.rejected.longDesc).toBeTruthy();
+    expect(tooManyDays.after.longDescEs).toBe(noTimes.longDescEs);
+  });
+
+  it("rejects a reply that repeats an include id instead of crashing", () => {
+    const repeated = proposal({ includes: [{ id: "i1", textEs: "Transporte.", textEn: "Transport." }, { id: "i1", textEs: "Transporte.", textEn: "Transport." }] });
+    expect(buildProposedContent(before, repeated).rejected.includes).toBeTruthy();
+  });
 });

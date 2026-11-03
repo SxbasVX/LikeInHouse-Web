@@ -188,6 +188,8 @@ export interface TouristTripTier {
 
 export interface TouristTripInput {
   locale: string;
+  /** Informational tours are quoted, not sold online: no Offer in structured data. */
+  informational?: boolean;
   slug: string;
   nameEs: string;
   nameEn: string;
@@ -247,7 +249,7 @@ export function touristTripJsonLd(t: TouristTripInput) {
       : t.durationHours && t.durationHours > 0
         ? { duration: `PT${t.durationHours}H` }
         : {}),
-    ...(price != null && price > 0
+    ...(price != null && price > 0 && !t.informational
       ? {
           offers: {
             "@type": "Offer",

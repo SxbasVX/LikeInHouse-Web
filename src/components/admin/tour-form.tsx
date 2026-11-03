@@ -240,7 +240,8 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
     if (data.tourType === "INFORMATIONAL") {
       // Informational tours keep only their "Adquiérelo desde" rates: no departures, no group discount.
       submitData.departures = [];
-      const tiers = data.pricing?.tiers ?? [];
+      // A $0 row is the form's empty placeholder, not a "desde" price.
+      const tiers = (data.pricing?.tiers ?? []).filter((tier: { priceUsd: number }) => Number(tier.priceUsd) > 0);
       submitData.pricing = tiers.length ? { tiers } : initialData ? null : undefined;
     }
     onSubmit(submitData as TourCreateInput);

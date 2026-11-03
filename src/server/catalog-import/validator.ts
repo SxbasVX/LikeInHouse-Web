@@ -7,6 +7,13 @@ export interface CatalogValidationIssue {
   valueA?: string | null; valueB?: string | null;
 }
 
+// Confirmation issues: resolved when the reviewer confirms the field on approval (provenance becomes "manual").
+export const CONFIRM_REASONS = {
+  proposal: "Propuesta editorial: requiere confirmación humana.",
+  foreignPages: "La evidencia refiere páginas ajenas al tour.",
+  missingProvenance: "Falta identificar la procedencia de este dato.",
+} as const;
+
 export function validateCatalogTour(c: CatalogTourCandidate): CatalogValidationIssue[] {
   const issues: CatalogValidationIssue[] = [];
   const add = (field: string, reason: string, type: CatalogValidationIssue["type"] = "DATA_REVIEW") =>
@@ -18,12 +25,12 @@ export function validateCatalogTour(c: CatalogTourCandidate): CatalogValidationI
   if (c.durationNights !== null && c.durationDays !== null && c.durationNights > c.durationDays) add("durationNights", "Las noches superan los días.", "CONTRADICTION");
   for (const field of ["shortDescEs", "shortDescEn"] as const) if ((c[field]?.length ?? 0) > 160) add(field, "Máximo 160 caracteres.", "INVALID_VALUE");
   for (const [field, proof] of Object.entries(c.provenance ?? {})) {
-    if (proof.requiresReview || proof.source === "inferred" || proof.source === "suggested") add(field, "Propuesta editorial: requiere confirmación humana.");
+    if (proof.requiresReview || proof.source === "inferred" || proof.source === "suggested") add(field, CONFIRM_REASONS.proposal);
     // Traceability warning only: the reviewer checks the evidence and accepts it.
-    if (proof.sourcePages.some((page) => !c.sourcePages.includes(page))) add(field, "La evidencia refiere páginas ajenas al tour.");
+    if (proof.sourcePages.some((page) => !c.sourcePages.includes(page))) add(field, CONFIRM_REASONS.foreignPages);
   }
   for (const field of ["category", "difficulty", "durationDays", "durationNights"] as const) {
-    if (c[field] !== null && !c.provenance?.[field]) add(field, "Falta identificar la procedencia de este dato.");
+    if (c[field] !== null && !c.provenance?.[field]) add(field, CONFIRM_REASONS.missingProvenance);
   }
   for (const issue of c.sourceIssues ?? []) issues.push({ ...issue, type: "CONTRADICTION" });
   if (!c.prices.length) add("prices", "No se encontraron tarifas.");

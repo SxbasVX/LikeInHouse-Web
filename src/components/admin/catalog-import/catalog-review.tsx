@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, CircleDashed, CloudCheck, Copy, Loader2, Sparkles, Undo2 } from "lucide-react";
@@ -112,11 +112,13 @@ export function CatalogReview({ importTourId }: { importTourId: string }) {
   const created = record.status === "DRAFT_CREATED" || record.status === "VALIDATED" || Boolean(record.createdTourId);
   const readOnly = created;
   const hasDraft = dirty || savedAt !== null;
-  const confirmable = new Set([...ALWAYS_CONFIRMABLE, ...Object.entries(data.candidate?.provenance ?? {}).filter(([, p]) => p.requiresReview || p.source === "inferred" || p.source === "suggested").map(([k]) => k)]);
+  const confirmable = new Set([...ALWAYS_CONFIRMABLE, ...Object.entries(data.candidate?.provenance ?? {}).filter(([, p]) => p.requiresReview || p.source === "inferred" || p.source === "suggested").map(([k]) => k),
+    ...groups.filter((g) => g.kind === "confirm").map((g) => g.field)]);
   const confirmed = groups.filter((g) => g.checked && confirmable.has(g.field)).map((g) => g.field);
   const checkedCount = groups.filter((g) => g.checked).length;
-  const blockingCount = groups.filter((g) => g.blocking).length;
-  const openWarnings = groups.filter((g) => !g.blocking && !g.checked).length;
+  const blockingCount = groups.filter((g) => g.kind === "blocking").length;
+  const confirmCount = groups.filter((g) => g.kind === "confirm").length;
+  const openWarnings = groups.filter((g) => g.kind === "warning" && !g.checked).length;
   // READY is set by the server only when nothing blocks and every warning was accepted.
   const canCreate = !hasDraft && record.status === "READY";
   const index = data.siblings.findIndex((s) => s.id === record.id);
@@ -133,7 +135,7 @@ export function CatalogReview({ importTourId }: { importTourId: string }) {
         setDialog(null); setNote(""); await reload();
         toast(result.status === "READY" ? { title: "Cambios aprobados · listo para crear", description: "Ya puedes pulsar «Crear tour (borrador)»." }
           : result.status === "DUPLICATE" ? { title: "Cambios aprobados", description: "Falta resolver el parecido con un tour existente." }
-          : { title: "Cambios aprobados", description: [result.blocking && `${result.blocking} por corregir`, result.unaccepted && `${result.unaccepted} avisos por aceptar`].filter(Boolean).join(" · ") + ". Mira la columna Pendientes." });
+          : { title: "Cambios aprobados", description: [result.blocking && `${result.blocking} por corregir`, result.toConfirm && `${result.toConfirm} por confirmar`, result.unaccepted && `${result.unaccepted} avisos por aceptar`].filter(Boolean).join(" · ") + ". Mira la columna Pendientes." });
       },
       onError: fail("No se pudieron aprobar los cambios"),
     });
@@ -200,7 +202,7 @@ export function CatalogReview({ importTourId }: { importTourId: string }) {
         {record.status !== "BLOCKED" && <Button variant="ghost" className="text-muted-foreground" onClick={() => setDialog("skip")}>Omitir tour</Button>}
         <span className="hidden flex-1 text-xs text-muted-foreground sm:block">{hasDraft ? "Tus cambios se guardan solos. Apruébalos cuando termines."
           : canCreate ? "Todo listo: puedes crear el tour."
-          : [blockingCount && `${blockingCount} por corregir`, openWarnings && `${openWarnings} avisos por aceptar`].filter(Boolean).join(" · ") || "Sin pendientes."}</span>
+          : [blockingCount && `${blockingCount} por corregir`, confirmCount && `${confirmCount} por confirmar al aprobar`, openWarnings && `${openWarnings} avisos por aceptar`].filter(Boolean).join(" · ") || "Sin pendientes."}</span>
         <div className="ml-auto flex flex-wrap gap-2">
           {savedAt && <Button variant="outline" onClick={() => setDialog("discard")}><Undo2 className="mr-1.5 h-4 w-4" />Descartar cambios</Button>}
           {nextPending && !hasDraft && !canCreate && <Button variant="outline" onClick={() => router.push(`/admin/dev/catalog-import/${nextPending.id}`)}>Siguiente por revisar<ChevronRight className="ml-1 h-4 w-4" /></Button>}
@@ -259,17 +261,29 @@ function Banner({ tone, children }: { tone: "teal" | "slate" | "sky"; children: 
   return <p className={cn("mb-4 rounded-xl border px-4 py-3 text-sm", tones[tone])}>{children}</p>;
 }
 
-function PendingPanel({ groups, checkedCount, confirmable, readOnly, onGo, onToggle }: {
-  groups: PendingGroup[]; checkedCount: number; confirmable: Set<string>; readOnly: boolean; onGo: (tab: ReviewTab) => void; onToggle: (group: PendingGroup, checked: boolean) => void;
+function PendingPanel({ groups, confirmable, readOnly, onGo, onToggle }: {
+  groups: PendingGroup[]; checkedCount?: number; confirmable: Set<string>; readOnly: boolean; onGo: (tab: ReviewTab) => void; onToggle: (group: PendingGroup, checked: boolean) => void;
 }) {
-  const blocking = groups.filter((g) => g.blocking), warnings = groups.filter((g) => !g.blocking);
+  const blocking = groups.filter((g) => g.kind === "blocking"), confirm = groups.filter((g) => g.kind === "confirm"), warnings = groups.filter((g) => g.kind === "warning");
   const accepted = warnings.filter((g) => g.checked).length;
   const reason = (group: PendingGroup) => group.issues.find((i) => !i.reason.startsWith("Sugerencia de Claude"))?.reason ?? group.issues[0].reason;
+  const checkable = (group: PendingGroup, tone: "confirm" | "warning", hint: ReactNode) => <li key={group.field}
+    className={cn("rounded-lg border p-2.5 transition", group.checked ? "border-brand-teal/20 bg-brand-teal/5" : tone === "confirm" ? "border-sky-200 bg-sky-50/60" : "border-amber-200 bg-amber-50/50")}>
+    <div className="flex items-start gap-2.5">
+      <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#15A58E]" checked={group.checked} disabled={readOnly} aria-label={`${tone === "confirm" ? "Confirmar" : "Aceptar"} ${group.label}`} onChange={(e) => onToggle(group, e.target.checked)} />
+      <div className="min-w-0 flex-1">
+        <button type="button" onClick={() => onGo(group.tab)} className={cn("text-left text-sm font-medium hover:underline", group.checked && tone === "warning" && "text-muted-foreground line-through decoration-1")}>{group.label}</button>
+        {hint}
+        {!(group.checked && tone === "warning") && <p className="mt-0.5 text-xs text-muted-foreground">{reason(group)}</p>}
+        {group.suggestion && !group.checked && <SuggestionDiff before={group.suggestion.valueA} after={group.suggestion.valueB} evidence={group.suggestion.reason} />}
+      </div>
+    </div>
+  </li>;
   return <section className="space-y-4 rounded-xl border bg-white p-4">
     <div>
       <div className="flex items-center justify-between"><h2 className="font-medium">Pendientes</h2>
-        <span className="text-xs tabular-nums text-muted-foreground">{groups.length - blocking.length - (warnings.length - accepted)}/{groups.length} resueltos</span></div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-brand-teal transition-all" style={{ width: `${groups.length ? ((accepted) / groups.length) * 100 : 100}%` }} /></div>
+        <span className="text-xs tabular-nums text-muted-foreground">{accepted}/{groups.length} resueltos</span></div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-brand-teal transition-all" style={{ width: `${groups.length ? (accepted / groups.length) * 100 : 100}%` }} /></div>
     </div>
     {!groups.length && <p className="flex items-center gap-2 text-sm text-brand-darkTeal"><Check className="h-4 w-4" />Sin pendientes: el tour pasó todas las validaciones.</p>}
 
@@ -283,19 +297,17 @@ function PendingPanel({ groups, checkedCount, confirmable, readOnly, onGo, onTog
       <p className="text-[11px] text-muted-foreground">Se resuelven editando el dato y pulsando «Aprobar cambios».</p>
     </div>}
 
+    {confirm.length > 0 && <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-sky-800">Confirma con el PDF al aprobar ({confirm.length})</p>
+      <ul className="space-y-2">{confirm.map((group) => checkable(group, "confirm",
+        <span className="ml-1.5 text-[11px] text-sky-800">{group.checked ? "· se confirmará al aprobar" : "· verifica el valor en el PDF"}</span>))}</ul>
+      <p className="text-[11px] text-muted-foreground">Precios y duraciones: márcalos, corrige si hace falta y pulsa «Aprobar cambios» con la página donde lo verificaste.</p>
+    </div>}
+
     {warnings.length > 0 && <div className="space-y-2">
       <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Avisos: márcalos para aceptarlos ({accepted}/{warnings.length})</p>
-      <ul className="space-y-2">{warnings.map((group) => <li key={group.field} className={cn("rounded-lg border p-2.5 transition", group.checked ? "border-brand-teal/20 bg-brand-teal/5" : "border-amber-200 bg-amber-50/50")}>
-        <div className="flex items-start gap-2.5">
-          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#15A58E]" checked={group.checked} disabled={readOnly} aria-label={`Aceptar ${group.label}`} onChange={(e) => onToggle(group, e.target.checked)} />
-          <div className="min-w-0 flex-1">
-            <button type="button" onClick={() => onGo(group.tab)} className={cn("text-left text-sm font-medium hover:underline", group.checked && "text-muted-foreground line-through decoration-1")}>{group.label}</button>
-            {confirmable.has(group.field) && !group.checked && <span className="ml-1.5 text-[11px] text-amber-800">· marcar = confirmar dato</span>}
-            {!group.checked && <p className="mt-0.5 text-xs text-muted-foreground">{reason(group)}</p>}
-            {group.suggestion && !group.checked && <SuggestionDiff before={group.suggestion.valueA} after={group.suggestion.valueB} evidence={group.suggestion.reason} />}
-          </div>
-        </div>
-      </li>)}</ul>
+      <ul className="space-y-2">{warnings.map((group) => checkable(group, "warning",
+        confirmable.has(group.field) && !group.checked ? <span className="ml-1.5 text-[11px] text-amber-800">· marcar = confirmar dato</span> : null))}</ul>
     </div>}
   </section>;
 }
