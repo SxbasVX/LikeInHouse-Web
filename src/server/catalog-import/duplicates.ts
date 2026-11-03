@@ -4,7 +4,7 @@ import { renderItineraryDay } from "./editorial";
 import { publishedPrice } from "./pricing";
 
 export function normalize(value: string | null): string {
-  return (value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return (value ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 const stop = new Set(["tour", "tours", "full", "day", "dia", "dias", "the", "and", "del", "los", "las", "con", "para", "desde", "historia", "paisajes", "cultura"]);
 function tokens(value: string): Set<string> {
@@ -16,13 +16,21 @@ function similarity(a: string, b: string): number {
   return [...left].filter((t) => right.has(t)).length / Math.min(left.size, right.size);
 }
 
+// Safety first: a missed duplicate publishes the same tour twice, a false alarm costs one reviewer click.
+// Same route under a new name (itinerary + attractions + destination + duration = 0.64) must be caught.
+export const DUPLICATE_THRESHOLD = 0.55;
+// Every tour sharing the destination or a name/attraction term is compared; this only guards against runaway queries.
+const MAX_COMPARED_TOURS = 2000;
+
 export interface DuplicateMatch {
   tourId: string; score: number; reasons: string[]; matchingFields: string[];
+  /** A reviewer can confirm the tours are different, except when the slug is already taken. */
+  dismissible: boolean;
   existing: { nameEs: string; nameEn: string; destination: string; durationDays: number; durationNights: number; durationHours: number | null; slug: string; itinerary: string; prices: Array<{ label: string; amount: string }> };
 }
 
 export async function findDuplicateMatches(db: PrismaClient | Prisma.TransactionClient, candidate: CatalogTourCandidate): Promise<DuplicateMatch[]> {
-  const terms = [...tokens([candidate.nameEs, candidate.nameEn, ...(candidate.attractions ?? [])].filter(Boolean).join(" "))].slice(0, 8);
+  const terms = [...tokens([candidate.nameEs, candidate.nameEn, ...(candidate.attractions ?? [])].filter(Boolean).join(" "))].slice(0, 12);
   const OR: Prisma.TourWhereInput[] = [
     ...(candidate.slug ? [{ slug: candidate.slug }] : []),
     ...(candidate.destination ? [{ destination: { contains: candidate.destination, mode: "insensitive" as const } }] : []),
@@ -33,7 +41,7 @@ export async function findDuplicateMatches(db: PrismaClient | Prisma.Transaction
   ];
   if (!OR.length) return [];
   const tours = await db.tour.findMany({
-    where: { OR }, take: 80, orderBy: { id: "asc" },
+    where: { OR }, take: MAX_COMPARED_TOURS, orderBy: { id: "asc" },
     select: { id: true, slug: true, nameEs: true, nameEn: true, destination: true,
       durationDays: true, durationNights: true, durationHours: true,
       itinerary: { select: { descriptionEs: true, descriptionEn: true }, orderBy: { dayNumber: "asc" } },
@@ -42,28 +50,38 @@ export async function findDuplicateMatches(db: PrismaClient | Prisma.Transaction
     },
   });
   const itinerary = candidate.itinerary.map((day) => renderItineraryDay(day, "Es")).join(" ");
-  const attractions = (candidate.attractions ?? []).map(normalize);
+  const attractions = (candidate.attractions ?? []).map(normalize).filter(Boolean);
+  // Existing tours may carry the PDF price, the converted price or the published one: any of them counts.
+  const candidatePrices = candidate.prices.flatMap((p) => {
+    const published = publishedPrice(p, candidate.priceAdjustment);
+    return [p.currency === "USD" ? p.amount : null, published?.usdAtRate ?? null, published?.final ?? null].filter((v): v is number => v !== null);
+  });
+  const dismissed = new Set((candidate.dismissedDuplicates ?? []).map((d) => d.tourId));
   return tours.map((tour) => {
     const reasons: string[] = [], matchingFields: string[] = [];
     let score = 0;
     const match = (field: string, weight: number, reason: string) => { score += weight; matchingFields.push(field); reasons.push(reason); };
-    if (candidate.slug && candidate.slug === tour.slug) match("slug", 1, "El slug ya existe.");
-    const nameScore = Math.max(similarity(candidate.nameEs ?? "", tour.nameEs), similarity(candidate.nameEn ?? "", tour.nameEn));
+    const sameSlug = Boolean(candidate.slug && candidate.slug === tour.slug);
+    if (sameSlug) match("slug", 1, "El slug ya existe.");
+    const nameScore = Math.max(similarity(candidate.nameEs ?? "", tour.nameEs), similarity(candidate.nameEn ?? "", tour.nameEn),
+      similarity(candidate.nameEs ?? "", tour.nameEn), similarity(candidate.nameEn ?? "", tour.nameEs));
     if (nameScore >= 0.75) match("name", 0.5 * nameScore, "Los nombres comparten los atractivos principales.");
     if (candidate.destination && normalize(candidate.destination) === normalize(tour.destination)) match("destination", 0.12, "Coincide el destino.");
     if (candidate.durationDays !== null && candidate.durationDays === tour.durationDays && candidate.durationNights === tour.durationNights && candidate.durationHours === tour.durationHours) match("duration", 0.08, "Coincide la duración.");
     const existingItinerary = tour.itinerary.map((d) => d.descriptionEs).join(" ");
-    const existingText = normalize(`${tour.nameEs} ${existingItinerary}`);
+    const existingText = normalize(`${tour.nameEs} ${tour.nameEn} ${existingItinerary}`);
     if (attractions.length && attractions.filter((a) => existingText.includes(a)).length / attractions.length >= 0.6) match("attractions", 0.22, "Coinciden los atractivos documentados.");
     if (itinerary && existingItinerary && similarity(itinerary, existingItinerary) >= 0.65) match("itinerary", 0.22, "El recorrido tiene contenido muy similar.");
     const times = candidate.schedule?.times ?? [];
     if (times.length && times.every((time) => `${existingItinerary} ${tour.conditions.map((c) => c.textEs).join(" ")}`.includes(time))) match("schedule", 0.06, "Coinciden horarios.");
-    const published = candidate.prices.map((p) => publishedPrice(p, candidate.priceAdjustment)?.final ?? (p.currency === "USD" ? p.amount : null));
-    if (published.some((usd) => usd !== null && tour.pricing?.tiers.some((t) => Math.abs(Number(t.priceUsd) - usd) < 0.005))) match("price", 0.05, "Coincide una tarifa USD.");
-    return { tourId: tour.id, score: Math.min(score, 1), reasons, matchingFields,
+    if (candidatePrices.some((usd) => tour.pricing?.tiers.some((t) => Math.abs(Number(t.priceUsd) - usd) < 0.005))) match("price", 0.05, "Coincide una tarifa USD.");
+    return { tourId: tour.id, score: Math.min(score, 1), reasons, matchingFields, dismissible: !sameSlug,
       existing: { nameEs: tour.nameEs, nameEn: tour.nameEn, destination: tour.destination, durationDays: tour.durationDays,
         durationNights: tour.durationNights, durationHours: tour.durationHours, slug: tour.slug,
         itinerary: existingItinerary, prices: (tour.pricing?.tiers ?? []).map((p) => ({ label: p.labelEs, amount: String(p.priceUsd) })) },
     };
-  }).filter((match) => match.score >= 0.65).sort((a, b) => b.score - a.score);
+  })
+    // A reviewer's "not the same tour" stands, but never for a taken slug: the database can't hold two.
+    .filter((m) => m.score >= DUPLICATE_THRESHOLD && !(m.dismissible && dismissed.has(m.tourId)))
+    .sort((a, b) => b.score - a.score);
 }

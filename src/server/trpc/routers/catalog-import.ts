@@ -124,6 +124,8 @@ export const catalogImportRouter = router({
       candidate.provenance = previous.success ? { ...previous.data.provenance } : {};
       // The exchange rate and markup are server-set; only "Actualizar tipo de cambio" changes them.
       candidate.priceAdjustment = previous.success ? previous.data.priceAdjustment : undefined;
+      // Duplicate confirmations only come from "No es el mismo tour".
+      candidate.dismissedDuplicates = previous.success ? previous.data.dismissedDuplicates : undefined;
       for (const field of ["category", "difficulty", "destination", "durationDays", "durationNights", "durationHours", "prices", "schedule"] as const) {
         if (!previous.success || JSON.stringify(previous.data[field]) !== JSON.stringify(candidate[field])) {
           candidate.provenance[field] = { source: "manual", requiresReview: false, sourcePages: candidate.sourcePages, evidence: input.reviewNote };
@@ -139,6 +141,29 @@ export const catalogImportRouter = router({
     }, { timeout: 15_000, maxWait: 10_000 });
     await refreshImportCounts(result.importId);
     return result;
+  }),
+  // The reviewer confirms a flagged existing tour is a different one. Recorded with reason and author; a taken slug can't be dismissed.
+  dismissDuplicate: authorized.input(idInput.extend({ tourId: z.string().min(1).max(64), reason: z.string().trim().min(10).max(1000) })).mutation(async ({ ctx, input }) => {
+    const result = await ctx.db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "CatalogImportTour" WHERE "id" = ${input.importTourId} FOR UPDATE`;
+      const record = await tx.catalogImportTour.findUnique({ where: { id: input.importTourId } });
+      if (!record) throw new TRPCError({ code: "NOT_FOUND" });
+      if (record.createdTourId || record.status === "DRAFT_CREATED") throw new TRPCError({ code: "CONFLICT", message: "El tour ya fue creado." });
+      if (record.reviewDraftAt) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Aprueba o descarta tus cambios antes de descartar un duplicado." });
+      const candidate = parseCandidate(record.tourDataJson);
+      const match = (await findDuplicateMatches(tx, candidate)).find((m) => m.tourId === input.tourId);
+      if (!match) throw new TRPCError({ code: "NOT_FOUND", message: "Ese tour ya no figura como parecido." });
+      if (!match.dismissible) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Ese tour usa el mismo slug (URL): cambia el slug en General para diferenciarlo." });
+      candidate.dismissedDuplicates = [...(candidate.dismissedDuplicates ?? []), { tourId: input.tourId, reason: input.reason, userId: ctx.user.id, at: new Date().toISOString() }];
+      const review = await persistCandidateReview(tx, record.id, candidate, ctx.user.id, [{
+        importTourId: record.id, type: "DATA_REVIEW", field: "duplicate_dismissed", valueA: input.tourId, valueB: match.existing.nameEs,
+        reason: `No es el mismo tour (${Math.round(match.score * 100)} % de coincidencia): ${input.reason}`, sourcePages: candidate.sourcePages,
+        resolved: true, resolvedAt: new Date(), resolvedById: ctx.user.id,
+      }], { keepChecks: true });
+      return { ...review, importId: record.importId };
+    }, { timeout: 15_000, maxWait: 10_000 });
+    await refreshImportCounts(result.importId);
+    return { status: result.status, remaining: result.duplicateMatches.length };
   }),
   // Re-prices the candidate with today's SUNAT rate and the current markup.
   refreshPriceAdjustment: authorized.input(idInput).mutation(async ({ ctx, input }) => {

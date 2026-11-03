@@ -175,7 +175,8 @@ export function CatalogReview({ importTourId }: { importTourId: string }) {
       <aside className="space-y-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
         <PendingPanel groups={groups} checkedCount={checkedCount} confirmable={confirmable} readOnly={readOnly} onGo={setTab}
           onToggle={(group, checked) => checkIssues.mutate({ issueIds: group.issues.map((i) => i.id), checked })} />
-        {data.duplicateMatches.length > 0 && <DuplicatePanel matches={data.duplicateMatches} />}
+        {data.duplicateMatches.length > 0 && <DuplicatePanel matches={data.duplicateMatches} importTourId={importTourId} onDismissed={reload}
+          blockedReason={created ? "El tour ya fue creado." : hasDraft ? "Aprueba o descarta tus cambios antes de confirmar." : undefined} />}
         {data.candidate && <div className="space-y-2">
           <CatalogClaudePanel importTourId={importTourId} canEnrich={!created && record.status !== "BLOCKED" && !hasDraft} onChanged={reload} />
           {hasDraft && !created && <p className="px-1 text-xs text-muted-foreground">Para que Claude mejore el tour, primero aprueba o descarta tus cambios.</p>}
@@ -278,15 +279,37 @@ function SuggestionDiff({ before, after, evidence }: { before: string | null; af
   </details>;
 }
 
-function DuplicatePanel({ matches }: { matches: Preview["duplicateMatches"] }) {
+function DuplicatePanel({ matches, importTourId, blockedReason, onDismissed }: { matches: Preview["duplicateMatches"]; importTourId: string; blockedReason?: string; onDismissed: () => Promise<void> }) {
+  const { toast } = useToast();
+  const [target, setTarget] = useState<Preview["duplicateMatches"][number] | null>(null);
+  const [reason, setReason] = useState("");
+  const dismiss = trpc.catalogImport.dismissDuplicate.useMutation({
+    onSuccess: async ({ remaining }) => { setTarget(null); setReason(""); await onDismissed(); toast({ title: "Registrado: no es el mismo tour", description: remaining ? `Quedan ${remaining} parecidos por revisar.` : undefined }); },
+    onError: (error) => toast({ title: "No se pudo registrar", description: error.message, variant: "destructive" }),
+  });
   return <section className="rounded-xl border border-violet-200 bg-white p-4">
     <h2 className="flex items-center gap-2 font-medium"><Copy className="h-4 w-4 text-violet-700" />Parecido a tours existentes</h2>
-    <ul className="mt-3 space-y-3">{matches.map((m) => <li key={m.tourId} className="rounded-lg bg-violet-50/60 p-3 text-xs">
+    <p className="mt-1 text-xs text-muted-foreground">No se puede crear mientras haya un parecido sin resolver.</p>
+    <ul className="mt-3 space-y-3">{matches.map((m) => <li key={m.tourId} className="space-y-1 rounded-lg bg-violet-50/60 p-3 text-xs">
       <p className="text-sm font-medium">{m.existing.nameEs}</p>
-      <p className="text-muted-foreground">{Math.round(m.score * 100)}% de coincidencia · {m.existing.destination} · {m.existing.durationDays}D/{m.existing.durationNights}N</p>
-      <p className="mt-1">{m.reasons.join(" ")}</p>
-      <p className="mt-1 text-muted-foreground">{m.existing.prices.map((p) => `${p.label}: ${p.amount} USD`).join(" · ")}</p>
+      <p className="text-muted-foreground">{Math.round(m.score * 100)}% de coincidencia · {m.existing.destination} · {m.existing.durationDays}D/{m.existing.durationNights}N · /{m.existing.slug}</p>
+      <p>{m.reasons.join(" ")}</p>
+      {m.existing.prices.length > 0 && <p className="text-muted-foreground">{m.existing.prices.map((p) => `${p.label}: ${p.amount} USD`).join(" · ")}</p>}
+      {m.existing.itinerary && <details><summary className="cursor-pointer text-violet-800">Ver su itinerario</summary><p className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap text-muted-foreground">{m.existing.itinerary}</p></details>}
+      {m.dismissible
+        ? <Button size="sm" variant="outline" className="mt-1 h-7 text-xs" disabled={Boolean(blockedReason)} title={blockedReason} onClick={() => setTarget(m)}>No es el mismo tour</Button>
+        : <p className="font-medium text-violet-900">Usa el mismo slug (URL): cámbialo en General para poder crearlo.</p>}
     </li>)}</ul>
-    <p className="mt-3 text-xs text-muted-foreground">Si es el mismo tour, omítelo. Si es distinto, cambia nombre o datos para diferenciarlo y aprueba.</p>
+    {blockedReason && <p className="mt-2 text-[11px] text-muted-foreground">{blockedReason}</p>}
+    <p className="mt-3 text-xs text-muted-foreground">Si es el mismo tour, omítelo. Si es otro, confírmalo con «No es el mismo tour».</p>
+    <Dialog open={Boolean(target)} onOpenChange={(open) => !open && !dismiss.isPending && setTarget(null)}>
+      <DialogContent><DialogHeader><DialogTitle>¿Seguro que es otro tour?</DialogTitle>
+        <DialogDescription>Compáralo con «{target?.existing.nameEs}». Queda registrado con tu nombre y el motivo.</DialogDescription></DialogHeader>
+        <Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} autoFocus placeholder="Ej.: el existente es de 1 día; este incluye noche en Amantaní." />
+        <DialogFooter><Button variant="ghost" onClick={() => setTarget(null)} disabled={dismiss.isPending}>Cancelar</Button>
+          <Button disabled={reason.trim().length < 10 || dismiss.isPending} onClick={() => target && dismiss.mutate({ importTourId, tourId: target.tourId, reason })}>
+            {dismiss.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Confirmar que es distinto</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   </section>;
 }

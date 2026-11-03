@@ -73,6 +73,7 @@ export async function persistExtractedCandidates(importId: string, filename: str
         candidate.sourceDocument = filename;
         // Rate and markup always come from the server, never from the model.
         candidate.priceAdjustment = adjustment;
+        delete candidate.dismissedDuplicates;
         // A provider cannot impersonate a manual reviewer.
         for (const proof of Object.values(candidate.provenance ?? {})) {
           if (proof.source === "manual") { proof.source = "suggested"; proof.requiresReview = true; }

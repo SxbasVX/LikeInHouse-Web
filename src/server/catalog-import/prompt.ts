@@ -10,8 +10,8 @@ ${EDITORIAL_RULES}
 No publiques, actualices ni elimines registros. Solo prepara candidatos para revisión humana.`;
 }
 
-// priceAdjustment is set by the server (SUNAT rate + markup); the model never sees or fills it.
-export const candidateJsonSchema = () => JSON.stringify(z.toJSONSchema(catalogTourCandidateSchema.omit({ priceAdjustment: true })));
+// Server-set fields (SUNAT rate + markup, reviewer duplicate confirmations): the model never sees or fills them.
+export const candidateJsonSchema = () => JSON.stringify(z.toJSONSchema(catalogTourCandidateSchema.omit({ priceAdjustment: true, dismissedDuplicates: true })));
 
 export const EDITORIAL_RULES = `REGLAS EDITORIALES:
 - schemaVersion=2. Identifica cada tour independiente, sin fusionar variantes ni omitir fichas. sourceDocument es el nombre exacto y sourcePages son las páginas físicas PDF (desde 1).
