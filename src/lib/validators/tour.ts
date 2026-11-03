@@ -77,6 +77,9 @@ const pricingSchema = z.object({
   promoLabelEn: z.string().optional(),
 });
 
+// Informational tours may carry "Adquiérelo desde" rates or none at all; bookable ones need at least one (refine below).
+const createPricingSchema = pricingSchema.extend({ tiers: z.array(pricingTierSchema) });
+
 export const tourCreateSchema = z.object({
   nameEs: z.string().min(3, "Mínimo 3 caracteres"),
   nameEn: z.string().min(3, "Minimum 3 characters"),
@@ -99,14 +102,14 @@ export const tourCreateSchema = z.object({
   metaDescEn: z.string().optional(),
   isFeatured: z.boolean().default(false),
   itinerary: z.array(itineraryDaySchema).default([]),
-  pricing: pricingSchema.optional(),
+  pricing: createPricingSchema.optional(),
   includes: z.array(tourIncludeSchema).default([]),
   excludes: z.array(tourIncludeSchema).default([]),
   conditions: z.array(tourConditionSchema).default([]),
   images: z.array(tourImageSchema).default([]),
   departures: z.array(tourDepartureSchema).default([]),
 }).refine((data) => {
-  if (data.tourType === "BOOKABLE" && !data.pricing) {
+  if (data.tourType === "BOOKABLE" && !data.pricing?.tiers.length) {
     return false;
   }
   return true;

@@ -131,7 +131,21 @@ export function PricesSection({ draft, update, issuesFor, readOnly, onRefreshRat
   const num = (value: string) => (value === "" ? null : Number(value));
   const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
   const adjustment = draft.priceAdjustment;
+  const lowest = Math.min(...draft.prices.map((p) => publishedPrice(p, adjustment)?.final ?? Infinity));
   return <div className="space-y-4">
+    <Card title="Cómo se publica" description="Los tours con muchas tarifas (hotel, habitación, temporada) se publican como informativos: sin reserva online, con «Adquiérelo desde» y el botón de cotizar.">
+      <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Cómo se publica">
+        {([[false, "Comprable", "Reserva y pago online con estas tarifas."], [true, "Informativo", "«Adquiérelo desde» la tarifa más baja + cotizar."]] as const).map(([value, title, hint]) => {
+          const on = Boolean(draft.informational) === value;
+          return <button key={title} type="button" role="radio" aria-checked={on} disabled={readOnly} onClick={() => set(update, "informational", value)}
+            className={cn("rounded-lg border p-3 text-left transition", on ? "border-brand-teal bg-brand-teal/10 ring-1 ring-brand-teal" : "hover:bg-muted/40")}>
+            <span className="block text-sm font-medium">{title}</span><span className="text-xs text-muted-foreground">{hint}</span>
+          </button>;
+        })}
+      </div>
+      {draft.informational && isFinite(lowest) && <p className="rounded-lg bg-brand-orange/10 px-3 py-2 text-sm">
+        En la web: <span className="font-semibold text-brand-orange">Adquiérelo desde US$ {lowest.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> por persona</p>}
+    </Card>
     <Card title="Tipo de cambio y margen" description="Los precios se publican en USD: los soles se convierten al tipo de cambio SUNAT (venta) y a todo se le suma el margen."
       action={onRefreshRate && <Button size="sm" variant="outline" disabled={refreshingRate || Boolean(refreshHint)} title={refreshHint} onClick={onRefreshRate}>
         {refreshingRate ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1 h-4 w-4" />}Actualizar tipo de cambio</Button>}>

@@ -238,8 +238,10 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
   const onFormSubmit = (data: any) => {
     const submitData: any = { ...data };
     if (data.tourType === "INFORMATIONAL") {
-      delete submitData.pricing;
+      // Informational tours keep only their "Adquiérelo desde" rates: no departures, no group discount.
       submitData.departures = [];
+      const tiers = data.pricing?.tiers ?? [];
+      submitData.pricing = tiers.length ? { tiers } : initialData ? null : undefined;
     }
     onSubmit(submitData as TourCreateInput);
   };
@@ -344,11 +346,9 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
           </TabsTrigger>
           <TabsTrigger
             value="precios"
-            disabled={!isBookable}
-            title={!isBookable ? "Solo para tours comprables" : undefined}
             className={tabErrors.precios ? "text-red-600" : ""}
           >
-            Precios y Fechas{tabErrors.precios && tabErrorIcon}
+            {isBookable ? "Precios y Fechas" : "Precio «Desde»"}{tabErrors.precios && tabErrorIcon}
           </TabsTrigger>
           <TabsTrigger value="avanzado" className={tabErrors.avanzado ? "text-red-600" : ""}>
             Itinerario y Otros{tabErrors.avanzado && tabErrorIcon}
@@ -356,7 +356,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
         </TabsList>
         {!isBookable && (
           <p className="mb-6 text-xs text-muted-foreground">
-            «Precios y Fechas» solo está disponible para tours comprables. Cambia el tipo de tour en «Información General» para habilitarla.
+            Tour informativo: sin reserva online. Si le pones tarifas, la web muestra la más baja como «Adquiérelo desde» con el botón de cotizar.
           </p>
         )}
 
@@ -376,7 +376,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                     <Label className="text-base font-medium">Tipo de Tour</Label>
                     <div className="text-sm text-muted-foreground mt-1 text-balance">
                       Si está marcado como <b>Comprable</b>, los usuarios verán botones de reserva y precios.
-                      Si es <b>Informativo</b>, actuará como un artículo en el catálogo de destinos sin carrito.
+                      Si es <b>Informativo</b>, no se reserva online: se muestra «Adquiérelo desde» (si tiene tarifas) y el botón de cotizar. Úsalo para tours con muchas tarifas.
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -679,11 +679,12 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
         {/* TSTA 3: PRECIOS */}
         {/* ========================================================= */}
         <TabsContent value="precios">
-          {isBookable ? (
             <Card>
               <CardHeader>
-                <CardTitle>Tarifas y Disponibilidad</CardTitle>
-                <div className="text-sm text-muted-foreground">Configura los precios de venta y las fechas en las que los clientes podrán reservar este paquete.</div>
+                <CardTitle>{isBookable ? "Tarifas y Disponibilidad" : "Precio «Adquiérelo desde»"}</CardTitle>
+                <div className="text-sm text-muted-foreground">{isBookable
+                  ? "Configura los precios de venta y las fechas en las que los clientes podrán reservar este paquete."
+                  : "Opcional. La web muestra la tarifa más baja como «Adquiérelo desde S/ X por persona» y el botón de cotizar. Déjalo vacío para mostrar «Contáctanos»."}</div>
               </CardHeader>
               <CardContent className="space-y-6">
                   {/* Tarifas por categoría de pasajero */}
@@ -746,6 +747,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                   )}
                 </div>
 
+                {isBookable && <>
                 {/* Descuento Grupal */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -801,14 +803,9 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                     </div>
                   )}
                 </div>
+                </>}
               </CardContent>
             </Card>
-          ) : (
-            <div className="p-8 text-center text-muted-foreground border rounded-xl bg-card">
-              Este tour está marcado como "Informativo" así que no lleva precios de venta ni fechas.
-              <br />Ve a la pestaña <b>Información General</b> para cambiarlo si lo requieres.
-            </div>
-          )}
         </TabsContent>
 
         {/* ========================================================= */}

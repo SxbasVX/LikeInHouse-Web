@@ -8,7 +8,7 @@ import { MapPin, Clock, Star, ShoppingCart, Check, ArrowRight, Tag } from "lucid
 import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { getFinalPrice } from "@/lib/pricing";
+import { getFinalPrice, lowestTierPrice } from "@/lib/pricing";
 import { formatDuration } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { useCurrency } from "@/hooks/use-currency";
@@ -206,7 +206,17 @@ export function TourCard({ tour }: TourCardProps) {
       {/* Footer */}
       <div className="flex items-center justify-between mt-auto">
         {tour.tourType === "INFORMATIONAL" ? (
-          <span className="text-sm font-medium text-gray-400">{isEs ? "Solo informativo" : "Info only"}</span>
+          lowestTierPrice(tour.pricing) != null ? (
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-brand-teal">{t("get_it_from")}</span>
+              <p className="text-lg font-bold text-brand-orange">
+                {display(lowestTierPrice(tour.pricing)!, { compact: true })}{" "}
+                <span className="text-[13px] font-light text-gray-500">/ {t("per_person")}</span>
+              </p>
+            </div>
+          ) : (
+            <span className="text-sm font-medium text-gray-400">{isEs ? "Solo informativo" : "Info only"}</span>
+          )
         ) : priceInfo ? (
           <div className="flex items-baseline gap-2">
             {priceInfo.hasDiscount && (
@@ -225,7 +235,7 @@ export function TourCard({ tour }: TourCardProps) {
           variant="outline"
           className="rounded-full border-gray-200 hover:border-brand-orange hover:bg-brand-orange hover:text-white px-5 h-10 font-medium transition-all group-hover:shadow-[0_4px_14px_rgba(252,69,31,0.2)]"
         >
-          {t("book_now")}
+          {tour.tourType === "INFORMATIONAL" ? t("quote_cta") : t("book_now")}
           <ArrowRight className="ml-1.5 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
         </Button>
       </div>

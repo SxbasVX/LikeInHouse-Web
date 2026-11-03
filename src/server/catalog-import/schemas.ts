@@ -115,6 +115,8 @@ export const catalogTourCandidateSchema = z.object({
     field: z.string(), valueA: nullableString, valueB: nullableString,
     sourcePages: z.array(z.number().int().positive()).min(1), reason: z.string().min(1),
   })).optional(),
+  // Many rate combinations (hotel, room, season…): published as informational, "Adquiérelo desde" + quote, no online booking.
+  informational: z.boolean().optional(),
   // Server-set: SUNAT rate and markup used to publish the USD prices (never filled by the model).
   priceAdjustment: priceAdjustmentSchema.optional(),
   // Server-set: existing tours a reviewer confirmed are different, with the reason. Never filled by the model.

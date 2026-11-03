@@ -112,3 +112,12 @@ export function calculateTotalWithDiscount(
     discountPercent: result.discountPercent,
   };
 }
+
+/**
+ * "Adquiérelo desde": the lowest per-person tier of an informational tour.
+ * These tours are quoted, not booked online, so promos and global discounts don't apply here.
+ */
+export function lowestTierPrice(pricing: { tiers?: Array<{ priceUsd: unknown }> | null } | null | undefined): number | null {
+  const prices = (pricing?.tiers ?? []).map((tier) => Number(tier.priceUsd)).filter((value) => isFinite(value) && value > 0);
+  return prices.length ? Math.min(...prices) : null;
+}

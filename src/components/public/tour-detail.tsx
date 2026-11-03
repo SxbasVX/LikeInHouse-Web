@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { lowestTierPrice } from "@/lib/pricing";
 import { Link } from "@/i18n/routing";
 import {
   MapPin, Clock, Star, Calendar, Check, X, Users,
@@ -115,6 +116,8 @@ export function TourDetail({ tour }: { tour: TourData }) {
   // Prefer tiers over legacy fields
   const defaultTier = tour.pricing?.tiers?.find((t) => t.isDefault) || tour.pricing?.tiers?.[0];
   const rawPrice = defaultTier ? Number(defaultTier.priceUsd) : (tour.pricing ? Number(tour.pricing.basePriceUsdAdult) : null);
+  // Informational tours (many rates, quoted by sales) show their lowest rate as "Adquiérelo desde".
+  const fromPrice = tour.tourType === "INFORMATIONAL" ? lowestTierPrice(tour.pricing) : null;
 
   // Descuento global activo (Black Friday, etc.) — aplica a todos los tours
   const { data: globalDiscount } = trpc.public.activeGlobalDiscount.useQuery(undefined, {
@@ -533,6 +536,15 @@ export function TourDetail({ tour }: { tour: TourData }) {
                           </div>
                         )}
                       </>
+                    ) : fromPrice != null ? (
+                      <>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-brand-teal">{t("get_it_from")}</p>
+                        <div className="mt-1 flex items-baseline gap-1">
+                          <span className="font-heading text-5xl font-bold text-brand-orange leading-none">{display(fromPrice, { compact: true })}</span>
+                          <span className="text-sm text-gray-400 ml-1">/ {t("per_person")}</span>
+                        </div>
+                        <p className="mt-2 text-xs leading-relaxed text-gray-500">{t("reference_price")}</p>
+                      </>
                     ) : (
                       <p className="text-sm font-medium text-gray-600">{t("contact_for_info")}</p>
                     )}
@@ -724,7 +736,17 @@ export function TourDetail({ tour }: { tour: TourData }) {
     )}
     {tour.tourType === "INFORMATIONAL" && (
       <div className="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3">
-        <span className="text-sm font-semibold text-gray-700">{t("contact_for_info")}</span>
+        {fromPrice != null ? (
+          <div className="flex min-w-0 flex-col">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-brand-teal">{t("get_it_from")}</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-heading text-xl font-bold text-brand-orange leading-none">{display(fromPrice, { compact: true })}</span>
+              <span className="text-[11px] text-gray-400">/ {t("per_person")}</span>
+            </div>
+          </div>
+        ) : (
+          <span className="text-sm font-semibold text-gray-700">{t("contact_for_info")}</span>
+        )}
         <button
           type="button"
           onClick={() => setQuoteOpen(true)}

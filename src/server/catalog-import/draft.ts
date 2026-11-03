@@ -8,6 +8,8 @@ export function draftCreateData(candidate: CatalogTourCandidate): Prisma.TourCre
   if (validateCatalogTour(candidate).length) throw new Error("El candidato necesita revisión.");
   return {
     slug: candidate.slug!, status: "DRAFT", isFeatured: false,
+    // Many-rate tours are quoted by sales: the lowest rate is shown as "Adquiérelo desde", with no online booking.
+    tourType: candidate.informational ? "INFORMATIONAL" : "BOOKABLE",
     category: candidate.category!, destination: candidate.destination!, difficulty: candidate.difficulty!,
     durationDays: candidate.durationDays!, durationNights: candidate.durationNights!, durationHours: candidate.durationHours,
     nameEs: candidate.nameEs!, nameEn: candidate.nameEn!,

@@ -255,6 +255,7 @@ function TourRow({ tour }: { tour: JobTour }) {
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:hidden"><StatusBadge domain="catalogTour" status={tour.status} /></div>
     </div>
     <div className="hidden flex-wrap items-center justify-end gap-2 text-xs sm:flex">
+      {(tour.tourDataJson as { informational?: boolean } | null)?.informational && <span className="rounded-full border border-brand-orange/30 bg-brand-orange/10 px-2 py-0.5 font-medium text-brand-orange">Informativo · desde</span>}
       {tour.reviewDraftAt && <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-800">Cambios sin aprobar</span>}
       {suggestions > 0 && <span className="inline-flex items-center gap-1 text-brand-darkTeal"><Sparkles className="h-3.5 w-3.5" />{suggestions}</span>}
       {tour.issues.length > 0 && <span className="text-muted-foreground">{checked}/{tour.issues.length} revisados</span>}
