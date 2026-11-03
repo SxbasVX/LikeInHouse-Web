@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
+import { signOutToLogin } from "@/lib/auth-client";
 import { useToast } from "@/hooks/use-toast";
 import type { RouterOutput } from "@/types";
 
@@ -34,6 +35,8 @@ export function CatalogAccessGate({ children }: { children: (status: CatalogAcce
       </div>
       <Input type="password" autoComplete="off" autoFocus aria-label="Código privado" placeholder="Código privado" value={secret} onChange={(e) => setSecret(e.target.value)} required maxLength={256} />
       <Button className="w-full" disabled={access.isPending || !secret}>{access.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verificando…</> : "Ingresar"}</Button>
+      <button type="button" onClick={() => void signOutToLogin()} className="w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+        Cerrar sesión y cambiar de cuenta</button>
     </form>
   </div>;
 }
@@ -45,9 +48,13 @@ export function ClaudeStatusChip({ status }: { status: CatalogAccessStatus }) {
     : <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-800">Falta configurar ANTHROPIC_API_KEY</span>;
 }
 
+// "Cerrar acceso" only forgets the private code; "Cerrar sesión" signs the account out of the panel.
 export function CatalogLogoutButton() {
   const utils = trpc.useUtils();
   // reset (not invalidate): a failed refetch would otherwise keep the old "authorized" data on screen.
   const logout = trpc.catalogImport.logout.useMutation({ onSuccess: () => { utils.catalogImport.history.reset(); utils.catalogImport.preview.reset(); void utils.catalogImport.status.reset(); } });
-  return <Button variant="ghost" size="sm" onClick={() => logout.mutate()} disabled={logout.isPending}><LogOut className="mr-1.5 h-4 w-4" />Cerrar acceso</Button>;
+  return <>
+    <Button variant="ghost" size="sm" onClick={() => logout.mutate()} disabled={logout.isPending} title="Vuelve a pedir el código privado"><KeyRound className="mr-1.5 h-4 w-4" />Cerrar acceso</Button>
+    <Button variant="ghost" size="sm" onClick={() => void signOutToLogin()} title="Salir de esta cuenta"><LogOut className="mr-1.5 h-4 w-4" />Cerrar sesión</Button>
+  </>;
 }
