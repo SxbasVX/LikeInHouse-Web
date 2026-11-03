@@ -19,7 +19,8 @@ export function validateCatalogTour(c: CatalogTourCandidate): CatalogValidationI
   for (const field of ["shortDescEs", "shortDescEn"] as const) if ((c[field]?.length ?? 0) > 160) add(field, "Máximo 160 caracteres.", "INVALID_VALUE");
   for (const [field, proof] of Object.entries(c.provenance ?? {})) {
     if (proof.requiresReview || proof.source === "inferred" || proof.source === "suggested") add(field, "Propuesta editorial: requiere confirmación humana.");
-    if (proof.sourcePages.some((page) => !c.sourcePages.includes(page))) add(field, "La evidencia refiere páginas ajenas al tour.", "INVALID_VALUE");
+    // Traceability warning only: the reviewer checks the evidence and accepts it.
+    if (proof.sourcePages.some((page) => !c.sourcePages.includes(page))) add(field, "La evidencia refiere páginas ajenas al tour.");
   }
   for (const field of ["category", "difficulty", "durationDays", "durationNights"] as const) {
     if (c[field] !== null && !c.provenance?.[field]) add(field, "Falta identificar la procedencia de este dato.");

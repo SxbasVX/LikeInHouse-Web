@@ -3,9 +3,11 @@ import type { CatalogTourCandidate } from "./schemas";
 import { conditionRows, renderItineraryDay } from "./editorial";
 import { validateCatalogTour } from "./validator";
 import { publishedPrice } from "./pricing";
+import { isBlockingIssue } from "./severity";
 
 export function draftCreateData(candidate: CatalogTourCandidate): Prisma.TourCreateInput {
-  if (validateCatalogTour(candidate).length) throw new Error("El candidato necesita revisión.");
+  // Accepted advisory issues are fine (status READY guarantees they were accepted); blocking ones never are.
+  if (validateCatalogTour(candidate).some(isBlockingIssue)) throw new Error("El candidato necesita revisión.");
   return {
     slug: candidate.slug!, status: "DRAFT", isFeatured: false,
     // Many-rate tours are quoted by sales: the lowest rate is shown as "Adquiérelo desde", with no online booking.
@@ -17,7 +19,8 @@ export function draftCreateData(candidate: CatalogTourCandidate): Prisma.TourCre
     longDescEs: candidate.longDescEs!, longDescEn: candidate.longDescEn!,
     metaTitleEs: candidate.metaTitleEs, metaTitleEn: candidate.metaTitleEn, metaDescEs: candidate.metaDescEs, metaDescEn: candidate.metaDescEn,
     itinerary: { create: candidate.itinerary.map((day) => ({
-      dayNumber: day.dayNumber, titleEs: day.titleEs!, titleEn: day.titleEn!,
+      // A missing day title is an accepted warning, not a reason to fail: fall back to "Día N".
+      dayNumber: day.dayNumber, titleEs: day.titleEs ?? `Día ${day.dayNumber}`, titleEn: day.titleEn ?? `Day ${day.dayNumber}`,
       descriptionEs: renderItineraryDay(day, "Es"), descriptionEn: renderItineraryDay(day, "En"),
     })) },
     // Tiers are the source of price truth. Leave legacy defaults to the existing schema.

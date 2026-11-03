@@ -1,5 +1,7 @@
 // Human labels and review-tab placement for candidate fields, shared by the inbox and the review page.
 
+import { isBlockingIssue } from "@/server/catalog-import/severity";
+
 export type ReviewTab = "general" | "prices" | "itinerary" | "services" | "seo" | "advanced";
 
 export const REVIEW_TABS: Array<{ value: ReviewTab; label: string }> = [
@@ -49,16 +51,18 @@ export const isClaudeSuggestion = (reason: string) => reason.startsWith("Sugeren
 
 export interface PendingIssue { id: string; type: string; field: string | null; reason: string; valueA: string | null; valueB: string | null; checkedAt: Date | string | null }
 
-export interface PendingGroup { field: string; label: string; tab: ReviewTab; issues: PendingIssue[]; checked: boolean; suggestion: PendingIssue | null }
+/** blocking: must be fixed in the form; otherwise a warning that marking as seen accepts. */
+export interface PendingGroup { field: string; label: string; tab: ReviewTab; issues: PendingIssue[]; checked: boolean; blocking: boolean; suggestion: PendingIssue | null }
 
 // One checklist row per field: checking it marks every open issue of that field as seen.
 export function groupPending(issues: PendingIssue[]): PendingGroup[] {
   const groups = new Map<string, PendingGroup>();
   for (const issue of issues) {
     const field = issue.field ?? "general";
-    const group = groups.get(field) ?? { field, label: fieldLabel(field), tab: fieldTab(field), issues: [], checked: true, suggestion: null };
+    const group = groups.get(field) ?? { field, label: fieldLabel(field), tab: fieldTab(field), issues: [], checked: true, blocking: false, suggestion: null };
     group.issues.push(issue);
     group.checked &&= Boolean(issue.checkedAt);
+    group.blocking ||= isBlockingIssue(issue);
     if (isClaudeSuggestion(issue.reason)) group.suggestion = issue;
     groups.set(field, group);
   }

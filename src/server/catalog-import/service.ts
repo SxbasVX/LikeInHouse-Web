@@ -4,6 +4,7 @@ import { db } from "@/server/lib/db";
 import { catalogTourCandidateSchema, type CatalogExtractionEnvelope, type CatalogTourCandidate } from "./schemas";
 import { validateCatalogTour } from "./validator";
 import { findDuplicateMatches } from "./duplicates";
+import { isBlockingIssue, statusFromIssues } from "./severity";
 import type { PriceAdjustment } from "./pricing";
 import { getSunatQuote } from "@/server/lib/exchange";
 
@@ -30,24 +31,23 @@ export async function refreshImportCounts(importId: string) {
 export async function persistCandidateReview(tx: Prisma.TransactionClient, importTourId: string, candidate: CatalogTourCandidate, userId: string,
   extraIssues: Prisma.ImportIssueCreateManyInput[], { keepChecks = false } = {}) {
   const issues = validateCatalogTour(candidate), duplicates = await findDuplicateMatches(tx, candidate);
-  const status = duplicates.length ? "DUPLICATE" as const : issues.length ? "NEEDS_REVIEW" as const : "READY" as const;
+  const checked = keepChecks ? await tx.importIssue.findMany({ where: { importTourId, resolved: false, checkedAt: { not: null } }, select: { type: true, field: true, checkedAt: true, checkedById: true } }) : [];
+  const checkOf = (issue: { type: string; field?: string | null }) => checked.find((c) => c.type === issue.type && c.field === (issue.field ?? null));
+  const fresh: Prisma.ImportIssueCreateManyInput[] = [
+    ...issues.map((issue) => ({ ...issue, importTourId })),
+    ...duplicates.slice(0, 3).map((d) => ({ importTourId, type: "POSSIBLE_DUPLICATE" as const, field: "tour", valueA: d.tourId, valueB: String(d.score), reason: d.reasons.join(" "), sourcePages: candidate.sourcePages })),
+  ].map((issue) => { const mark = checkOf(issue); return mark ? { ...issue, checkedAt: mark.checkedAt, checkedById: mark.checkedById } : issue; });
+  // Accepted warnings (kept marks) don't hold the tour back; anything blocking or not yet seen does.
+  const status = statusFromIssues(fresh.map((i) => ({ type: i.type, field: i.field ?? null, checkedAt: i.checkedAt as Date | null | undefined })), duplicates.length > 0);
   await tx.catalogImportTour.update({ where: { id: importTourId }, data: {
     tourDataJson: jsonData(candidate), sourcePages: candidate.sourcePages, status,
     existingTourId: duplicates[0]?.tourId ?? null, confidence: duplicates[0]?.score ?? null,
     reviewDraftJson: Prisma.DbNull, reviewDraftAt: null,
   } });
-  const checked = keepChecks ? await tx.importIssue.findMany({ where: { importTourId, resolved: false, checkedAt: { not: null } }, select: { type: true, field: true, checkedAt: true, checkedById: true } }) : [];
-  const checkOf = (issue: { type: string; field?: string | null }) => checked.find((c) => c.type === issue.type && c.field === (issue.field ?? null));
   await tx.importIssue.updateMany({ where: { importTourId, resolved: false }, data: { resolved: true, resolvedAt: new Date(), resolvedById: userId } });
-  const fresh: Prisma.ImportIssueCreateManyInput[] = [
-    ...issues.map((issue) => ({ ...issue, importTourId })),
-    ...duplicates.slice(0, 3).map((d) => ({ importTourId, type: "POSSIBLE_DUPLICATE" as const, field: "tour", valueA: d.tourId, valueB: String(d.score), reason: d.reasons.join(" "), sourcePages: candidate.sourcePages })),
-  ];
-  await tx.importIssue.createMany({ data: [
-    ...fresh.map((issue) => { const mark = checkOf(issue); return mark ? { ...issue, checkedAt: mark.checkedAt, checkedById: mark.checkedById } : issue; }),
-    ...extraIssues,
-  ] });
-  return { status, issues, duplicateMatches: duplicates };
+  await tx.importIssue.createMany({ data: [...fresh, ...extraIssues] });
+  const blocking = fresh.filter((i) => isBlockingIssue({ type: i.type, field: i.field ?? null })).length;
+  return { status, issues, duplicateMatches: duplicates, blocking, warnings: fresh.length - blocking, unaccepted: fresh.filter((i) => !i.checkedAt && !isBlockingIssue({ type: i.type, field: i.field ?? null })).length };
 }
 
 // Each candidate is atomic and independent: stored indexes are skipped, so a run cut off by the deadline resumes safely.

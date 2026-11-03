@@ -13,6 +13,7 @@ import { findDuplicateMatches } from "@/server/catalog-import/duplicates";
 import { draftCreateData } from "@/server/catalog-import/draft";
 import { currentPriceAdjustment, persistCandidateReview, refreshImportCounts } from "@/server/catalog-import/service";
 import { CLAUDE_MODEL, isClaudeConfigured } from "@/server/catalog-import/providers/anthropic";
+import { isBlockingIssue, statusFromIssues } from "@/server/catalog-import/severity";
 import { checkRateLimit } from "@/server/lib/rate-limit";
 import { assertValidDestination } from "@/server/lib/tour-destinations";
 import { assertValidCategories, getTourCategories } from "@/server/lib/tour-categories";
@@ -76,6 +77,15 @@ export const catalogImportRouter = router({
       import: { select: { id: true, filename: true, status: true, batchStage: true } },
     } });
     if (!record) throw new TRPCError({ code: "NOT_FOUND" });
+    // Tours reviewed before warnings could be accepted: settle their status with the current rule when opened.
+    if (["NEEDS_REVIEW", "READY"].includes(record.status)) {
+      const status = statusFromIssues(record.issues, false);
+      if (status !== record.status) {
+        await ctx.db.catalogImportTour.update({ where: { id: record.id }, data: { status } });
+        await refreshImportCounts(record.importId);
+        record.status = status;
+      }
+    }
     const parsed = catalogTourCandidateSchema.safeParse(record.tourDataJson);
     // Siblings in document order power "previous / next to review" without loading the whole history.
     const siblings = (await ctx.db.catalogImportTour.findMany({ where: { importId: record.importId }, orderBy: [{ sourceIndex: "asc" }, { createdAt: "asc" }],
@@ -101,10 +111,23 @@ export const catalogImportRouter = router({
     await ctx.db.catalogImportTour.update({ where: { id: input.importTourId }, data: { reviewDraftJson: Prisma.DbNull, reviewDraftAt: null } });
     return { success: true };
   }),
+  // Marking a warning as seen accepts it; when nothing blocks and every warning is accepted the tour becomes READY.
   setIssueChecked: authorized.input(z.object({ issueIds: z.array(z.string().cuid()).min(1).max(50), checked: z.boolean() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.importIssue.updateMany({ where: { id: { in: input.issueIds }, resolved: false },
-      data: input.checked ? { checkedAt: new Date(), checkedById: ctx.user.id } : { checkedAt: null, checkedById: null } });
-    return { success: true };
+    const result = await ctx.db.$transaction(async (tx) => {
+      const first = await tx.importIssue.findFirst({ where: { id: { in: input.issueIds } }, select: { importTourId: true } });
+      if (!first) throw new TRPCError({ code: "NOT_FOUND" });
+      await tx.$queryRaw`SELECT "id" FROM "CatalogImportTour" WHERE "id" = ${first.importTourId} FOR UPDATE`;
+      await tx.importIssue.updateMany({ where: { id: { in: input.issueIds }, importTourId: first.importTourId, resolved: false },
+        data: input.checked ? { checkedAt: new Date(), checkedById: ctx.user.id } : { checkedAt: null, checkedById: null } });
+      const record = await tx.catalogImportTour.findUniqueOrThrow({ where: { id: first.importTourId },
+        include: { issues: { where: { resolved: false }, select: { type: true, field: true, checkedAt: true } } } });
+      if (!["NEEDS_REVIEW", "READY"].includes(record.status)) return { status: record.status, importId: record.importId };
+      const status = statusFromIssues(record.issues, false);
+      if (status !== record.status) await tx.catalogImportTour.update({ where: { id: record.id }, data: { status } });
+      return { status, importId: record.importId };
+    });
+    await refreshImportCounts(result.importId);
+    return { status: result.status };
   }),
   validateCandidate: authorized.input(z.object({ candidate: z.unknown() })).mutation(async ({ input }) => {
     const issues = validateCatalogTour(parseCandidate(input.candidate));
@@ -202,7 +225,7 @@ export const catalogImportRouter = router({
       if (record.reviewDraftAt) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Tienes cambios sin aprobar. Apruébalos o descártalos antes de crear el tour." });
       if (record.status !== "READY" || record.existingTourId) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Este candidato requiere revisión." });
       const candidate = parseCandidate(record.tourDataJson);
-      if (validateCatalogTour(candidate).length) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Corrige las incidencias antes de crear el borrador." });
+      if (validateCatalogTour(candidate).some(isBlockingIssue)) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Corrige las incidencias que bloquean antes de crear el borrador." });
       await assertValidDestination(tx, candidate.destination!);
       // La IA escribe la categoría libre ("Cultural y naturaleza"): se traduce a la lista oficial
       const mapped = mapLegacyCategory(candidate.category!, await getTourCategories(tx));

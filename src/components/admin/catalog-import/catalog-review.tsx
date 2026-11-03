@@ -80,6 +80,13 @@ export function CatalogReview({ importTourId }: { importTourId: string }) {
     onMutate: ({ issueIds, checked }) => utils.catalogImport.preview.setData({ importTourId }, (old) => old && {
       ...old, record: { ...old.record, issues: old.record.issues.map((i) => (issueIds.includes(i.id) ? { ...i, checkedAt: checked ? new Date() : null } : i)) },
     }),
+    onSuccess: async ({ status }) => {
+      // Accepting the last warning can make the tour READY: refresh status and the Crear button.
+      if (status !== preview.data?.record.status) {
+        await preview.refetch(); void utils.catalogImport.history.invalidate();
+        if (status === "READY") toast({ title: "Tour listo para crear", description: "Ya no le quedan pendientes. Pulsa «Crear tour (borrador)»." });
+      }
+    },
     onError: (error) => { toast({ title: "No se guardó la marca", description: error.message, variant: "destructive" }); void preview.refetch(); },
   });
   const approve = trpc.catalogImport.updateCandidate.useMutation();
@@ -108,7 +115,10 @@ export function CatalogReview({ importTourId }: { importTourId: string }) {
   const confirmable = new Set([...ALWAYS_CONFIRMABLE, ...Object.entries(data.candidate?.provenance ?? {}).filter(([, p]) => p.requiresReview || p.source === "inferred" || p.source === "suggested").map(([k]) => k)]);
   const confirmed = groups.filter((g) => g.checked && confirmable.has(g.field)).map((g) => g.field);
   const checkedCount = groups.filter((g) => g.checked).length;
-  const canCreate = !hasDraft && record.status === "READY" && data.validation.length === 0;
+  const blockingCount = groups.filter((g) => g.blocking).length;
+  const openWarnings = groups.filter((g) => !g.blocking && !g.checked).length;
+  // READY is set by the server only when nothing blocks and every warning was accepted.
+  const canCreate = !hasDraft && record.status === "READY";
   const index = data.siblings.findIndex((s) => s.id === record.id);
   const nextPending = [...data.siblings.slice(index + 1), ...data.siblings.slice(0, index)].find((s) => ["review", "ready"].includes(bucketOf(s.status)));
   const back = `/admin/dev/catalog-import?doc=${record.importId}`;
@@ -121,8 +131,9 @@ export function CatalogReview({ importTourId }: { importTourId: string }) {
     approve.mutate({ importTourId, candidate: parsed.data, reviewNote: note, confirmedFields: confirmed }, {
       onSuccess: async (result) => {
         setDialog(null); setNote(""); await reload();
-        toast(result.status === "READY" ? { title: "Cambios aprobados", description: "El tour está listo: ya puedes crearlo como borrador." }
-          : { title: "Cambios aprobados", description: `Quedan ${result.issues.length + result.duplicateMatches.length} avisos por resolver.` });
+        toast(result.status === "READY" ? { title: "Cambios aprobados · listo para crear", description: "Ya puedes pulsar «Crear tour (borrador)»." }
+          : result.status === "DUPLICATE" ? { title: "Cambios aprobados", description: "Falta resolver el parecido con un tour existente." }
+          : { title: "Cambios aprobados", description: [result.blocking && `${result.blocking} por corregir`, result.unaccepted && `${result.unaccepted} avisos por aceptar`].filter(Boolean).join(" · ") + ". Mira la columna Pendientes." });
       },
       onError: fail("No se pudieron aprobar los cambios"),
     });
@@ -187,7 +198,9 @@ export function CatalogReview({ importTourId }: { importTourId: string }) {
     {!readOnly && <footer className="fixed inset-x-0 bottom-0 z-20 border-t bg-white/95 px-4 py-3 backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2">
         {record.status !== "BLOCKED" && <Button variant="ghost" className="text-muted-foreground" onClick={() => setDialog("skip")}>Omitir tour</Button>}
-        <span className="hidden flex-1 text-xs text-muted-foreground sm:block">{hasDraft ? "Tus cambios se guardan solos. Apruébalos cuando termines." : groups.length ? `${checkedCount} de ${groups.length} pendientes revisados.` : "Sin pendientes."}</span>
+        <span className="hidden flex-1 text-xs text-muted-foreground sm:block">{hasDraft ? "Tus cambios se guardan solos. Apruébalos cuando termines."
+          : canCreate ? "Todo listo: puedes crear el tour."
+          : [blockingCount && `${blockingCount} por corregir`, openWarnings && `${openWarnings} avisos por aceptar`].filter(Boolean).join(" · ") || "Sin pendientes."}</span>
         <div className="ml-auto flex flex-wrap gap-2">
           {savedAt && <Button variant="outline" onClick={() => setDialog("discard")}><Undo2 className="mr-1.5 h-4 w-4" />Descartar cambios</Button>}
           {nextPending && !hasDraft && !canCreate && <Button variant="outline" onClick={() => router.push(`/admin/dev/catalog-import/${nextPending.id}`)}>Siguiente por revisar<ChevronRight className="ml-1 h-4 w-4" /></Button>}
@@ -249,22 +262,41 @@ function Banner({ tone, children }: { tone: "teal" | "slate" | "sky"; children: 
 function PendingPanel({ groups, checkedCount, confirmable, readOnly, onGo, onToggle }: {
   groups: PendingGroup[]; checkedCount: number; confirmable: Set<string>; readOnly: boolean; onGo: (tab: ReviewTab) => void; onToggle: (group: PendingGroup, checked: boolean) => void;
 }) {
-  return <section className="rounded-xl border bg-white p-4">
-    <div className="flex items-center justify-between"><h2 className="font-medium">Pendientes</h2>
-      <span className="text-xs tabular-nums text-muted-foreground">{checkedCount}/{groups.length} revisados</span></div>
-    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-brand-teal transition-all" style={{ width: `${groups.length ? (checkedCount / groups.length) * 100 : 100}%` }} /></div>
-    {!groups.length ? <p className="mt-4 flex items-center gap-2 text-sm text-brand-darkTeal"><Check className="h-4 w-4" />Sin pendientes: el tour pasó todas las validaciones.</p>
-      : <ul className="mt-3 space-y-2">{groups.map((group) => <li key={group.field} className={cn("rounded-lg border p-2.5 transition", group.checked ? "border-brand-teal/20 bg-brand-teal/5" : "border-amber-200 bg-amber-50/50")}>
+  const blocking = groups.filter((g) => g.blocking), warnings = groups.filter((g) => !g.blocking);
+  const accepted = warnings.filter((g) => g.checked).length;
+  const reason = (group: PendingGroup) => group.issues.find((i) => !i.reason.startsWith("Sugerencia de Claude"))?.reason ?? group.issues[0].reason;
+  return <section className="space-y-4 rounded-xl border bg-white p-4">
+    <div>
+      <div className="flex items-center justify-between"><h2 className="font-medium">Pendientes</h2>
+        <span className="text-xs tabular-nums text-muted-foreground">{groups.length - blocking.length - (warnings.length - accepted)}/{groups.length} resueltos</span></div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-brand-teal transition-all" style={{ width: `${groups.length ? ((accepted) / groups.length) * 100 : 100}%` }} /></div>
+    </div>
+    {!groups.length && <p className="flex items-center gap-2 text-sm text-brand-darkTeal"><Check className="h-4 w-4" />Sin pendientes: el tour pasó todas las validaciones.</p>}
+
+    {blocking.length > 0 && <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-red-700">Para crear el tour, corrige ({blocking.length})</p>
+      <ul className="space-y-2">{blocking.map((group) => <li key={group.field} className="rounded-lg border border-red-200 bg-red-50/60 p-2.5">
+        <button type="button" onClick={() => onGo(group.tab)} className="text-left text-sm font-medium text-red-900 hover:underline">{group.label} →</button>
+        <p className="mt-0.5 text-xs text-red-800/80">{reason(group)}</p>
+        {group.suggestion && <SuggestionDiff before={group.suggestion.valueA} after={group.suggestion.valueB} evidence={group.suggestion.reason} />}
+      </li>)}</ul>
+      <p className="text-[11px] text-muted-foreground">Se resuelven editando el dato y pulsando «Aprobar cambios».</p>
+    </div>}
+
+    {warnings.length > 0 && <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Avisos: márcalos para aceptarlos ({accepted}/{warnings.length})</p>
+      <ul className="space-y-2">{warnings.map((group) => <li key={group.field} className={cn("rounded-lg border p-2.5 transition", group.checked ? "border-brand-teal/20 bg-brand-teal/5" : "border-amber-200 bg-amber-50/50")}>
         <div className="flex items-start gap-2.5">
-          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#15A58E]" checked={group.checked} disabled={readOnly} aria-label={`Marcar ${group.label} como revisado`} onChange={(e) => onToggle(group, e.target.checked)} />
+          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#15A58E]" checked={group.checked} disabled={readOnly} aria-label={`Aceptar ${group.label}`} onChange={(e) => onToggle(group, e.target.checked)} />
           <div className="min-w-0 flex-1">
             <button type="button" onClick={() => onGo(group.tab)} className={cn("text-left text-sm font-medium hover:underline", group.checked && "text-muted-foreground line-through decoration-1")}>{group.label}</button>
             {confirmable.has(group.field) && !group.checked && <span className="ml-1.5 text-[11px] text-amber-800">· marcar = confirmar dato</span>}
-            {!group.checked && <p className="mt-0.5 text-xs text-muted-foreground">{group.issues.find((i) => !i.reason.startsWith("Sugerencia de Claude"))?.reason ?? group.issues[0].reason}</p>}
+            {!group.checked && <p className="mt-0.5 text-xs text-muted-foreground">{reason(group)}</p>}
             {group.suggestion && !group.checked && <SuggestionDiff before={group.suggestion.valueA} after={group.suggestion.valueB} evidence={group.suggestion.reason} />}
           </div>
         </div>
-      </li>)}</ul>}
+      </li>)}</ul>
+    </div>}
   </section>;
 }
 
