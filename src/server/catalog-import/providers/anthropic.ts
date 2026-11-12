@@ -4,6 +4,7 @@ import { catalogEditorialPrompt } from "../prompt";
 import { catalogExtractionEnvelopeSchema } from "../schemas";
 import { estimateCost, parseJsonReply, ProviderError } from "./result";
 import type { AIProvider, CatalogAnalysisInput, ProviderResult } from "./types";
+import type { OfficialLists } from "../normalize";
 
 type Effort = "low" | "medium" | "high";
 type ContentBlock = Anthropic.Beta.Messages.BetaContentBlock;
@@ -190,9 +191,10 @@ function citedSources(blocks: ContentBlock[]): ClaudeReply["sources"] {
   return [...sources].map(([url, title]) => ({ url, title }));
 }
 
-export function extractionCall(filename: string, pdf: Buffer, reviewInstructions?: string): ClaudeCall {
+// Extraction runs in a batch (no time limit): high effort buys accuracy on prices, ages and durations, which is what the review checks.
+export function extractionCall(filename: string, pdf: Buffer, reviewInstructions?: string, lists?: OfficialLists): ClaudeCall {
   return {
-    system: catalogEditorialPrompt(filename), effort: "medium", maxTokens: 128_000,
+    system: catalogEditorialPrompt(filename, lists), effort: "high", maxTokens: 128_000,
     content: [
       { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdf.toString("base64") } },
       { type: "text", text: reviewInstructions || "Prepara los candidatos en JSON." },

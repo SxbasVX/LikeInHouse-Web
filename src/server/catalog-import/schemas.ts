@@ -121,6 +121,10 @@ export const catalogTourCandidateSchema = z.object({
   priceAdjustment: priceAdjustmentSchema.optional(),
   // Server-set: existing tours a reviewer confirmed are different, with the reason. Never filled by the model.
   dismissedDuplicates: z.array(z.object({ tourId: z.string(), reason: z.string(), userId: z.string(), at: z.string() })).max(50).optional(),
+  // Server-set: fixes applied automatically (see normalize.ts). verify=true asks the reviewer for one tick; the rest are notes.
+  autoFixes: z.array(z.object({ field: z.string(), reason: z.string(), verify: z.boolean() })).max(40).optional(),
+  // Server-set: version of the automatic rules this candidate was last normalized with.
+  rulesVersion: z.number().int().optional(),
   schedule: z.object({
     frequency: z.enum(["daily", "selected_days", "on_request", "unknown"]),
     days: z.array(z.number().int().min(0).max(6)),

@@ -1,5 +1,7 @@
 import type { CatalogTourCandidate } from "./schemas";
 import { CONVERTIBLE_CURRENCIES } from "./pricing";
+import type { OfficialLists } from "./normalize";
+import { splitCategories } from "@/lib/tour-categories";
 
 export interface CatalogValidationIssue {
   type: "DATA_REVIEW" | "MISSING_REQUIRED" | "INVALID_VALUE" | "CONTRADICTION";
@@ -14,13 +16,42 @@ export const CONFIRM_REASONS = {
   missingProvenance: "Falta identificar la procedencia de este dato.",
 } as const;
 
-export function validateCatalogTour(c: CatalogTourCandidate): CatalogValidationIssue[] {
+// Automatic fixes are reported with these prefixes: a note needs nothing from the reviewer, a "Verifica" asks for one tick.
+export const AUTO_NOTE_PREFIX = "Ajuste automático: ";
+export const VERIFY_PREFIX = "Verifica: ";
+
+// Reminders that never hold a tour back: the draft is still completed (photos, departures) in Tours before publishing.
+export const NOTE_REASONS = {
+  missingDayTitle: "Falta título de día ES/EN.",
+  itineraryAsText: "Separar el itinerario en actividades con título y descripción ES/EN.",
+  scheduleDays: "Faltan días de salida.",
+  scheduleDates: "Las fechas específicas requieren configurar capacidad y salidas en el admin; no se inventarán.",
+  scheduleNotes: "Traducir las notas de horarios.",
+  noImages: "Faltan sugerencias visuales basadas en el documento.",
+  noCover: "Seleccionar una sugerencia de portada.",
+  priceSource: "Falta procedencia del precio.",
+} as const;
+
+// A derived rate may state its discount as an amount, a fraction (0.08) or a percentage (8).
+function derivedAmountMatches(base: number, discount: number, amount: number): boolean {
+  const close = (value: number) => Math.abs(value - amount) <= 0.011;
+  return close(base - discount) || (discount > 0 && discount < 1 && close(base * (1 - discount))) || (discount >= 1 && discount <= 100 && close(base * (1 - discount / 100)));
+}
+
+/** `lists` adds the checks against the official cities and categories (a tour outside them can't be created). */
+export function validateCatalogTour(c: CatalogTourCandidate, lists?: OfficialLists): CatalogValidationIssue[] {
   const issues: CatalogValidationIssue[] = [];
   const add = (field: string, reason: string, type: CatalogValidationIssue["type"] = "DATA_REVIEW") =>
     issues.push({ type, field, reason, sourcePages: c.sourcePages });
   for (const field of ["nameEs", "nameEn", "slug", "category", "destination", "difficulty", "durationDays", "durationNights", "shortDescEs", "shortDescEn", "longDescEs", "longDescEn", "metaTitleEs", "metaTitleEn", "metaDescEs", "metaDescEn"] as const) {
     if (c[field] === null || c[field] === "") add(field, "Dato obligatorio ausente. Completar desde el documento o confirmar editorialmente.", "MISSING_REQUIRED");
   }
+  if (lists && c.destination && !lists.destinations.includes(c.destination)) add("destination", `«${c.destination}» no está en la lista de ciudades. Elige una ciudad de la lista o añádela.`, "INVALID_VALUE");
+  if (lists && c.category) {
+    const outside = splitCategories(c.category).filter((category) => !lists.categories.includes(category));
+    if (outside.length) add("category", `Categoría fuera de la lista oficial: ${outside.map((x) => `«${x}»`).join(", ")}. Elige de la lista.`, "INVALID_VALUE");
+  }
+  for (const fix of c.autoFixes ?? []) add(fix.field, `${fix.verify ? VERIFY_PREFIX : AUTO_NOTE_PREFIX}${fix.reason}`);
   if (c.durationDays === 0 && !c.durationHours) add("durationHours", "Una experiencia de horas necesita una duración documentada.");
   if (c.durationNights !== null && c.durationDays !== null && c.durationNights > c.durationDays) add("durationNights", "Las noches superan los días.", "CONTRADICTION");
   for (const field of ["shortDescEs", "shortDescEn"] as const) if ((c[field]?.length ?? 0) > 160) add(field, "Máximo 160 caracteres.", "INVALID_VALUE");
@@ -46,10 +77,10 @@ export function validateCatalogTour(c: CatalogTourCandidate): CatalogValidationI
     if (p.priceType !== "per_person" || p.minPassengers != null || p.maxPassengers != null || p.serviceMode) add(key, "Tarifa por grupo, pasajeros o modalidad, o sin unidad definida: el modelo de venta actual no puede representarla con seguridad.");
     if (p.source === "derived") {
       const calc = p.calculation;
-      if (!calc || calc.discount > calc.baseAmount || p.amount === null || Math.abs((calc.baseAmount - calc.discount) - p.amount) > 0.005) add(`${key}.calculation`, "El cálculo derivado no coincide con el importe.", "INVALID_VALUE");
+      if (!calc || calc.discount > calc.baseAmount || p.amount === null || !derivedAmountMatches(calc.baseAmount, calc.discount, p.amount)) add(`${key}.calculation`, "El cálculo derivado no coincide con el importe.", "INVALID_VALUE");
       if (calc && !c.prices.some((other) => other.source !== "derived" && other.amount === calc.baseAmount && other.currency === p.currency)) add(`${key}.calculation`, "La tarifa base del cálculo no aparece documentada.");
     }
-    if (!p.source) add(`${key}.source`, "Falta procedencia del precio.");
+    if (!p.source) add(`${key}.source`, NOTE_REASONS.priceSource);
   });
   for (const [es, en] of [["includesEs", "includesEn"], ["excludesEs", "excludesEn"], ["conditionsEs", "conditionsEn"]] as const) {
     if (c[es].length !== c[en].length) add(en, "Las listas ES/EN deben corresponder elemento por elemento.");
@@ -61,8 +92,8 @@ export function validateCatalogTour(c: CatalogTourCandidate): CatalogValidationI
     if (dayNumbers.has(day.dayNumber)) add(key, "Día repetido.", "INVALID_VALUE");
     dayNumbers.add(day.dayNumber);
     if (c.durationDays !== null && day.dayNumber > Math.max(1, c.durationDays)) add(key, "Día fuera de la duración indicada.", "INVALID_VALUE");
-    if (!day.titleEs || !day.titleEn) add(key, "Falta título de día ES/EN.");
-    if (!day.items?.length) add(key, "Separar el itinerario en actividades con título y descripción ES/EN.");
+    if (!day.titleEs || !day.titleEn) add(key, NOTE_REASONS.missingDayTitle);
+    if (!day.items?.length) add(key, NOTE_REASONS.itineraryAsText);
     day.items?.forEach((item, itemIndex) => {
       if (!item.titleEs || !item.titleEn || !item.descriptionEs || !item.descriptionEn) add(`${key}.items.${itemIndex}`, "Actividad incompleta en ES/EN.");
       if (item.time && !validTime(item.time)) add(`${key}.items.${itemIndex}.time`, "Usar hora HH:mm o rango HH:mm - HH:mm documentado.", "INVALID_VALUE");
@@ -72,13 +103,13 @@ export function validateCatalogTour(c: CatalogTourCandidate): CatalogValidationI
     if (!condition.titleEs || !condition.titleEn || !condition.descriptionEs || !condition.descriptionEn) add(`conditions.${i}`, "Condición incompleta en ES/EN.");
   });
   if (c.schedule) {
-    if (c.schedule.frequency === "selected_days" && !c.schedule.days.length) add("schedule.days", "Faltan días de salida.");
+    if (c.schedule.frequency === "selected_days" && !c.schedule.days.length) add("schedule.days", NOTE_REASONS.scheduleDays);
     if (c.schedule.times.some((time) => !validTime(time))) add("schedule.times", "Horario inválido.", "INVALID_VALUE");
-    if (c.schedule.dates.length) add("schedule.dates", "Las fechas específicas requieren configurar capacidad y salidas en el admin; no se inventarán.");
-    if (Boolean(c.schedule.notesEs) !== Boolean(c.schedule.notesEn)) add("schedule", "Traducir las notas de horarios.");
+    if (c.schedule.dates.length) add("schedule.dates", NOTE_REASONS.scheduleDates);
+    if (Boolean(c.schedule.notesEs) !== Boolean(c.schedule.notesEn)) add("schedule", NOTE_REASONS.scheduleNotes);
   }
-  if (!c.imageSuggestions?.length) add("imageSuggestions", "Faltan sugerencias visuales basadas en el documento.");
-  if (c.imageSuggestions?.length && !c.imageSuggestions.some((s) => s.recommendedForCover)) add("imageSuggestions", "Seleccionar una sugerencia de portada.");
+  if (!c.imageSuggestions?.length) add("imageSuggestions", NOTE_REASONS.noImages);
+  if (c.imageSuggestions?.length && !c.imageSuggestions.some((s) => s.recommendedForCover)) add("imageSuggestions", NOTE_REASONS.noCover);
   return issues;
 }
 

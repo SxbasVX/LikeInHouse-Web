@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, Check, ChevronRight, FileText, Loader2, RotateCw, Search, Sparkles, UploadCloud, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronRight, FileText, Loader2, MapPin, RefreshCw, RotateCw, Search, Sparkles, UploadCloud, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RULES_VERSION } from "@/server/catalog-import/normalize";
 import { PageHeader } from "@/components/admin/page-header";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { EmptyState, ErrorState } from "@/components/admin/list-states";
@@ -16,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/format";
 import type { RouterOutput } from "@/types";
 import { ClaudeStatusChip, CatalogLogoutButton, type CatalogAccessStatus } from "./catalog-access-gate";
-import { bucketOf, candidateSummary, isClaudeSuggestion, TOUR_BUCKETS, type TourBucket } from "./catalog-fields";
+import { bucketOf, candidateSummary, isClaudeSuggestion, missingCity, tourPending, TOUR_BUCKETS, type TourBucket } from "./catalog-fields";
 
 type Job = RouterOutput["catalogImport"]["history"][number];
 type JobTour = Job["tours"][number];
@@ -31,6 +33,12 @@ function jobState(job: Job) {
   return { incomplete, shownStatus: job.status === "PARTIAL" && !incomplete ? "COMPLETED" : job.status, canResume: (job.status === "UPLOADED" || incomplete) && job.attempts < 3 };
 }
 
+// Tours stored under older automatic rules: the server updates them in the background after each history load.
+const OPEN_STATUSES = ["NEEDS_REVIEW", "READY", "DUPLICATE"];
+const MAX_UPDATE_POLLS = 12;
+const isOutdated = (job: Job) => job.status !== "PROCESSING" && job.tours.some((tour) => OPEN_STATUSES.includes(tour.status) && !tour.reviewDraftAt && !tour.createdTourId
+  && (tour.tourDataJson as { rulesVersion?: number } | null)?.rulesVersion !== RULES_VERSION);
+
 function bucketCounts(job: Job) {
   const counts: Record<TourBucket, number> = { review: 0, ready: 0, created: 0, skipped: 0 };
   for (const tour of job.tours) counts[bucketOf(tour.status)]++;
@@ -41,11 +49,17 @@ export function CatalogInbox({ status }: { status: CatalogAccessStatus }) {
   const router = useRouter();
   const params = useSearchParams();
   const utils = trpc.useUtils();
+  const updatePolls = useRef(0);
   const history = trpc.catalogImport.history.useQuery({ limit: 30 }, {
     retry: false,
     // Each refresh also lets the server collect finished Claude batches, which it checks every 30 s.
-    refetchInterval: (query) => query.state.data?.some((job) => job.status === "UPLOADED" || (job.status === "PROCESSING" && !job.batchStage)) ? 3000
-      : query.state.data?.some((job) => job.status === "PROCESSING") ? 15_000 : false,
+    refetchInterval: (query) => {
+      const jobs = query.state.data;
+      if (jobs?.some((job) => job.status === "UPLOADED" || (job.status === "PROCESSING" && !job.batchStage))) return 3000;
+      // Bounded: a tour that can't be updated must not keep the page polling forever.
+      if (jobs?.some(isOutdated) && updatePolls.current++ < MAX_UPDATE_POLLS) return 5000;
+      return jobs?.some((job) => job.status === "PROCESSING") ? 15_000 : false;
+    },
   });
   useEffect(() => { if (history.error?.data?.code === "UNAUTHORIZED") void utils.catalogImport.status.reset(); }, [history.error, utils]);
   const jobs = useMemo(() => history.data ?? [], [history.data]);
@@ -222,6 +236,8 @@ function DocumentDetail({ job, tab, onTab, onResume, busy }: { job: Job; tab: st
           : "Claude está leyendo el PDF. Suele tardar unos minutos; puedes cerrar esta página y volver luego."}
         {retrying && <span className="mt-1 block text-xs text-sky-700">{job.lastError}</span>}</p>}
       {job.lastError && !retrying && <p role="alert" className="flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{job.lastError}</p>}
+      {isOutdated(job) && <p role="status" className="flex items-center gap-2 rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900"><Loader2 className="h-4 w-4 shrink-0 animate-spin" />Aplicando las correcciones automáticas a los tours de este documento…</p>}
+      <BulkActions job={job} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{TOUR_BUCKETS.map((b) => <button key={b.value} type="button" onClick={() => onTab(b.value)}
         className={cn("rounded-xl border p-3 text-left transition hover:border-brand-teal/50", bucket === b.value && "border-brand-teal bg-brand-teal/5")}>
         <span className="block font-heading text-2xl font-bold text-brand-darkRed">{counts[b.value]}</span>
@@ -244,10 +260,96 @@ function DocumentDetail({ job, tab, onTab, onResume, busy }: { job: Job; tab: st
   </div>;
 }
 
+// One-click actions for a whole document: nothing here publishes a tour, drafts are finished in Tours.
+function BulkActions({ job }: { job: Job }) {
+  const { toast } = useToast();
+  const utils = trpc.useUtils();
+  const [confirm, setConfirm] = useState(false);
+  const refresh = () => utils.catalogImport.history.invalidate();
+  const fail = (title: string) => (error: { message: string }) => toast({ title, description: error.message, variant: "destructive" });
+  const create = trpc.catalogImport.createReadyDrafts.useMutation({ onError: fail("No se pudieron crear los tours") });
+  const accept = trpc.catalogImport.acceptWarnings.useMutation({ onError: fail("No se pudieron aceptar los avisos") });
+  const revalidate = trpc.catalogImport.revalidateImport.useMutation({
+    onSuccess: async ({ revalidated }) => { await refresh(); toast({ title: "Documento revalidado", description: `${revalidated} tours revisados con las reglas y listas actuales.` }); },
+    onError: fail("No se pudo revalidar"),
+  });
+  const addCity = trpc.catalogImport.addDestination.useMutation({
+    onSuccess: async (_, { name }) => { await Promise.all([refresh(), utils.tour.destinations.invalidate()]); toast({ title: `«${name}» añadida a tus ciudades`, description: "Los tours de este documento se revalidaron." }); },
+    onError: fail("No se pudo añadir la ciudad"),
+  });
+
+  const open = job.tours.filter((tour) => !tour.reviewDraftAt && !tour.createdTourId);
+  const ready = open.filter((tour) => tour.status === "READY");
+  // Nothing to fix, only warnings to tick.
+  const acceptable = open.filter((tour) => { const p = tourPending(tour.issues); return tour.status === "NEEDS_REVIEW" && p.blocking === 0 && p.toVerify > 0; });
+  const warnings = acceptable.reduce((sum, tour) => sum + tourPending(tour.issues).toVerify, 0);
+  const cities = new Map<string, number>();
+  for (const tour of open) { const city = missingCity(tour); if (city) cities.set(city, (cities.get(city) ?? 0) + 1); }
+  const busy = create.isPending || accept.isPending || revalidate.isPending || addCity.isPending;
+
+  async function createReady() {
+    try {
+      let created = 0; const problems = new Map<string, string>();
+      // The server works in time-boxed rounds; a large document takes more than one.
+      for (let round = 0; round < 6; round++) {
+        const result = await create.mutateAsync({ importId: job.id });
+        created += result.created;
+        for (const f of result.failed) problems.set(f.name, f.message);
+        // A round that created nothing would only retry the tours that already failed.
+        if (!result.remaining || !result.created) break;
+      }
+      const failed = [...problems].map(([name, message]) => ({ name, message }));
+      await refresh();
+      toast(failed.length ? { title: `${created} tours creados · ${failed.length} no se pudieron crear`, description: failed.slice(0, 3).map((f) => `${f.name}: ${f.message}`).join(" · "), variant: created ? "default" : "destructive" }
+        : { title: `${created} ${created === 1 ? "tour creado" : "tours creados"} como borrador`, description: "Ya están en Tours para fotos, salidas y publicación." });
+    } catch { /* reported by onError */ }
+  }
+  async function acceptAndCreate() {
+    setConfirm(false);
+    try {
+      const ids = acceptable.map((tour) => tour.id);
+      for (let start = 0; start < ids.length; start += 200) await accept.mutateAsync({ importTourIds: ids.slice(start, start + 200) });
+      await createReady();
+    } catch { await refresh(); }
+  }
+
+  // While Claude is still improving the texts, bulk actions would discard the improvements on their way.
+  if (job.status === "PROCESSING") return null;
+  if (!ready.length && !acceptable.length && !cities.size && !open.some((tour) => OPEN_STATUSES.includes(tour.status))) return null;
+  return <div className="space-y-3">
+    {[...cities].map(([city, count]) => <div key={city} className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+      <MapPin className="h-4 w-4 shrink-0" />
+      <span className="min-w-0 flex-1">«{city}» no está en tu lista de ciudades ({count} {count === 1 ? "tour" : "tours"}). Añádela, o elige otra ciudad dentro de cada tour.</span>
+      <Button size="sm" variant="outline" disabled={busy} onClick={() => addCity.mutate({ importId: job.id, name: city })}>
+        {addCity.isPending && addCity.variables?.name === city && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Añadir «{city}»</Button>
+    </div>)}
+    <div className="flex flex-wrap items-center gap-2">
+      {ready.length > 0 && <Button disabled={busy} onClick={() => void createReady()}>
+        {create.isPending && !accept.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Check className="mr-1.5 h-4 w-4" />}Crear {ready.length === 1 ? "el tour listo" : `los ${ready.length} tours listos`}</Button>}
+      {acceptable.length > 0 && <Button variant={ready.length ? "outline" : "default"} disabled={busy} onClick={() => setConfirm(true)}>
+        {accept.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Check className="mr-1.5 h-4 w-4" />}Aceptar avisos y crear {acceptable.length} más</Button>}
+      <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground" disabled={busy} onClick={() => revalidate.mutate({ importId: job.id })} title="Vuelve a aplicar las reglas y tus listas de ciudades y categorías">
+        <RefreshCw className={cn("mr-1.5 h-4 w-4", revalidate.isPending && "animate-spin")} />Revalidar</Button>
+    </div>
+    <Dialog open={confirm} onOpenChange={setConfirm}>
+      <DialogContent><DialogHeader><DialogTitle>¿Aceptar los avisos y crear {acceptable.length} tours?</DialogTitle>
+        <DialogDescription>Estos tours no tienen errores, solo {warnings} {warnings === 1 ? "aviso" : "avisos"} por verificar (dudas del PDF sobre precios, duración o contradicciones). Se aceptan todos sin abrirlos uno por uno.</DialogDescription></DialogHeader>
+        <ul className="list-disc space-y-1 pl-5 text-sm">
+          <li>Se crean como <strong>borradores</strong>: nada se publica en la web.</li>
+          <li>Puedes corregir cualquier dato después, desde Tours.</li>
+          {ready.length > 0 && <li>También se crean los {ready.length} que ya estaban listos.</li>}
+        </ul>
+        <DialogFooter><Button variant="ghost" onClick={() => setConfirm(false)}>Cancelar</Button>
+          <Button onClick={() => void acceptAndCreate()}>Aceptar y crear</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>;
+}
+
 function TourRow({ tour }: { tour: JobTour }) {
   const summary = candidateSummary(tour.tourDataJson);
   const suggestions = tour.issues.filter((i) => isClaudeSuggestion(i.reason)).length;
-  const checked = tour.issues.filter((i) => i.checkedAt).length;
+  const pending = tourPending(tour.issues), open = OPEN_STATUSES.includes(tour.status);
   return <li><Link href={`/admin/dev/catalog-import/${tour.id}`} className="flex items-center gap-4 px-4 py-3 transition hover:bg-muted/40">
     <div className="min-w-0 flex-1">
       <p className="truncate font-medium">{summary.name}</p>
@@ -257,8 +359,9 @@ function TourRow({ tour }: { tour: JobTour }) {
     <div className="hidden flex-wrap items-center justify-end gap-2 text-xs sm:flex">
       {(tour.tourDataJson as { informational?: boolean } | null)?.informational && <span className="rounded-full border border-brand-orange/30 bg-brand-orange/10 px-2 py-0.5 font-medium text-brand-orange">Informativo · desde</span>}
       {tour.reviewDraftAt && <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-800">Cambios sin aprobar</span>}
-      {suggestions > 0 && <span className="inline-flex items-center gap-1 text-brand-darkTeal"><Sparkles className="h-3.5 w-3.5" />{suggestions}</span>}
-      {tour.issues.length > 0 && <span className="text-muted-foreground">{checked}/{tour.issues.length} revisados</span>}
+      {suggestions > 0 && <span className="inline-flex items-center gap-1 text-brand-darkTeal" title="Mejoras de Claude aplicadas"><Sparkles className="h-3.5 w-3.5" />{suggestions}</span>}
+      {open && pending.blocking > 0 && <span className="font-medium text-red-700">{pending.blocking} por corregir</span>}
+      {open && pending.toVerify > 0 && <span className="text-amber-700">{pending.toVerify} por verificar</span>}
       <StatusBadge domain="catalogTour" status={tour.status} />
     </div>
     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />

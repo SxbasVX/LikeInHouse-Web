@@ -1,6 +1,6 @@
 // Human labels and review-tab placement for candidate fields, shared by the inbox and the review page.
 
-import { issueKind, type IssueKind } from "@/server/catalog-import/severity";
+import { issueKind, pendingCounts, type IssueKind } from "@/server/catalog-import/severity";
 
 export type ReviewTab = "general" | "prices" | "itinerary" | "services" | "seo" | "advanced";
 
@@ -22,6 +22,7 @@ const LABELS: Record<string, string> = {
   includesEs: "Incluye (ES)", includesEn: "Incluye (EN)", excludesEs: "No incluye (ES)", excludesEn: "No incluye (EN)",
   conditions: "Condiciones", conditionsEs: "Otras condiciones (ES)", conditionsEn: "Otras condiciones (EN)",
   tour: "Tour existente parecido", schema: "Estructura", processing: "Procesamiento", sourcePages: "Páginas del PDF",
+  accommodation: "Alojamiento",
 };
 
 const TAB_OF: Record<string, ReviewTab> = {
@@ -38,6 +39,9 @@ export function fieldLabel(field: string | null | undefined): string {
   if (!field) return "General";
   const [head, index, sub, subIndex] = field.split(".");
   const base = LABELS[head] ?? head;
+  if (head === "prices" && index === "unit") return "Tarifas · unidad";
+  if (head === "prices" && index && Number.isNaN(Number(index))) return base;
+  if (head === "conditions" && index && Number.isNaN(Number(index))) return base;
   if (head === "prices" && index) return `Tarifa ${Number(index) + 1}${sub ? ` · ${{ amount: "importe", currency: "moneda", label: "etiqueta", ageMax: "edades", calculation: "cálculo", source: "procedencia" }[sub] ?? sub}` : ""}`;
   if (head === "itinerary" && index) return `Día ${Number(index) + 1}${sub === "items" && subIndex ? ` · actividad ${Number(subIndex) + 1}` : ""}`;
   if (head === "conditions" && index) return `Condición ${Number(index) + 1}`;
@@ -51,25 +55,36 @@ export const isClaudeSuggestion = (reason: string) => reason.startsWith("Sugeren
 
 export interface PendingIssue { id: string; type: string; field: string | null; reason: string; valueA: string | null; valueB: string | null; checkedAt: Date | string | null }
 
-/** kind: blocking = fix it in the form; confirm = tick and approve with a note; warning = ticking accepts it. */
+/** kind: blocking = fix it in the form; warning = verify and tick; info = a note, accepted automatically. */
 export interface PendingGroup { field: string; label: string; tab: ReviewTab; issues: PendingIssue[]; checked: boolean; kind: IssueKind; suggestion: PendingIssue | null }
-const KIND_RANK: Record<IssueKind, number> = { warning: 0, confirm: 1, blocking: 2 };
+const KIND_RANK: Record<IssueKind, number> = { info: 0, warning: 1, blocking: 2 };
 
 // One checklist row per field: checking it marks every open issue of that field as seen.
 export function groupPending(issues: PendingIssue[]): PendingGroup[] {
   const groups = new Map<string, PendingGroup>();
   for (const issue of issues) {
     const field = issue.field ?? "general";
-    const group: PendingGroup = groups.get(field) ?? { field, label: fieldLabel(field), tab: fieldTab(field), issues: [], checked: true, kind: "warning", suggestion: null };
+    const group: PendingGroup = groups.get(field) ?? { field, label: fieldLabel(field), tab: fieldTab(field), issues: [], checked: true, kind: "info", suggestion: null };
     group.issues.push(issue);
-    group.checked &&= Boolean(issue.checkedAt);
     const kind = issueKind(issue);
+    // Notes on the same field need no tick: only the warnings decide whether the row is accepted.
+    if (kind !== "info") group.checked &&= Boolean(issue.checkedAt);
     if (KIND_RANK[kind] > KIND_RANK[group.kind]) group.kind = kind;
     if (isClaudeSuggestion(issue.reason)) group.suggestion = issue;
     groups.set(field, group);
   }
   const order = REVIEW_TABS.map((t) => t.value);
   return [...groups.values()].sort((a, b) => order.indexOf(a.tab) - order.indexOf(b.tab));
+}
+
+/** What a tour still needs from the reviewer: data to fix, warnings to tick, and notes that need nothing. */
+export const tourPending = (issues: PendingIssue[]) => pendingCounts(issues);
+
+/** The city a blocked tour asks for, when its only problem there is that the city is missing from the official list. */
+export function missingCity(tour: { tourDataJson: unknown; issues: PendingIssue[] }): string | null {
+  if (!tour.issues.some((i) => i.field === "destination" && i.type === "INVALID_VALUE")) return null;
+  const destination = (tour.tourDataJson as { destination?: unknown } | null)?.destination;
+  return typeof destination === "string" && destination.trim() ? destination.trim() : null;
 }
 
 export type TourBucket = "review" | "ready" | "created" | "skipped";

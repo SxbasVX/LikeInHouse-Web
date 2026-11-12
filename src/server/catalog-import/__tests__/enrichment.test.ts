@@ -71,8 +71,19 @@ describe("Claude enrichment merge", () => {
     expect(result.changes.map((c) => c.field)).toEqual(["longDescEs"]);
   });
 
+  it("accepts a patch with only the changed keys and keeps everything else", () => {
+    const original = readyCandidate();
+    const merged = mergeEnrichment(original, { nameEs: "Tour Cusco Imperial" }, [{ field: "nameEs", evidence: "Nombre más comercial." }]);
+    if ("error" in merged) throw new Error(merged.error);
+    expect(merged.candidate.nameEs).toBe("Tour Cusco Imperial");
+    expect(merged.candidate.prices).toEqual(original.prices);
+    expect(merged.candidate.itinerary).toEqual(original.itinerary);
+    expect(merged.changes.map((c) => c.field)).toEqual(["nameEs"]);
+  });
+
   it("rejects proposals that break the candidate schema", () => {
-    expect(mergeEnrichment(readyCandidate(), { nameEs: "Solo nombre" }, [])).toHaveProperty("error");
+    expect(mergeEnrichment(readyCandidate(), { difficulty: "IMPOSSIBLE" }, [])).toHaveProperty("error");
+    expect(mergeEnrichment(readyCandidate(), "no es un objeto", [])).toHaveProperty("error");
   });
 });
 

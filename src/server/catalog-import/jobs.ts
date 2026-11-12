@@ -6,7 +6,7 @@ import { downloadCatalogPdf } from "./documents";
 import { catalogExtractionEnvelopeSchema } from "./schemas";
 import { claudeBatchResults, CLAUDE_MODEL, extractionCall, isClaudeBatchDone, isPermanentBatchError, parseExtraction, submitClaudeBatch, type BatchOutcome } from "./providers/anthropic";
 import { ProviderError } from "./providers/result";
-import { finishImport, jsonData, persistExtractedCandidates } from "./service";
+import { finishImport, jsonData, officialLists, persistExtractedCandidates } from "./service";
 import { applyEnrichment, assertEnrichable, enrichmentCall, logOperation, parseCandidateRecord } from "./assistant";
 
 // Pipeline: upload -> extraction batch -> candidates -> enrichment batch -> human review.
@@ -51,7 +51,7 @@ export async function runCatalogJob(importId: string, suppliedPdf?: Buffer): Pro
     }
     const pdf = suppliedPdf ?? (record.sourceUrl ? await downloadCatalogPdf(record.sourceUrl) : null);
     if (!pdf) throw new Error("Debes volver a adjuntar el PDF original.");
-    const batchId = await submitClaudeBatch([{ customId: "extraction", call: extractionCall(record.filename, pdf) }]);
+    const batchId = await submitClaudeBatch([{ customId: "extraction", call: extractionCall(record.filename, pdf, undefined, await officialLists(db)) }]);
     await db.catalogImport.update({ where: { id: importId }, data: { batchId, batchStage: "extraction", batchCheckedAt: new Date() } });
   } catch (error) {
     await failJob(importId, errorMessage(error));
@@ -70,10 +70,18 @@ export async function advanceCatalogBatches(): Promise<void> {
     const lease = await db.catalogImport.updateMany({ where: { id: job.id, batchId: job.batchId, batchCheckedAt: job.batchCheckedAt }, data: { batchCheckedAt: new Date(deadline) } });
     if (!lease.count) continue;
     try {
-      if (job.startedAt && Date.now() - job.startedAt.getTime() > MAX_JOB_AGE_MS) {
-        await failJob(job.id, "Claude no entregó resultados en 24 horas. Vuelve a subir el PDF."); continue;
+      // Results stay available for weeks: a finished batch is collected however late the inbox is opened.
+      // Only a batch that is still running after a day is given up on.
+      if (job.batchId !== RESUME_SAVED_EXTRACTION && !await isClaudeBatchDone(job.batchId!)) {
+        if (job.startedAt && Date.now() - job.startedAt.getTime() > MAX_JOB_AGE_MS) {
+          // With the tours already extracted, only the text improvements are lost: the document is still usable.
+          if (job.batchStage === "enrichment") {
+            await finishImport(job.id);
+            await db.catalogImport.update({ where: { id: job.id }, data: { lastError: "Los tours están listos, pero Claude no entregó las mejoras de texto a tiempo. Puedes pedirlas con el botón de Claude en cada tour." } });
+          } else await failJob(job.id, "Claude no entregó resultados en 24 horas. Vuelve a subir el PDF.");
+        }
+        continue;
       }
-      if (job.batchId !== RESUME_SAVED_EXTRACTION && !await isClaudeBatchDone(job.batchId!)) continue;
       const finished = job.batchStage === "enrichment" ? await advanceEnrichment(job, deadline) : await advanceExtraction(job, deadline);
       if (!finished) await db.catalogImport.update({ where: { id: job.id }, data: { batchCheckedAt: null } });
     } catch (error) {
@@ -119,8 +127,9 @@ async function continueAfterExtraction(job: CatalogImport, model: string, deadli
   const enriched = await db.aIProviderOperation.findMany({ where: { importId: job.id, operation: "candidate_enrichment" }, select: { importTourId: true } });
   const handled = new Set(enriched.map((op) => op.importTourId));
   const tours = await db.catalogImportTour.findMany({ where: { importId: job.id, status: { in: ["READY", "NEEDS_REVIEW"] }, createdTourId: null } });
+  const lists = await officialLists(db);
   const requests = tours.filter((tour) => !handled.has(tour.id)).flatMap((tour) => {
-    try { assertEnrichable(tour); return [{ customId: enrichmentId(tour), call: enrichmentCall(parseCandidateRecord(tour)) }]; } catch { return []; }
+    try { assertEnrichable(tour); return [{ customId: enrichmentId(tour), call: { ...enrichmentCall(parseCandidateRecord(tour), undefined, lists), cacheSystem: true } }]; } catch { return []; }
   });
   if (!requests.length) { await finishImport(job.id); return true; }
   let batchId: string;

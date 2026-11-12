@@ -16,7 +16,7 @@ vi.mock("../providers/anthropic", () => ({
   extractionCall: vi.fn(() => ({ kind: "extraction" })),
   parseExtraction: (text: string) => JSON.parse(text),
 }));
-const service = vi.hoisted(() => ({ finishImport: vi.fn(), persistExtractedCandidates: vi.fn() }));
+const service = vi.hoisted(() => ({ finishImport: vi.fn(), persistExtractedCandidates: vi.fn(), officialLists: vi.fn(async () => ({ destinations: ["Cusco"], categories: ["Cultura"] })) }));
 vi.mock("../service", () => ({ ...service, jsonData: (v: unknown) => v }));
 const assistant = vi.hoisted(() => ({ applyEnrichment: vi.fn(), logOperation: vi.fn() }));
 vi.mock("../assistant", () => ({
@@ -75,8 +75,26 @@ describe("Claude batch pipeline", () => {
     claude.submitClaudeBatch.mockResolvedValue("batch_2");
     await advanceCatalogBatches();
     expect(service.persistExtractedCandidates).toHaveBeenCalledWith("imp1", "catalogo.pdf", expect.objectContaining({ tours: [expect.any(Object)] }), "claude-opus-5-5", expect.any(Number));
-    expect(claude.submitClaudeBatch).toHaveBeenCalledWith([{ customId: `tour1_${hash(tour)}`, call: { kind: "enrichment" } }]);
+    // The system prompt is the same for every tour of the batch, so it is cached.
+    expect(claude.submitClaudeBatch).toHaveBeenCalledWith([{ customId: `tour1_${hash(tour)}`, call: { kind: "enrichment", cacheSystem: true } }]);
     expect(db.catalogImport.update).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ batchId: "batch_2", batchStage: "enrichment" }) }));
+  });
+
+  it("collects a finished batch however late the inbox is opened, and only gives up on one still running after a day", async () => {
+    const old = new Date(Date.now() - 5 * 24 * 60 * 60_000);
+    db.catalogImport.findMany.mockResolvedValue([job({ batchStage: "enrichment", startedAt: old })]);
+    claude.claudeBatchResults.mockReturnValue(results());
+    await advanceCatalogBatches();
+    expect(service.finishImport).toHaveBeenCalledWith("imp1");
+    expect(db.catalogImport.update).not.toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "FAILED" }) }));
+
+    vi.clearAllMocks();
+    db.catalogImport.updateMany.mockResolvedValue({ count: 1 });
+    db.catalogImport.findMany.mockResolvedValue([job({ batchStage: "extraction", startedAt: old })]);
+    claude.isClaudeBatchDone.mockResolvedValue(false);
+    db.catalogImportTour.count.mockResolvedValue(0);
+    await advanceCatalogBatches();
+    expect(db.catalogImport.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: "FAILED" }) }));
   });
 
   it("fails the job with Claude's reason when extraction errored", async () => {

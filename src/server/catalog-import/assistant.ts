@@ -5,7 +5,8 @@ import { catalogTourCandidateSchema, type CatalogTourCandidate } from "./schemas
 import { assistantSystemPrompt, enrichmentReplySchema, enrichmentSystemPrompt, mergeEnrichment } from "./enrichment";
 import { callClaude, CLAUDE_MODEL, type ClaudeCall, type ClaudeReply } from "./providers/anthropic";
 import { parseJsonReply, ProviderError } from "./providers/result";
-import { persistCandidateReview, refreshImportCounts } from "./service";
+import { officialLists, persistCandidateReview, refreshImportCounts } from "./service";
+import type { OfficialLists } from "./normalize";
 
 export class AssistError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
@@ -56,10 +57,11 @@ const candidateContent = (candidate: CatalogTourCandidate, request: string) => [
   { type: "text" as const, text: request },
 ];
 
-export function enrichmentCall(candidate: CatalogTourCandidate, instructions?: string): ClaudeCall {
+export function enrichmentCall(candidate: CatalogTourCandidate, instructions?: string, lists?: OfficialLists): ClaudeCall {
   return {
     // Ten server-tool iterations fit in one turn, so a batch request never needs a pause_turn resume.
-    system: enrichmentSystemPrompt(), effort: "medium", maxTokens: 64_000, web: { searches: 5, fetches: 3 },
+    // The reply is a patch (changed keys only), so it needs far less output than a whole candidate.
+    system: enrichmentSystemPrompt(lists), effort: "medium", maxTokens: 32_000, web: { searches: 5, fetches: 3 },
     content: candidateContent(candidate, instructions?.trim() || "Mejora los textos y completa los datos no críticos que falten."),
   };
 }
@@ -100,7 +102,7 @@ export async function applyEnrichment(snapshot: CatalogImportTour, replyText: st
 export async function enrichCandidate(importTourId: string, userId: string, instructions?: string) {
   const { record, candidate } = await loadCandidate(importTourId);
   assertEnrichable(record);
-  const reply = await logged(record.importId, record.id, "candidate_enrichment", { ...enrichmentCall(candidate, instructions), signal: AbortSignal.timeout(ASSIST_TIMEOUT_MS) });
+  const reply = await logged(record.importId, record.id, "candidate_enrichment", { ...enrichmentCall(candidate, instructions, await officialLists(db)), signal: AbortSignal.timeout(ASSIST_TIMEOUT_MS) });
   return { ...await applyEnrichment(record, reply.text, userId), sources: reply.sources };
 }
 

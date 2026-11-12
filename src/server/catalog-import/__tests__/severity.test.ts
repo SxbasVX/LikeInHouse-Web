@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isBlockingIssue, issueKind, statusFromIssues } from "../severity";
-import { CONFIRM_REASONS } from "../validator";
+import { isBlockingIssue, issueKind, pendingCounts, statusFromIssues } from "../severity";
+import { AUTO_NOTE_PREFIX, CONFIRM_REASONS, NOTE_REASONS, VERIFY_PREFIX } from "../validator";
 import { validateCatalogTour } from "../validator";
 import { draftCreateData } from "../draft";
 import { readyCandidate } from "./fixtures";
@@ -41,13 +41,26 @@ describe("blocking issues vs warnings the reviewer can accept", () => {
     expect(() => draftCreateData(blocked)).toThrow("revisión");
   });
 
-  it("needs an explicit confirmation on approval for doubtful prices and durations, never just a tick", () => {
-    expect(issueKind({ type: "DATA_REVIEW", field: "prices.0.amount", reason: CONFIRM_REASONS.foreignPages })).toBe("confirm");
-    expect(issueKind({ type: "DATA_REVIEW", field: "durationDays", reason: CONFIRM_REASONS.proposal })).toBe("confirm");
-    expect(issueKind({ type: "CONTRADICTION", field: "prices.0.amount" })).toBe("confirm");
-    expect(issueKind({ type: "DATA_REVIEW", field: "category", reason: CONFIRM_REASONS.proposal })).toBe("warning");
-    const ticked = new Date();
-    expect(statusFromIssues([{ type: "CONTRADICTION", field: "prices.0.amount", checkedAt: ticked }], false)).toBe("NEEDS_REVIEW");
-    expect(statusFromIssues([{ type: "DATA_REVIEW", field: "category", reason: CONFIRM_REASONS.proposal, checkedAt: ticked }], false)).toBe("READY");
+  it("asks for one tick on doubtful prices and durations, and nothing on editorial notes", () => {
+    expect(issueKind({ type: "DATA_REVIEW", field: "prices.0.amount", reason: CONFIRM_REASONS.proposal })).toBe("warning");
+    expect(issueKind({ type: "DATA_REVIEW", field: "durationDays", reason: CONFIRM_REASONS.proposal })).toBe("warning");
+    expect(issueKind({ type: "CONTRADICTION", field: "prices.0.amount" })).toBe("warning");
+    expect(issueKind({ type: "DATA_REVIEW", field: "prices", reason: `${VERIFY_PREFIX}El PDF tiene 60 tarifas.` })).toBe("warning");
+    for (const [type, field, reason] of [
+      ["DATA_REVIEW", "category", CONFIRM_REASONS.proposal], ["DATA_REVIEW", "difficulty", CONFIRM_REASONS.proposal], ["DATA_REVIEW", "schedule", CONFIRM_REASONS.proposal],
+      ["DATA_REVIEW", "prices.0.amount", CONFIRM_REASONS.foreignPages], ["DATA_REVIEW", "durationDays", CONFIRM_REASONS.missingProvenance],
+      ["DATA_REVIEW", "longDescEs", "Sugerencia de Claude: tono más comercial."], ["DATA_REVIEW", "destination", `${AUTO_NOTE_PREFIX}Destino ajustado.`],
+      ["DATA_REVIEW", "imageSuggestions", NOTE_REASONS.noImages], ["DATA_REVIEW", "itinerary.0", NOTE_REASONS.missingDayTitle],
+      ["CONTRADICTION", "conditions.cancellation", "La tabla indica 40% y la mitad."], ["MISSING_REQUIRED", "metaTitleEn", "Dato obligatorio ausente."],
+    ] as const) expect(issueKind({ type, field, reason }), `${field} · ${reason}`).toBe("info");
+  });
+
+  it("is READY with notes alone, and with warnings once they are ticked", () => {
+    const note = { type: "DATA_REVIEW", field: "longDescEs", reason: "Sugerencia de Claude: tono más comercial.", checkedAt: null };
+    const doubt = { type: "CONTRADICTION", field: "prices.0.amount", checkedAt: null as Date | null };
+    expect(statusFromIssues([note, note], false)).toBe("READY");
+    expect(statusFromIssues([note, doubt], false)).toBe("NEEDS_REVIEW");
+    expect(statusFromIssues([note, { ...doubt, checkedAt: new Date() }], false)).toBe("READY");
+    expect(pendingCounts([note, doubt, { type: "INVALID_VALUE", field: "destination" }])).toEqual({ blocking: 1, toVerify: 1, notes: 1 });
   });
 });
