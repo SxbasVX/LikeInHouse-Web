@@ -30,6 +30,10 @@ const adminOnly = roleProtectedProcedure(["ADMIN"]);
 // consultas seguidas. Con la base en otra región, los 5 s por defecto de Prisma no alcanzan.
 const TOUR_TRANSACTION_OPTIONS = { timeout: 20_000, maxWait: 10_000 };
 
+// El formulario envía el tour completo en cada guardado. Una sección que llega igual a la guardada no se reescribe:
+// así, subir una foto sólo toca las fotos. Ante la duda (cualquier diferencia) se reescribe.
+const sameRows = (incoming: unknown[], stored: unknown[]) => JSON.stringify(incoming) === JSON.stringify(stored);
+
 export const tourRouter = router({
   // Lista paginada con filtros (admin)
   list: protectedProcedure
@@ -343,10 +347,36 @@ export const tourRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { id, itinerary, pricing, includes, excludes, conditions, images, departures, ...tourData } = input;
 
-      const existing = await ctx.db.tour.findUnique({ where: { id } });
+      const existing = await ctx.db.tour.findUnique({
+        where: { id },
+        include: {
+          itinerary: { orderBy: { dayNumber: "asc" } },
+          includes: { orderBy: { sortOrder: "asc" } },
+          conditions: { orderBy: { sortOrder: "asc" } },
+          images: { orderBy: { sortOrder: "asc" } },
+          pricing: { include: { tiers: { orderBy: { sortOrder: "asc" } } } },
+        },
+      });
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Tour no encontrado" });
       }
+      const textRows = (rows: Array<{ textEs: string; textEn: string }>) => rows.map((r) => ({ textEs: r.textEs, textEn: r.textEn }));
+      const itineraryRows = (rows: NonNullable<typeof itinerary>) => [...rows].sort((a, b) => a.dayNumber - b.dayNumber)
+        .map((d) => ({ dayNumber: d.dayNumber, titleEs: d.titleEs, titleEn: d.titleEn, descriptionEs: d.descriptionEs, descriptionEn: d.descriptionEn }));
+      const unchanged = {
+        itinerary: Boolean(itinerary) && sameRows(itineraryRows(itinerary!), itineraryRows(existing.itinerary)),
+        includes: sameRows(textRows(includes ?? []), textRows(existing.includes.filter((r) => r.type === "INCLUDE")))
+          && sameRows(textRows(excludes ?? []), textRows(existing.includes.filter((r) => r.type === "EXCLUDE"))),
+        conditions: Boolean(conditions) && sameRows(
+          conditions!.map((c) => ({ type: c.type, textEs: c.textEs, textEn: c.textEn, isActive: c.isActive })),
+          existing.conditions.map((c) => ({ type: c.type, textEs: c.textEs, textEn: c.textEn, isActive: c.isActive }))),
+        images: Boolean(images) && sameRows(
+          images!.map((i) => ({ cloudinaryId: i.cloudinaryId, url: i.url, altEs: i.altEs ?? null, altEn: i.altEn ?? null, isPrimary: i.isPrimary })),
+          existing.images.map((i) => ({ cloudinaryId: i.cloudinaryId, url: i.url, altEs: i.altEs, altEn: i.altEn, isPrimary: i.isPrimary }))),
+        tiers: Boolean(pricing && existing.pricing) && sameRows(
+          pricing!.tiers.map((t) => ({ labelEs: t.labelEs, labelEn: t.labelEn, ageMin: t.ageMin ?? null, ageMax: t.ageMax ?? null, priceUsd: t.priceUsd, isDefault: t.isDefault })),
+          existing.pricing!.tiers.map((t) => ({ labelEs: t.labelEs, labelEn: t.labelEn, ageMin: t.ageMin, ageMax: t.ageMax, priceUsd: Number(t.priceUsd), isDefault: t.isDefault }))),
+      };
       if (tourData.destination && tourData.destination !== existing.destination) {
         await assertValidDestination(ctx.db, tourData.destination);
       }
@@ -381,7 +411,7 @@ export const tourRouter = router({
         await tx.tour.update({ where: { id }, data: tourData });
 
         // Recrear relaciones si se proporcionan
-        if (itinerary) {
+        if (itinerary && !unchanged.itinerary) {
           await tx.itineraryDay.deleteMany({ where: { tourId: id } });
           await tx.itineraryDay.createMany({
             data: itinerary.map((day) => ({ tourId: id, ...day })),
@@ -415,8 +445,8 @@ export const tourRouter = router({
           });
 
           // Recreate tiers
-          await tx.tourPricingTier.deleteMany({ where: { pricingId: upsertedPricing.id } });
-          if (pricing.tiers.length > 0) {
+          if (!unchanged.tiers) await tx.tourPricingTier.deleteMany({ where: { pricingId: upsertedPricing.id } });
+          if (!unchanged.tiers && pricing.tiers.length > 0) {
             await tx.tourPricingTier.createMany({
               data: pricing.tiers.map((tier, i) => ({
                 pricingId: upsertedPricing.id,
@@ -432,7 +462,7 @@ export const tourRouter = router({
           }
         }
 
-        if (includes || excludes) {
+        if ((includes || excludes) && !unchanged.includes) {
           await tx.tourInclude.deleteMany({ where: { tourId: id } });
           const allIncludes = [
             ...(includes || []).map((inc, i) => ({ tourId: id, type: "INCLUDE", textEs: inc.textEs, textEn: inc.textEn, sortOrder: i })),
@@ -443,7 +473,7 @@ export const tourRouter = router({
           }
         }
 
-        if (conditions) {
+        if (conditions && !unchanged.conditions) {
           await tx.tourCondition.deleteMany({ where: { tourId: id } });
           if (conditions.length > 0) {
             type ConditionInput = { type: "HEALTH"|"AGE"|"BEHAVIOR"|"GROUP_SIZE"|"PHYSICAL"|"GENERAL"; textEs: string; textEn: string; isActive: boolean };
@@ -460,7 +490,7 @@ export const tourRouter = router({
           }
         }
 
-        if (images) {
+        if (images && !unchanged.images) {
           await tx.tourImage.deleteMany({ where: { tourId: id } });
           if (images.length > 0) {
             await tx.tourImage.createMany({
