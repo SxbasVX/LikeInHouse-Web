@@ -26,6 +26,10 @@ import { serializeDecimals } from "@/server/lib/serialize";
 const adminOrMarketing = roleProtectedProcedure(["ADMIN", "MARKETING"]);
 const adminOnly = roleProtectedProcedure(["ADMIN"]);
 
+// Guardar un tour reescribe itinerario, tarifas, servicios, condiciones, fotos y salidas: más de una docena de
+// consultas seguidas. Con la base en otra región, los 5 s por defecto de Prisma no alcanzan.
+const TOUR_TRANSACTION_OPTIONS = { timeout: 20_000, maxWait: 10_000 };
+
 export const tourRouter = router({
   // Lista paginada con filtros (admin)
   list: protectedProcedure
@@ -327,7 +331,7 @@ export const tourRouter = router({
             },
           },
         });
-      });
+      }, TOUR_TRANSACTION_OPTIONS);
 
       revalidateTag(CACHE_TAGS.tours);
       return tour;
@@ -351,7 +355,7 @@ export const tourRouter = router({
       }
 
       // Wrap all mutations in a transaction for atomicity
-      const result = await ctx.db.$transaction(async (tx) => {
+      await ctx.db.$transaction(async (tx) => {
         // Verificar slug unico DENTRO de la transacción para evitar race conditions
         if (tourData.slug && tourData.slug !== existing.slug) {
           const slugExists = await tx.tour.findUnique({ where: { slug: tourData.slug } });
@@ -513,19 +517,21 @@ export const tourRouter = router({
           }
         }
 
-        return tx.tour.findUnique({
-          where: { id },
-          include: {
-            images: true,
-            itinerary: true,
-            pricing: {
-              include: { tiers: { orderBy: { sortOrder: "asc" } } },
-            },
-            includes: true,
-            conditions: { orderBy: { sortOrder: "asc" } },
-            departures: true,
+      }, TOUR_TRANSACTION_OPTIONS);
+
+      // Leído fuera de la transacción: ya está confirmado y no consume su tiempo límite.
+      const result = await ctx.db.tour.findUnique({
+        where: { id },
+        include: {
+          images: true,
+          itinerary: true,
+          pricing: {
+            include: { tiers: { orderBy: { sortOrder: "asc" } } },
           },
-        });
+          includes: true,
+          conditions: { orderBy: { sortOrder: "asc" } },
+          departures: true,
+        },
       });
 
       revalidateTag(CACHE_TAGS.tours);
