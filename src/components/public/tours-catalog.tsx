@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, Suspense, type FormEvent } from "react";
+import { useState, useEffect, Suspense, type FormEvent, type ReactNode } from "react";
+import { parseTravelers, travelersToFilter, TRAVELERS_PARAM } from "@/lib/family-travelers";
 import { QuoteRequestDialog } from "@/components/public/quote-request-form";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
@@ -28,15 +29,24 @@ interface ToursCatalogProps {
   categories: string[];
   /** Web familiar: la consulta del cliente sólo trae tours familiares. */
   family?: boolean;
+  /** Reemplaza el encabezado del catálogo (la web familiar pone el suyo con "¿Quiénes viajan?"). */
+  header?: ReactNode;
 }
 
-function ToursCatalogInner({ initialData, destinations, categories, family }: ToursCatalogProps) {
+function ToursCatalogInner({ initialData, destinations, categories, family, header }: ToursCatalogProps) {
   const t = useTranslations("tours");
   const tc = useTranslations("common");
 
   const searchParams = useSearchParams();
   const urlDestination = searchParams.get("destination") || undefined;
   const urlSearch = searchParams.get("search") || undefined;
+  // Web familiar: "¿Quiénes viajan?" llega en la URL (?viajan=ninos,abuelos)
+  const travelers = family ? parseTravelers(searchParams.get(TRAVELERS_PARAM)) : [];
+  const travelersFilter = travelersToFilter(travelers);
+  const travelersKey = travelers.join(",");
+  useEffect(() => {
+    setPage(1);
+  }, [travelersKey]);
 
   const [page, setPage] = useState(1);
   const [quoteOpen, setQuoteOpen] = useState(false);
@@ -77,23 +87,25 @@ function ToursCatalogInner({ initialData, destinations, categories, family }: To
     setPage(1);
   }
 
-  const hasFilters: boolean = page > 1 || !!destination || !!category || !!activeSearch || sort !== "newest";
+  const hasFilters: boolean = page > 1 || !!destination || !!category || !!activeSearch || sort !== "newest" || travelers.length > 0;
 
   const { data, isLoading } = trpc.public.tours.useQuery(
-    { page, limit: 9, search: activeSearch, destination, category, sort, ...(family ? { family: true } : {}) },
+    { page, limit: 9, search: activeSearch, destination, category, sort, ...(family ? { family: true, ...travelersFilter } : {}) },
     { initialData: hasFilters ? undefined : initialData, enabled: hasFilters as boolean }
   );
 
   const displayData = data || initialData;
+  // La web familiar alinea el catálogo con su barra (max-w-6xl); la general usa el ancho amplio.
+  const container = family ? "mx-auto max-w-6xl px-4 sm:px-6" : "mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12";
   const activeFilterCount = [destination, category, activeSearch].filter(Boolean).length;
 
   return (
     <section className="bg-white min-h-screen">
 
       {/* Hero Header */}
-      <div className="bg-[#faf8f5] border-b border-gray-100">
-        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12 pt-16 pb-8 lg:pt-24 lg:pb-12">
-          <div className="text-center">
+      <div className={family ? "border-b border-fam-tinta/10 bg-fam-niebla" : "bg-[#faf8f5] border-b border-gray-100"}>
+        <div className={`${container} pt-16 pb-8 lg:pt-24 lg:pb-12`}>
+          {header ?? <div className="text-center">
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-teal mb-4">
               {t("catalog_subtitle")}
             </p>
@@ -103,7 +115,7 @@ function ToursCatalogInner({ initialData, destinations, categories, family }: To
                 {t("catalog").split(" ").slice(1).join(" ")}
               </span>
             </h1>
-          </div>
+          </div>}
 
           {/* Filter Bar */}
           <div className="mt-12 space-y-4">
@@ -197,7 +209,7 @@ function ToursCatalogInner({ initialData, destinations, categories, family }: To
       </div>
 
       {/* Grid */}
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12 py-8 lg:py-12">
+      <div className={`${container} py-8 lg:py-12`}>
 
         {/* Results count */}
         {!isLoading && (
@@ -306,9 +318,10 @@ function ToursCatalogInner({ initialData, destinations, categories, family }: To
 }
 
 export function ToursCatalog(props: ToursCatalogProps) {
+  const container = props.family ? "mx-auto max-w-6xl px-4 sm:px-6" : "mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12";
   return (
     <Suspense fallback={
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12 py-16">
+      <div className={`${container} py-16`}>
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="flex flex-col gap-4">

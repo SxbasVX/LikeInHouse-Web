@@ -6,7 +6,6 @@ import { getServerCaller } from "@/lib/trpc-server";
 import { buildFamilyMetadata, canViewFamilySite } from "@/lib/family-page";
 import { safeJsonLd } from "@/lib/seo";
 import { FAQList } from "@/components/public/faq-list";
-import { Waves } from "@/components/familia/illustrations";
 import { familyBtnSecondary } from "@/components/familia/styles";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -52,24 +51,22 @@ export default async function FamilyFAQPage({ params }: { params: Promise<{ loca
       {faqs.length > 0 && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }} />
       )}
-      <section className="bg-brand-beige">
-        <div className="mx-auto max-w-3xl px-4 pb-10 pt-12 sm:px-6 lg:pt-16">
-          <h1 className="font-heading text-[2rem] font-black leading-tight text-brand-darkRed sm:text-5xl">{t("faq_page_title")}</h1>
-          <p className="mt-4 text-lg leading-relaxed text-brand-darkRed/85">{t("faq_page_text")}</p>
+      <section className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:py-20">
+        <div>
+          <h1 className="font-familia text-4xl leading-[1.06] text-fam-tinta sm:text-5xl">{t("faq_page_title")}</h1>
+          <p className="mt-4 max-w-md text-lg leading-relaxed text-fam-tinta/75">{t("faq_page_text")}</p>
+          <Link href="/contacto" className={`${familyBtnSecondary} mt-8`}>
+            {t("faq_contact")}
+          </Link>
         </div>
-        <Waves color="#FFFBEF" className="h-6 sm:h-10" />
-      </section>
-
-      <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        {usingGeneral && faqs.length > 0 && (
-          <p className="mb-6 rounded-2xl border-2 border-dashed border-brand-teal bg-white px-4 py-3 text-sm text-brand-darkRed/85">
-            {t("faq_general_note")}
-          </p>
-        )}
-        <FAQList faqs={faqs} />
-        <Link href="/contacto" className={`${familyBtnSecondary} mt-10`}>
-          {t("faq_contact")}
-        </Link>
+        <div>
+          {usingGeneral && faqs.length > 0 && (
+            <p className="mb-6 rounded-2xl bg-fam-niebla px-5 py-4 text-sm leading-relaxed text-fam-tinta/80">
+              {t("faq_general_note")}
+            </p>
+          )}
+          <FAQList faqs={faqs} />
+        </div>
       </section>
     </div>
   );

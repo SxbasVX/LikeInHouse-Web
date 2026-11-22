@@ -9,6 +9,8 @@ import { Link, usePathname, useRouter } from "@/i18n/routing";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useCartHydration, useCartStore } from "@/lib/cart-store";
 import { cn } from "@/lib/utils";
+import { TextileBand } from "@/components/familia/textile";
+import { familyBtnPrimary } from "@/components/familia/styles";
 
 const LINKS = [
   { key: "nav_home", href: "/" },
@@ -18,7 +20,7 @@ const LINKS = [
   { key: "nav_contact", href: "/contacto" },
 ] as const;
 
-const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-brand-beige";
+const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fam-maiz focus-visible:ring-offset-2";
 
 export function FamilyNavbar() {
   const t = useTranslations("familia");
@@ -43,25 +45,26 @@ export function FamilyNavbar() {
   };
 
   return (
-    <header className="border-b-2 border-brand-darkRed bg-brand-beige">
+    <header className="border-b border-fam-tinta/10 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
+      <TextileBand thin />
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:h-[72px] sm:px-6">
-        <Link href="/" className={cn("flex shrink-0 items-center gap-2 rounded-xl", focusRing)} aria-label={t("logo_alt")}>
-          <Image src="/Logo-Azul.svg" alt="" width={160} height={41} className="h-auto w-28 sm:w-36" priority />
-          <span className="-rotate-3 rounded-full border-2 border-brand-darkRed bg-[#FFC93C] px-2.5 py-0.5 font-heading text-xs font-extrabold text-brand-darkRed shadow-[2px_2px_0_0_#441514]">
-            {t("family_tag")}
-          </span>
+        <Link href="/" className={cn("flex shrink-0 items-baseline gap-2 rounded-lg", focusRing)} aria-label={t("logo_alt")}>
+          <Image src="/Logo-Azul.svg" alt="" width={160} height={41} className="h-auto w-28 self-center sm:w-32" priority />
+          <span className="font-familia text-xl leading-none text-fam-valle sm:text-2xl">{t("family_tag")}</span>
         </Link>
 
-        <nav aria-label={t("nav_main")} className="hidden items-center gap-1 lg:flex">
+        <nav aria-label={t("nav_main")} className="hidden items-center gap-6 lg:flex">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               aria-current={isActive(l.href) ? "page" : undefined}
               className={cn(
-                "rounded-full px-4 py-2 font-heading text-sm font-bold transition-colors",
+                "relative rounded py-2 text-[15px] font-bold transition-colors",
                 focusRing,
-                isActive(l.href) ? "bg-brand-darkRed text-brand-beige" : "text-brand-darkRed hover:bg-white"
+                isActive(l.href)
+                  ? "text-fam-tinta after:absolute after:inset-x-0 after:-bottom-0.5 after:h-[3px] after:rounded-full after:bg-fam-maiz"
+                  : "text-fam-tinta/70 hover:text-fam-tinta"
               )}
             >
               {t(l.key)}
@@ -74,26 +77,23 @@ export function FamilyNavbar() {
             type="button"
             onClick={switchLocale}
             aria-label={t("nav_language")}
-            className={cn("hidden h-10 rounded-full border-2 border-brand-darkRed bg-white px-3 text-xs font-bold text-brand-darkRed hover:bg-brand-darkRed hover:text-white sm:inline-flex sm:items-center", focusRing)}
+            className={cn("hidden h-10 rounded-full px-3 text-sm font-bold text-fam-tinta/70 hover:text-fam-tinta sm:inline-flex sm:items-center", focusRing)}
           >
             {locale === "es" ? "EN" : "ES"}
           </button>
           <Link
             href="/carrito"
             aria-label={count > 0 ? `${t("nav_cart")} (${count})` : t("nav_cart")}
-            className={cn("relative flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-darkRed bg-white text-brand-darkRed hover:bg-brand-darkRed hover:text-white", focusRing)}
+            className={cn("relative flex h-10 w-10 items-center justify-center rounded-full text-fam-tinta hover:bg-fam-niebla", focusRing)}
           >
-            <ShoppingCart className="h-[18px] w-[18px]" aria-hidden="true" />
+            <ShoppingCart className="h-5 w-5" aria-hidden="true" />
             {count > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-brand-darkRed bg-brand-orange px-1 text-[10px] font-bold text-white">
+              <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-fam-aji px-1 text-[11px] font-bold text-white">
                 {count}
               </span>
             )}
           </Link>
-          <Link
-            href="/tours"
-            className={cn("hidden h-10 items-center rounded-full border-2 border-brand-darkRed bg-brand-darkTeal px-5 font-heading text-sm font-extrabold text-white shadow-[3px_3px_0_0_#441514] transition-transform hover:-translate-y-0.5 md:inline-flex", focusRing)}
-          >
+          <Link href="/tours" className={cn(familyBtnPrimary, "hidden min-h-10 px-5 py-2.5 md:inline-flex")}>
             {t("nav_cta")}
           </Link>
 
@@ -102,57 +102,57 @@ export function FamilyNavbar() {
               <button
                 type="button"
                 aria-label={t("nav_menu")}
-                className={cn("flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-darkRed bg-white text-brand-darkRed lg:hidden", focusRing)}
+                className={cn("flex h-10 w-10 items-center justify-center rounded-full text-fam-tinta hover:bg-fam-niebla lg:hidden", focusRing)}
               >
-                <Menu className="h-5 w-5" aria-hidden="true" />
+                <Menu className="h-6 w-6" aria-hidden="true" />
               </button>
             </SheetTrigger>
-            <SheetContent side="right" className="flex w-[88vw] max-w-sm flex-col border-l-2 border-brand-darkRed bg-brand-beige p-6 [&>button]:hidden">
-              <SheetTitle className="sr-only">{t("nav_main")}</SheetTitle>
-              <div className="mb-8 flex items-center justify-between">
-                <span className="font-heading text-lg font-extrabold text-brand-darkRed">{t("site_name")}</span>
-                <SheetClose asChild>
+            <SheetContent side="right" className="flex w-[88vw] max-w-sm flex-col border-l-0 bg-white p-0 [&>button]:hidden">
+              <TextileBand thin />
+              <div className="flex flex-1 flex-col p-6">
+                <SheetTitle className="sr-only">{t("nav_main")}</SheetTitle>
+                <div className="mb-8 flex items-center justify-between">
+                  <span className="font-familia text-2xl text-fam-valle">{t("site_name")}</span>
+                  <SheetClose asChild>
+                    <button
+                      type="button"
+                      aria-label={t("nav_close")}
+                      className={cn("flex h-10 w-10 items-center justify-center rounded-full text-fam-tinta hover:bg-fam-niebla", focusRing)}
+                    >
+                      <X className="h-6 w-6" aria-hidden="true" />
+                    </button>
+                  </SheetClose>
+                </div>
+                <nav aria-label={t("nav_main")} className="flex flex-col">
+                  {LINKS.map((l) => (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      onClick={() => setOpen(false)}
+                      aria-current={isActive(l.href) ? "page" : undefined}
+                      className={cn(
+                        "flex items-center gap-3 border-b border-fam-tinta/10 py-4 font-familia text-2xl",
+                        focusRing,
+                        isActive(l.href) ? "text-fam-valle" : "text-fam-tinta"
+                      )}
+                    >
+                      {isActive(l.href) && <span aria-hidden="true" className="h-2 w-2 rounded-full bg-fam-maiz" />}
+                      {t(l.key)}
+                    </Link>
+                  ))}
+                </nav>
+                <div className="mt-auto flex gap-3 pt-8">
                   <button
                     type="button"
-                    aria-label={t("nav_close")}
-                    className={cn("flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-darkRed bg-white text-brand-darkRed", focusRing)}
+                    onClick={() => { switchLocale(); setOpen(false); }}
+                    className={cn("h-12 flex-1 rounded-full border border-fam-tinta/25 font-bold text-fam-tinta", focusRing)}
                   >
-                    <X className="h-5 w-5" aria-hidden="true" />
+                    {t("nav_switch_to")}
                   </button>
-                </SheetClose>
-              </div>
-              <nav aria-label={t("nav_main")} className="flex flex-col gap-3">
-                {LINKS.map((l) => (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    onClick={() => setOpen(false)}
-                    aria-current={isActive(l.href) ? "page" : undefined}
-                    className={cn(
-                      "rounded-2xl border-2 border-brand-darkRed px-5 py-3 font-heading text-xl font-extrabold",
-                      focusRing,
-                      isActive(l.href) ? "bg-brand-darkRed text-brand-beige" : "bg-white text-brand-darkRed"
-                    )}
-                  >
-                    {t(l.key)}
+                  <Link href="/tours" onClick={() => setOpen(false)} className={cn(familyBtnPrimary, "flex-1")}>
+                    {t("nav_cta")}
                   </Link>
-                ))}
-              </nav>
-              <div className="mt-auto flex gap-3 pt-8">
-                <button
-                  type="button"
-                  onClick={() => { switchLocale(); setOpen(false); }}
-                  className={cn("h-12 flex-1 rounded-2xl border-2 border-brand-darkRed bg-white font-bold text-brand-darkRed", focusRing)}
-                >
-                  {t("nav_switch_to")}
-                </button>
-                <Link
-                  href="/tours"
-                  onClick={() => setOpen(false)}
-                  className={cn("flex h-12 flex-1 items-center justify-center rounded-2xl border-2 border-brand-darkRed bg-brand-darkTeal font-heading font-extrabold text-white", focusRing)}
-                >
-                  {t("nav_cta")}
-                </Link>
+                </div>
               </div>
             </SheetContent>
           </Sheet>

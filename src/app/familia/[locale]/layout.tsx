@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
-import { Montserrat, Lato, Playfair_Display } from "next/font/google";
+import { Montserrat, Lato, Playfair_Display, Young_Serif } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { TRPCProvider } from "@/lib/trpc-provider";
@@ -44,8 +44,16 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
 });
 
+// Titulares de la web familiar: serif cálida y adulta.
+const youngSerif = Young_Serif({
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-young-serif",
+});
+
 export const viewport: Viewport = {
-  themeColor: "#FBEDBE",
+  themeColor: "#0E6650",
   width: "device-width",
   initialScale: 1,
 };
@@ -131,12 +139,12 @@ export default async function FamilyLayout({
     getTranslations({ locale, namespace: "familia" }),
   ]);
 
-  const fonts = `${lato.variable} ${montserrat.variable} ${playfair.variable}`;
+  const fonts = `${lato.variable} ${montserrat.variable} ${playfair.variable} ${youngSerif.variable}`;
 
   if (!access.canView) {
     return (
       <html lang={locale}>
-        <body className={`${fonts} font-sans antialiased text-brand-darkRed bg-brand-beige`}>
+        <body className={`${fonts} font-sans antialiased text-fam-tinta bg-fam-valle`}>
           <FamilyComingSoon locale={locale} />
         </body>
       </html>
@@ -145,7 +153,7 @@ export default async function FamilyLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className={`${fonts} font-sans antialiased text-brand-darkRed bg-[#FFFBEF]`}>
+      <body className={`${fonts} font-sans antialiased text-fam-tinta bg-white`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLd(travelAgencyJsonLd(locale)) }}
@@ -155,10 +163,10 @@ export default async function FamilyLayout({
             <div className="flex min-h-screen flex-col">
               <div className="sticky top-0 z-50">
                 {access.isPreview && (
-                  <div role="status" className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-brand-darkRed px-4 py-1.5 text-center text-xs font-semibold text-brand-beige sm:text-sm">
+                  <div role="status" className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-fam-tinta px-4 py-1.5 text-center text-xs font-semibold text-white sm:text-sm">
                     <span>{t("preview_text")}</span>
                     {/* Enlace normal (no prefetch): la ruta borra la cookie de vista previa */}
-                    <a href="/api/familia/preview?exit=1" className="rounded underline underline-offset-2 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFC93C]">
+                    <a href="/api/familia/preview?exit=1" className="rounded underline underline-offset-2 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fam-maiz">
                       {t("preview_exit")}
                     </a>
                   </div>

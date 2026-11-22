@@ -1,12 +1,13 @@
 "use client";
 
+import { DEFAULT_HERO_IMAGE } from "@/lib/site-images";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { ArrowUpRight, Search } from "lucide-react";
 import Image from "next/image";
 
-const DEFAULT_HERO_BG = "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=1920&q=80";
+const DEFAULT_HERO_BG = DEFAULT_HERO_IMAGE;
 
 // Regiones / destinos peruanos para filtro rápido. Se envían como ?destination=
 // que el server hace contains-insensitive sobre Tour.destination.

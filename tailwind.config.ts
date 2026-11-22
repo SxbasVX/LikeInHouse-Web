@@ -22,6 +22,7 @@ const config: Config = {
         sans: ["var(--font-lato)", "sans-serif"],
         heading: ["var(--font-montserrat)", "sans-serif"],
         serif: ["var(--font-playfair)", "serif"],
+        familia: ["var(--font-young-serif)", "Georgia", "serif"],
       },
       colors: {
         brand: {
@@ -30,6 +31,16 @@ const config: Config = {
           beige: "#FBEDBE",
           darkRed: "#441514",
           darkTeal: "#0E6650"
+        },
+        // Web familiar: un hilo de color por generación (tejido andino).
+        fam: {
+          valle: "#0E6650",
+          tinta: "#441514",
+          maiz: "#F2B33D",
+          aji: "#FC451F",
+          turquesa: "#15A58E",
+          granate: "#7A2A24",
+          niebla: "#EEF6F2",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

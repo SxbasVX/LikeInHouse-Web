@@ -36,6 +36,9 @@ export const publicRouter = router({
         sort: z.enum(["price_asc", "price_desc", "newest", "popular"]).default("newest"),
         // Web familiar: sólo tours marcados como "Familia".
         family: z.boolean().optional(),
+        // Web familiar, "¿Quiénes viajan?": edad del menor del grupo y si viajan adultos mayores.
+        youngestAge: z.number().int().min(0).max(17).optional(),
+        seniors: z.boolean().optional(),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -44,6 +47,12 @@ export const publicRouter = router({
 
       const where: any = { status: "PUBLISHED", isActive: true };
       if (input.family) where.isFamily = true;
+      // Sirve si no pide edad mínima o si el menor del grupo la cumple.
+      if (input.youngestAge !== undefined) {
+        where.AND = [...(where.AND ?? []), { OR: [{ minAge: null }, { minAge: { lte: input.youngestAge } }] }];
+      }
+      // Con abuelos: sólo tours de dificultad fácil.
+      if (input.seniors) where.difficulty = "EASY";
 
       if (search) {
         const term = search.trim();
