@@ -15,10 +15,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 
 const GENERATION_LABELS: Record<FamilyGeneration, string> = {
-  kids: "Los más pequeños",
-  teens: "Los adolescentes",
-  parents: "Mamá y papá",
-  grandparents: "Los abuelos",
+  kids: "Viajes a su ritmo",
+  teens: "Edades claras",
+  parents: "Todo organizado",
+  grandparents: "Recuerdos para todos",
 };
 
 // Web familiar (familia.likeinhouseperu.com): queda en borrador hasta que un administrador la aprueba aquí.
@@ -164,9 +164,9 @@ export function FamilySitePanel() {
               </div>
 
               <div>
-                <h3 className="font-semibold">Fotos de cada generación</h3>
+                <h3 className="font-semibold">Fotos de &quot;Pensado para viajar en familia&quot;</h3>
                 <p className="mb-3 text-sm text-muted-foreground">
-                  Una foto real por grupo para &quot;Pensado para cada generación&quot;. Mientras no haya foto, se muestra el ícono dibujado.
+                  Una foto real de familias para cada tarjeta. Mientras no haya foto, se muestra el ícono dibujado.
                 </p>
                 <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                   {FAMILY_GENERATIONS.map((gen) => (

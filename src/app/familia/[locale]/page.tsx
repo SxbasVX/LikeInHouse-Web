@@ -34,10 +34,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 // Cada generación con su color de la marca y una leve inclinación (se endereza al pasar el mouse).
 const GENERATIONS = [
-  { key: "gen_kids", photo: "kids", icon: "kite", color: "#E0A126" },
-  { key: "gen_teens", photo: "teens", icon: "mountain", color: "#FC451F" },
-  { key: "gen_parents", photo: "parents", icon: "map", color: "#15A58E" },
-  { key: "gen_grandparents", photo: "grandparents", icon: "tea", color: "#441514" },
+  { key: "gen_kids", photo: "kids", icon: "tea", color: "#E0A126" }, // Viajes a su ritmo
+  { key: "gen_teens", photo: "teens", icon: "stroller", color: "#FC451F" }, // Edades claras
+  { key: "gen_parents", photo: "parents", icon: "map", color: "#15A58E" }, // Todo organizado
+  { key: "gen_grandparents", photo: "grandparents", icon: "kite", color: "#441514" }, // Recuerdos para todos
 ] as const;
 
 type HomeSection = { type: string; imageUrl: string | null };
