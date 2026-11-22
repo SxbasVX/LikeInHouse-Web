@@ -10,6 +10,9 @@ import { CertificationsSection } from "@/components/public/sections/certificatio
 import { HowToBookSection } from "@/components/public/sections/how-to-book";
 import { PromoBannersSection } from "@/components/public/sections/promo-banners";
 import { buildMetadata } from "@/lib/seo";
+import { isFamilySitePublished } from "@/lib/family-site";
+import { FamilyBannerSection } from "@/components/public/sections/family-banner";
+import { Fragment } from "react";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -32,11 +35,12 @@ export default async function HomePage() {
     getLocale(),
   ]);
 
-  const [tours, testimonials, faqs, homeSections] = await Promise.all([
+  const [tours, testimonials, faqs, homeSections, settings] = await Promise.all([
     caller.public.featuredTours(),
     caller.public.testimonials(),
     caller.public.faqs(),
     caller.public.homeSections(),
+    caller.public.settings(),
   ]);
 
   const isEs = locale === "es";
@@ -65,6 +69,10 @@ export default async function HomePage() {
   // Verificar visibilidad (las secciones vienen filtradas por isVisible=true)
   const isVisible = (type: string) => sectionMap.has(type);
 
+  // Banner de la web familiar: sólo cuando está publicada; va tras los tours destacados
+  const familyBanner = isFamilySitePublished(settings) ? <FamilyBannerSection key="family-banner" locale={locale} /> : null;
+  const featuredShown = isVisible("FEATURED_TOURS") && tours.length > 0;
+
   // Definir orden de las secciones basado en sortOrder del admin
   type SectionEntry = { type: string; render: () => React.ReactNode };
   const allSections: SectionEntry[] = [
@@ -83,12 +91,14 @@ export default async function HomePage() {
       type: "FEATURED_TOURS",
       render: () =>
         tours.length > 0 ? (
-          <FeaturedToursSection
-            key="featured"
-            tours={tours}
-            title={getTitle("FEATURED_TOURS")}
-            subtitle={getSubtitle("FEATURED_TOURS")}
-          />
+          <Fragment key="featured">
+            <FeaturedToursSection
+              tours={tours}
+              title={getTitle("FEATURED_TOURS")}
+              subtitle={getSubtitle("FEATURED_TOURS")}
+            />
+            {familyBanner}
+          </Fragment>
         ) : null,
     },
     {
@@ -117,6 +127,8 @@ export default async function HomePage() {
   return (
     <div>
       {sortedSections.map((s) => s.render())}
+      {/* Sin tours destacados visibles, el banner familiar va después de las secciones */}
+      {!featuredShown && familyBanner}
       {/* Banners promocionales (solo si hay activos) */}
       <PromoBannersSection />
       {/* Cómo reservar */}

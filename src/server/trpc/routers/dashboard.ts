@@ -80,11 +80,24 @@ export const dashboardRouter = router({
           utmCampaign: true,
           utmSource: true,
           utmMedium: true,
+          site: true,
           totalAmount: true,
           currency: true,
           createdAt: true,
         },
       });
+
+      // Ventas por web (general vs familiar), siempre con las dos filas.
+      const bySite = { GENERAL: { orders: 0, revenue: 0 }, FAMILY: { orders: 0, revenue: 0 } };
+      for (const r of reservations) {
+        bySite[r.site].orders++;
+        bySite[r.site].revenue += Number(r.totalAmount);
+      }
+      const siteStats = (["GENERAL", "FAMILY"] as const).map((site) => ({
+        site,
+        orders: bySite[site].orders,
+        revenue: Math.round(bySite[site].revenue * 100) / 100,
+      }));
 
       // Aggregate by first source
       const byFirstSource: Record<string, { orders: number; revenue: number }> = {};
@@ -144,6 +157,7 @@ export const dashboardRouter = router({
         firstSourceStats,
         lastSourceStats,
         campaignStats,
+        siteStats,
       };
     }),
 

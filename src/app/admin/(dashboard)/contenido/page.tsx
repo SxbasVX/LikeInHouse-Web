@@ -58,6 +58,7 @@ import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { PageHeader } from "@/components/admin/page-header";
 import { Pagination } from "@/components/admin/pagination";
 import { formatTrpcError } from "@/lib/trpc-error";
+import { FamilySitePanel } from "@/components/admin/family-site-panel";
 import { formatDateTime, formatTimestampDate } from "@/lib/format";
 import { Pencil, Save, Plus, XCircle, CheckCircle, Trash2, StarOff, Star, EyeOff, Eye, MoreHorizontal } from "lucide-react";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -107,7 +108,12 @@ export default function ContenidoPage() {
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
-          {activeTab === "settings" && <SettingsSection />}
+          {activeTab === "settings" && (
+            <div className="space-y-6">
+              <FamilySitePanel />
+              <SettingsSection />
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
@@ -291,6 +297,7 @@ function FAQsSection() {
               <div className="space-y-2">
                 <Label>Categoría</Label>
                 <Input name="category" placeholder="General" />
+                <p className="text-xs text-muted-foreground">Escribe «familia» para que la pregunta aparezca sólo en la web familiar.</p>
               </div>
               <div className="space-y-2">
                 <Label>Orden</Label>

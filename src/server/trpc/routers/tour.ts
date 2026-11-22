@@ -11,6 +11,7 @@ import {
   tourListInputSchema,
   tourCreateSchema,
   tourUpdateSchema,
+  familyAgesError,
 } from "@/lib/validators/tour";
 import { CACHE_TAGS } from "@/server/lib/cache";
 import {
@@ -47,6 +48,7 @@ export const tourRouter = router({
         ...(status && { status }),
         ...(input.tourType && { tourType: input.tourType }),
         ...(isFeatured !== undefined && { isFeatured }),
+        ...(input.isFamily !== undefined && { isFamily: input.isFamily }),
         ...(input.destination && { destination: input.destination }),
         ...(search && {
           OR: [
@@ -192,7 +194,18 @@ export const tourRouter = router({
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Tour no encontrado" });
       }
-      return ctx.db.tour.update({ where: { id }, data: tourData });
+      const agesError = familyAgesError({
+        minAge: tourData.minAge !== undefined ? tourData.minAge : existing.minAge,
+        recommendedAgeMin: tourData.recommendedAgeMin !== undefined ? tourData.recommendedAgeMin : existing.recommendedAgeMin,
+        recommendedAgeMax: tourData.recommendedAgeMax !== undefined ? tourData.recommendedAgeMax : existing.recommendedAgeMax,
+      });
+      // El autoguardado no bloquea al usuario: sólo deja las edades sin guardar hasta que sean coherentes.
+      const data = agesError
+        ? { ...tourData, minAge: undefined, recommendedAgeMin: undefined, recommendedAgeMax: undefined }
+        : tourData;
+      const saved = await ctx.db.tour.update({ where: { id }, data });
+      if (existing.status === "PUBLISHED") revalidateTag(CACHE_TAGS.tours);
+      return saved;
     }),
 
   // Detalle por ID (admin)
@@ -360,6 +373,13 @@ export const tourRouter = router({
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Tour no encontrado" });
       }
+
+      const agesError = familyAgesError({
+        minAge: tourData.minAge !== undefined ? tourData.minAge : existing.minAge,
+        recommendedAgeMin: tourData.recommendedAgeMin !== undefined ? tourData.recommendedAgeMin : existing.recommendedAgeMin,
+        recommendedAgeMax: tourData.recommendedAgeMax !== undefined ? tourData.recommendedAgeMax : existing.recommendedAgeMax,
+      });
+      if (agesError) throw new TRPCError({ code: "BAD_REQUEST", message: agesError.message });
       const textRows = (rows: Array<{ textEs: string; textEn: string }>) => rows.map((r) => ({ textEs: r.textEs, textEn: r.textEn }));
       const itineraryRows = (rows: NonNullable<typeof itinerary>) => [...rows].sort((a, b) => a.dayNumber - b.dayNumber)
         .map((d) => ({ dayNumber: d.dayNumber, titleEs: d.titleEs, titleEn: d.titleEn, descriptionEs: d.descriptionEs, descriptionEn: d.descriptionEn }));

@@ -26,9 +26,11 @@ interface ToursCatalogProps {
   };
   destinations: string[];
   categories: string[];
+  /** Web familiar: la consulta del cliente sólo trae tours familiares. */
+  family?: boolean;
 }
 
-function ToursCatalogInner({ initialData, destinations, categories }: ToursCatalogProps) {
+function ToursCatalogInner({ initialData, destinations, categories, family }: ToursCatalogProps) {
   const t = useTranslations("tours");
   const tc = useTranslations("common");
 
@@ -78,7 +80,7 @@ function ToursCatalogInner({ initialData, destinations, categories }: ToursCatal
   const hasFilters: boolean = page > 1 || !!destination || !!category || !!activeSearch || sort !== "newest";
 
   const { data, isLoading } = trpc.public.tours.useQuery(
-    { page, limit: 9, search: activeSearch, destination, category, sort },
+    { page, limit: 9, search: activeSearch, destination, category, sort, ...(family ? { family: true } : {}) },
     { initialData: hasFilters ? undefined : initialData, enabled: hasFilters as boolean }
   );
 

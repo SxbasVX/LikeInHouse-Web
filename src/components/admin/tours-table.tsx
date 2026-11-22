@@ -43,6 +43,7 @@ interface Tour {
   status: string;
   tourType: string;
   isFeatured: boolean;
+  isFamily?: boolean;
   category: string;
   durationDays: number;
   durationNights: number;
@@ -131,7 +132,12 @@ export function ToursTable({ tours, onRefresh }: ToursTableProps) {
                     )}
                     <div>
                       <p className="font-medium">{tour.nameEs}</p>
-                      <p className="text-xs text-muted-foreground">{tour.category}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {tour.category}
+                        {tour.isFamily && (
+                          <Badge variant="outline" className="ml-2 px-1.5 py-0 text-[10px] border-brand-teal text-brand-darkTeal">Familia</Badge>
+                        )}
+                      </p>
                     </div>
                     {tour.isFeatured && (
                       <Star className="h-4 w-4 fill-brand-orange text-brand-orange" aria-label="Destacado" />

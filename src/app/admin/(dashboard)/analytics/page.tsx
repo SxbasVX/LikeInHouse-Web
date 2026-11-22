@@ -135,6 +135,27 @@ export default function AnalyticsPage() {
             </Card>
           </div>
 
+          {/* Ventas por web: general vs familiar */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Por web</CardTitle>
+              <CardDescription>Órdenes que llegaron por la web general y por la web familiar</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {data.siteStats.map((row) => (
+                  <div key={row.site} className="rounded-lg border p-4">
+                    <p className="text-sm text-muted-foreground">
+                      {row.site === "FAMILY" ? "Web familiar (familia.likeinhouseperu.com)" : "Web general (likeinhouseperu.com)"}
+                    </p>
+                    <p className="text-2xl font-bold mt-1">{row.orders} {row.orders === 1 ? "orden" : "órdenes"}</p>
+                    <p className="text-sm">{formatMoney(row.revenue, "USD")}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Two-column: First Source + Last Source */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Purchases by First Source */}

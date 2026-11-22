@@ -6,7 +6,7 @@ import { Link } from "@/i18n/routing";
 import {
   MapPin, Clock, Star, Calendar, Check, X, Users,
   ChevronLeft, ChevronRight, ChevronDown, Mountain,
-  Share2, ShoppingCart, ArrowUpRight, FileText,
+  Share2, ShoppingCart, ArrowUpRight, FileText, Baby,
 } from "lucide-react";
 import { QuoteRequestDialog } from "@/components/public/quote-request-form";
 import { useState } from "react";
@@ -16,6 +16,7 @@ import { formatDuration, parseItineraryDescription } from "@/lib/utils";
 import { TourConditions } from "@/components/public/tour-conditions";
 import { trpc } from "@/lib/trpc";
 import { useCurrency } from "@/hooks/use-currency";
+import { formatTourAges } from "@/lib/tour-ages";
 
 interface TourImage {
   id: string;
@@ -82,6 +83,9 @@ interface TourData {
   isFeatured: boolean;
   tourType?: string;
   bookingMode?: string;
+  minAge?: number | null;
+  recommendedAgeMin?: number | null;
+  recommendedAgeMax?: number | null;
   images: TourImage[];
   itinerary: ItineraryDay[];
   pricing: Pricing | null;
@@ -111,6 +115,7 @@ export function TourDetail({ tour }: { tour: TourData }) {
   const inCart = cartHydrated ? isInCart(tour.id) : false;
 
   const name = isEs ? tour.nameEs : tour.nameEn;
+  const ages = formatTourAges(tour, locale, { withMinimum: true });
   const shortDesc = isEs ? tour.shortDescEs : (tour.shortDescEn || tour.shortDescEs);
   const desc = isEs ? tour.longDescEs : (tour.longDescEn || tour.longDescEs);
   // Prefer tiers over legacy fields
@@ -311,6 +316,16 @@ export function TourDetail({ tour }: { tour: TourData }) {
               </div>
             ))}
           </div>
+          {/* Edades recomendadas: sólo cuando el tour las define */}
+          {ages && (
+            <div className="flex items-center gap-3 border-t border-gray-100 px-4 py-3 sm:px-6">
+              <Baby className="h-5 w-5 shrink-0 text-brand-orange" aria-hidden="true" />
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">{t("ages_label")}</p>
+                <p className="mt-0.5 text-sm font-semibold text-gray-800">{ages}</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -675,10 +690,11 @@ export function TourDetail({ tour }: { tour: TourData }) {
                     { icon: <Clock className="h-4 w-4 text-brand-teal" />, label: t("duration_label"), value: formatDuration(tour.durationDays, tour.durationNights, tour.durationHours) },
                     { icon: <Mountain className="h-4 w-4 text-brand-teal" />, label: t("difficulty_label"), value: t(`difficulty_${tour.difficulty.toLowerCase()}`) },
                     { icon: <MapPin className="h-4 w-4 text-brand-teal" />, label: t("destination"), value: tour.destination },
+                    ...(ages ? [{ icon: <Baby className="h-4 w-4 text-brand-teal" />, label: t("ages_label"), value: ages }] : []),
                   ].map((row, i) => (
-                    <div key={i} className="flex items-center justify-between px-5 py-3.5 text-sm">
-                      <span className="flex items-center gap-2 text-gray-400">{row.icon}{row.label}</span>
-                      <span className="font-semibold text-gray-800">{row.value}</span>
+                    <div key={i} className="flex items-center justify-between gap-3 px-5 py-3.5 text-sm">
+                      <span className="flex shrink-0 items-center gap-2 text-gray-400">{row.icon}{row.label}</span>
+                      <span className="text-right font-semibold text-gray-800">{row.value}</span>
                     </div>
                   ))}
                 </div>

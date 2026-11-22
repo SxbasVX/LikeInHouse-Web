@@ -5,7 +5,8 @@ import { auth } from "@/server/lib/auth";
 import { db } from "@/server/lib/db";
 import { checkRateLimit, type RATE_LIMITS } from "@/server/lib/rate-limit";
 import { defineAbilitiesFor, type AppAbility } from "@/server/lib/abilities";
-import type { UserRole } from "@prisma/client";
+import type { BookingSite, UserRole } from "@prisma/client";
+import { isFamilyHost } from "@/lib/family-site";
 
 export const createTRPCContext = async () => {
   const session = await auth();
@@ -14,11 +15,15 @@ export const createTRPCContext = async () => {
     headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     headersList.get("x-real-ip") ||
     "unknown";
+  // Web pública desde la que llega la petición (la API corre en el mismo dominio que la página).
+  const host = headersList.get("x-forwarded-host") || headersList.get("host") || "";
+  const site: BookingSite = isFamilyHost(host) ? "FAMILY" : "GENERAL";
 
   return {
     db,
     session,
     ip,
+    site,
   };
 };
 

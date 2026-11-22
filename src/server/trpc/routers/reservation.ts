@@ -28,6 +28,7 @@ const reservationListSchema = z.object({
   limit: z.number().min(1).max(100).default(10),
   status: z.enum(["PENDING", "CONFIRMED", "PAID", "COMPLETED", "CANCELLED"]).optional(),
   search: z.string().optional(),
+  site: z.enum(["GENERAL", "FAMILY"]).optional(),
 });
 
 const reservationCreateSchema = z.object({
@@ -112,6 +113,7 @@ export const reservationRouter = router({
 
       const where = {
         ...(status && { status }),
+        ...(input.site && { site: input.site }),
         // Non-admin users only see their assigned reservations
         ...(!isAdmin && { assignedUserId: userId }),
         ...(search && {
@@ -528,6 +530,7 @@ export const reservationRouter = router({
           data: {
             referenceCode,
             origin: "WEB",
+            site: ctx.site,
             status: "PENDING",
             clientId: client.id,
             tourId: input.tourId,

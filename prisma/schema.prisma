@@ -155,6 +155,12 @@ model Tour {
   isActive  Boolean @default(true) // For soft deletes
   sortOrder Int     @default(0)
 
+  // Web familiar (familia.likeinhouseperu.com): sólo aparecen los tours marcados.
+  isFamily          Boolean @default(false)
+  minAge            Int?    // Edad mínima para participar
+  recommendedAgeMin Int?    // Rango de edades ideal (desde)
+  recommendedAgeMax Int?    // Rango de edades ideal (hasta)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -174,6 +180,7 @@ model Tour {
   @@index([status, isFeatured])
   @@index([destination])
   @@index([category])
+  @@index([isFamily, status])
 }
 
 model TourImage {
@@ -394,11 +401,18 @@ enum ReservationOrigin {
   PAYMENT_LINK
 }
 
+// Web pública por la que llegó la reserva.
+enum BookingSite {
+  GENERAL // likeinhouseperu.com
+  FAMILY  // familia.likeinhouseperu.com
+}
+
 model Reservation {
   id            String            @id @default(cuid())
   referenceCode String            @unique @default(cuid())
   status        ReservationStatus @default(PENDING)
   origin        ReservationOrigin @default(WEB)
+  site          BookingSite       @default(GENERAL)
 
   clientId       String
   client         Client         @relation(fields: [clientId], references: [id], onDelete: Restrict)
@@ -463,6 +477,7 @@ model Reservation {
   @@index([createdAt])
   @@index([firstSource])
   @@index([lastSource])
+  @@index([site])
   @@index([assignedUserId])
   @@index([quotationId])
   @@index([paymentLinkId])

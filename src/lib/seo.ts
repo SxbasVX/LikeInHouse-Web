@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
 export const SITE_NAME = "Like In House";
+/** Nombre de la web familiar (familia.likeinhouseperu.com). */
+export const FAMILY_SITE_NAME = "Like In House Familia";
 export const SITE_TAGLINE_ES = "Tours auténticos en Perú";
 export const SITE_TAGLINE_EN = "Authentic tours in Peru";
 export const DEFAULT_OG_IMAGE = "/opengraph-image";
@@ -24,8 +26,10 @@ export function buildAlternates(opts: {
   locale: string;
   /** Path segment after `/{locale}`. Must start with "/" or be "". Example: "/tours" or "/tours/foo" */
   pathByLocale: { es: string; en: string } | string;
+  /** URL base alternativa (p. ej. la web familiar). Por defecto getBaseUrl(). */
+  baseUrl?: string;
 }): NonNullable<Metadata["alternates"]> {
-  const base = getBaseUrl();
+  const base = opts.baseUrl || getBaseUrl();
   const paths =
     typeof opts.pathByLocale === "string"
       ? { es: opts.pathByLocale, en: opts.pathByLocale }
@@ -60,6 +64,8 @@ export interface BuildMetadataOptions {
   noindex?: boolean;
   /** Keywords for search engines. */
   keywords?: string[];
+  /** URL base alternativa para canonical/hreflang/OG (p. ej. la web familiar). Por defecto getBaseUrl(). */
+  baseUrl?: string;
   /** Article metadata (only when ogType === "article"). */
   article?: {
     publishedTime?: string;
@@ -75,7 +81,7 @@ export interface BuildMetadataOptions {
  * Use this inside every `generateMetadata` in the public site.
  */
 export function buildMetadata(opts: BuildMetadataOptions): Metadata {
-  const base = getBaseUrl();
+  const base = opts.baseUrl || getBaseUrl();
   const paths =
     typeof opts.pathByLocale === "string"
       ? { es: opts.pathByLocale, en: opts.pathByLocale }
@@ -86,13 +92,14 @@ export function buildMetadata(opts: BuildMetadataOptions): Metadata {
   const canonicalUrl = `${base}/${locale}${currentPath}`;
 
   const siteName = opts.siteName === undefined ? SITE_NAME : opts.siteName ?? undefined;
-  const image = opts.image || `${base}${DEFAULT_OG_IMAGE}`;
+  // La imagen OG por defecto siempre vive en el dominio principal
+  const image = opts.image || `${getBaseUrl()}${DEFAULT_OG_IMAGE}`;
 
   const metadata: Metadata = {
     title: opts.title,
     description: opts.description,
     ...(opts.keywords && opts.keywords.length > 0 ? { keywords: opts.keywords } : {}),
-    alternates: buildAlternates({ locale, pathByLocale: paths }),
+    alternates: buildAlternates({ locale, pathByLocale: paths, baseUrl: base }),
     openGraph: {
       title: opts.title,
       description: opts.description,
@@ -205,6 +212,8 @@ export interface TouristTripInput {
   categoryEs?: string | null;
   categoryEn?: string | null;
   updatedAt?: Date | string | null;
+  /** URL base alternativa para la URL del tour (p. ej. la web familiar). */
+  baseUrl?: string;
 }
 
 /** TouristTrip schema — far more appropriate than Product for tour packages. */
@@ -213,7 +222,7 @@ export function touristTripJsonLd(t: TouristTripInput) {
   const isEs = t.locale === "es";
   const name = isEs ? t.nameEs : t.nameEn;
   const description = (isEs ? t.shortDescEs : t.shortDescEn) || undefined;
-  const url = `${base}/${t.locale}/tours/${t.slug}`;
+  const url = `${t.baseUrl || base}/${t.locale}/tours/${t.slug}`;
 
   const defaultTier =
     t.tiers?.find((x) => x.isDefault) || t.tiers?.[0] || null;
@@ -322,8 +331,8 @@ export interface BreadcrumbItem {
   path: string;
 }
 
-export function breadcrumbJsonLd(locale: string, items: BreadcrumbItem[]) {
-  const base = getBaseUrl();
+export function breadcrumbJsonLd(locale: string, items: BreadcrumbItem[], baseUrl?: string) {
+  const base = baseUrl || getBaseUrl();
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

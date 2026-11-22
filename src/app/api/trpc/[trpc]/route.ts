@@ -1,6 +1,7 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "@/server/trpc/root";
 import { createTRPCContext } from "@/server/trpc/trpc";
+import { getFamilyBaseUrl } from "@/lib/family-site";
 
 // Vercel serverless: extend timeout for tRPC operations (Serializable transactions, etc.)
 export const maxDuration = 60;
@@ -24,10 +25,17 @@ function validateOrigin(req: Request): boolean {
     `https://${adminHostname}`,
     "https://dev.likeinhouseperu.com",
   ]);
+  // Web familiar: reserva, contacto y cotizaciones desde familia.likeinhouseperu.com
+  try {
+    allowedOrigins.add(new URL(getFamilyBaseUrl()).origin);
+  } catch {
+    // NEXT_PUBLIC_FAMILY_BASE_URL mal escrita: la web familiar no podrá enviar formularios, pero el resto sigue.
+  }
 
   // Only allow localhost in development
   if (process.env.NODE_ENV !== "production") {
     allowedOrigins.add("http://localhost:3000");
+    allowedOrigins.add("http://familia.localhost:3000");
   }
 
   const sourceOrigin = origin || (referer ? (() => { try { return new URL(referer).origin; } catch { return null; } })() : null);

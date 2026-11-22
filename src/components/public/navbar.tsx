@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import Image from "next/image";
 import { parseAirbnbListings, type AirbnbListing } from "@/lib/airbnb";
+import { getFamilyBaseUrl, isFamilySitePublished } from "@/lib/family-site";
 
 const rightLinks = [
   { key: "about", href: "/nosotros" },
@@ -94,6 +95,10 @@ export function Navbar() {
     refetchOnWindowFocus: false,
   });
   const airbnbListings = parseAirbnbListings(settings as Record<string, unknown> | null | undefined);
+  // Enlace a la web familiar (otro dominio): sólo cuando está publicada
+  const familyHref = isFamilySitePublished(settings as Record<string, unknown> | null | undefined)
+    ? `${getFamilyBaseUrl()}/${locale}`
+    : null;
 
   const destinations = toursByDest ? Object.keys(toursByDest) : [];
 
@@ -142,6 +147,11 @@ export function Navbar() {
                   {t(link.key)}
                 </Link>
               ))}
+              {familyHref && (
+                <a href={familyHref} className="relative z-10 px-5 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-200 text-white/85 hover:text-white hover:bg-white/10">
+                  {t("families")}
+                </a>
+              )}
             </nav>
           </div>
 
@@ -187,7 +197,7 @@ export function Navbar() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbListings={airbnbListings} />
+              <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbListings={airbnbListings} familyHref={familyHref} />
             </Sheet>
           </div>
         </div>
@@ -222,6 +232,11 @@ export function Navbar() {
               {t(link.key)}
             </Link>
           ))}
+          {familyHref && (
+            <a href={familyHref} className="relative z-10 px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200 text-gray-600 hover:text-brand-darkRed hover:bg-gray-100">
+              {t("families")}
+            </a>
+          )}
         </nav>
 
         <div className="hidden lg:flex items-center gap-2 shrink-0">
@@ -268,7 +283,7 @@ export function Navbar() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbListings={airbnbListings} />
+            <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbListings={airbnbListings} familyHref={familyHref} />
           </Sheet>
         </div>
       </div>
@@ -277,12 +292,13 @@ export function Navbar() {
 }
 
 // ─── Shared Mobile Menu Content ───────────────────────────────────────────────
-function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMobileOpen, airbnbListings }: {
+function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMobileOpen, airbnbListings, familyHref }: {
   t: any; isEs: boolean; cartCount: number;
   switchLocale: (loc: "es" | "en") => void;
   intlRouter: any;
   setMobileOpen: (v: boolean) => void;
   airbnbListings: AirbnbListing[];
+  familyHref: string | null;
 }) {
   return (
     <SheetContent side="left" className="w-[95vw] sm:w-[500px] p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] m-2 sm:m-4 h-[calc(100vh-16px)] sm:h-[calc(100vh-32px)] border-0 shadow-2xl overflow-y-auto flex flex-col bg-white">
@@ -317,6 +333,14 @@ function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMo
             </div>
           </Link>
         ))}
+        {familyHref && (
+          <a href={familyHref} onClick={() => setMobileOpen(false)} className="flex justify-between items-center group">
+            <span className="text-3xl font-medium text-black group-hover:text-brand-orange transition-colors">{t("families")}</span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100 text-black group-hover:bg-brand-orange group-hover:text-white transition-colors">
+              <ArrowUpRight className="h-5 w-5" />
+            </div>
+          </a>
+        )}
       </div>
 
       <div className="flex-1" />

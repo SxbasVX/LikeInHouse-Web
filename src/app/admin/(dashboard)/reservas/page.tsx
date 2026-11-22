@@ -79,6 +79,7 @@ export default function ReservasPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("");
+  const [site, setSite] = useState<"" | "GENERAL" | "FAMILY">("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newStatus, setNewStatus] = useState<string>("");
   const { toast } = useToast();
@@ -88,6 +89,7 @@ export default function ReservasPage() {
     limit: 10,
     search: search || undefined,
     status: (status as "PENDING" | "CONFIRMED" | "PAID" | "COMPLETED" | "CANCELLED") || undefined,
+    site: site || undefined,
   });
 
   const updateStatus = trpc.reservation.updateStatus.useMutation({
@@ -164,6 +166,22 @@ export default function ReservasPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select
+              value={site || "ALL"}
+              onValueChange={(val) => {
+                setSite(val === "ALL" ? "" : (val as "GENERAL" | "FAMILY"));
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-44" aria-label="Filtrar por web">
+                <SelectValue placeholder="Web" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todas las webs</SelectItem>
+                <SelectItem value="GENERAL">Web general</SelectItem>
+                <SelectItem value="FAMILY">Web familiar</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {isLoading ? (
@@ -226,6 +244,9 @@ export default function ReservasPage() {
                       </TableCell>
                       <TableCell className="hidden xl:table-cell">
                         <Badge variant="outline">{reservationOriginLabel(reservation.origin)}</Badge>
+                        {reservation.site === "FAMILY" && (
+                          <Badge variant="outline" className="ml-1 border-brand-teal text-brand-darkTeal">Web familiar</Badge>
+                        )}
                       </TableCell>
                       <TableCell className="hidden xl:table-cell">
                         {(reservation as any).firstSource && (reservation as any).firstSource !== "direct" ? (

@@ -11,6 +11,7 @@ export const tourListInputSchema = z.object({
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
   search: z.string().optional(),
   isFeatured: z.boolean().optional(),
+  isFamily: z.boolean().optional(),
   tourType: z.enum(["BOOKABLE", "INFORMATIONAL"]).optional(),
   destination: z.string().optional(),
 });
@@ -80,6 +81,21 @@ const pricingSchema = z.object({
 // Informational tours may carry "Adquiérelo desde" rates or none at all; bookable ones need at least one (refine below).
 const createPricingSchema = pricingSchema.extend({ tiers: z.array(pricingTierSchema) });
 
+// Edades de la web familiar: enteros de 0 a 17 o vacío.
+const ageField = z.number().int("Debe ser un número entero").min(0, "No puede ser negativo").max(17, "Máximo 17 años").nullable().optional();
+
+/** Mensaje de error si las edades no son coherentes; null si están bien. */
+export function familyAgesError(data: { minAge?: number | null; recommendedAgeMin?: number | null; recommendedAgeMax?: number | null }): { path: string; message: string } | null {
+  const { minAge, recommendedAgeMin: from, recommendedAgeMax: to } = data;
+  if (from != null && to != null && from > to) {
+    return { path: "recommendedAgeMax", message: "La edad \"hasta\" debe ser mayor o igual que \"desde\"" };
+  }
+  if (minAge != null && from != null && from < minAge) {
+    return { path: "recommendedAgeMin", message: "La edad recomendada no puede ser menor que la edad mínima" };
+  }
+  return null;
+}
+
 export const tourCreateSchema = z.object({
   nameEs: z.string().min(3, "Mínimo 3 caracteres"),
   nameEn: z.string().min(3, "Minimum 3 characters"),
@@ -101,6 +117,10 @@ export const tourCreateSchema = z.object({
   metaTitleEn: z.string().optional(),
   metaDescEn: z.string().optional(),
   isFeatured: z.boolean().default(false),
+  isFamily: z.boolean().default(false),
+  minAge: ageField,
+  recommendedAgeMin: ageField,
+  recommendedAgeMax: ageField,
   itinerary: z.array(itineraryDaySchema).default([]),
   pricing: createPricingSchema.optional(),
   includes: z.array(tourIncludeSchema).default([]),
@@ -124,6 +144,9 @@ export const tourCreateSchema = z.object({
 }, {
   message: "Si duración en días es 0, debe especificar horas",
   path: ["durationHours"],
+}).superRefine((data, ctx) => {
+  const err = familyAgesError(data);
+  if (err) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [err.path], message: err.message });
 });
 
 export type TourCreateInput = z.infer<typeof tourCreateSchema>;
@@ -150,6 +173,10 @@ export const tourUpdateSchema = z.object({
   metaTitleEn: z.string().optional(),
   metaDescEn: z.string().optional(),
   isFeatured: z.boolean().optional(),
+  isFamily: z.boolean().optional(),
+  minAge: ageField,
+  recommendedAgeMin: ageField,
+  recommendedAgeMax: ageField,
   itinerary: z.array(itineraryDaySchema).optional(),
   pricing: pricingSchema.optional().nullable(),
   includes: z.array(tourIncludeSchema).optional(),

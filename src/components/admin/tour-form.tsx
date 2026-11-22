@@ -32,7 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, ChevronDown, Eye, Save, Star, Loader2, AlertCircle, Check } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Eye, Save, Star, Loader2, AlertCircle, Check, Baby } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ui/image-upload";
 import type { TourCreateInput } from "@/lib/validators/tour";
@@ -68,6 +68,10 @@ interface TourFormData {
   metaTitleEn: string;
   metaDescEn: string;
   isFeatured: boolean;
+  isFamily: boolean;
+  minAge: number | null;
+  recommendedAgeMin: number | null;
+  recommendedAgeMax: number | null;
   itinerary: {
     dayNumber: number;
     titleEs: string;
@@ -149,6 +153,10 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
       metaTitleEn: "",
       metaDescEn: "",
       isFeatured: false,
+      isFamily: false,
+      minAge: null,
+      recommendedAgeMin: null,
+      recommendedAgeMax: null,
       itinerary: [],
       pricing: {
         tiers: [
@@ -276,7 +284,7 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
   // Pestañas con errores: se marcan con ícono (no sólo color) para que se noten.
   const errorKeys = Object.keys(errors);
   const tabErrors = {
-    general: errorKeys.some((k) => ["nameEs", "nameEn", "slug", "tourType", "category", "difficulty", "durationDays", "durationNights", "durationHours", "destination", "shortDescEs", "shortDescEn", "longDescEs", "longDescEn"].includes(k)),
+    general: errorKeys.some((k) => ["nameEs", "nameEn", "slug", "tourType", "category", "difficulty", "durationDays", "durationNights", "durationHours", "destination", "shortDescEs", "shortDescEn", "longDescEs", "longDescEn", "minAge", "recommendedAgeMin", "recommendedAgeMax"].includes(k)),
     multimedia: !!errors.images,
     precios: !!(errors.pricing || errors.departures),
     avanzado: errorKeys.some((k) => ["itinerary", "includes", "excludes", "metaTitleEs", "metaTitleEn", "metaDescEs", "metaDescEn"].includes(k)),
@@ -435,6 +443,52 @@ export function TourForm({ initialData, onSubmit, onAutoSave, isLoading }: TourF
                     />
                     <span className="text-sm font-medium">Destacado</span>
                   </div>
+                </div>
+
+                {/* Web familiar: el tour aparece en familia.likeinhouseperu.com */}
+                <div className="rounded-lg border p-4 bg-brand-beige/40 border-brand-teal/30 space-y-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <Label className="text-base font-medium text-brand-darkTeal flex items-center gap-1">
+                        <Baby className="h-4 w-4" />
+                        Familia
+                      </Label>
+                      <div className="text-sm text-muted-foreground mt-1 text-balance">
+                        Los tours marcados aparecen en la web familiar, además de la web general.
+                      </div>
+                    </div>
+                    <Switch
+                      aria-label="Mostrar en la web familiar"
+                      checked={watch("isFamily")}
+                      onCheckedChange={(checked) => setValue("isFamily", checked, { shouldDirty: true })}
+                    />
+                  </div>
+                  {watch("isFamily") && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {([
+                        ["minAge", "Edad mínima", "Ej. 3"],
+                        ["recommendedAgeMin", "Edades ideales: desde", "Ej. 4"],
+                        ["recommendedAgeMax", "Edades ideales: hasta", "Ej. 12"],
+                      ] as const).map(([field, label, placeholder]) => (
+                        <div key={field} className="space-y-2">
+                          <Label htmlFor={`tour-${field}`} className={(errors as any)[field] ? "text-destructive" : ""}>{label}</Label>
+                          <Input
+                            id={`tour-${field}`}
+                            type="number"
+                            min={0}
+                            max={17}
+                            placeholder={placeholder}
+                            {...register(field, { setValueAs: (v: unknown) => (v === "" || v === null || v === undefined ? null : Number(v)) })}
+                            className={(errors as any)[field] ? "border-destructive" : ""}
+                          />
+                          {(errors as any)[field] && <p className="text-[11px] font-medium text-destructive">{(errors as any)[field].message}</p>}
+                        </div>
+                      ))}
+                      <p className="sm:col-span-3 text-[11px] text-muted-foreground">
+                        Se muestran en la ficha del tour como &quot;Ideal de 4 a 12 años&quot; o &quot;Desde 3 años&quot;. Déjalos vacíos si no aplica.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

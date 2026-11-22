@@ -25,6 +25,7 @@ export default function ToursPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [destination, setDestination] = useState<string | undefined>(undefined);
+  const [onlyFamily, setOnlyFamily] = useState(false);
   const utils = trpc.useUtils();
 
   const { data, isLoading, error, refetch, isRefetching } = trpc.tour.list.useQuery({
@@ -33,6 +34,7 @@ export default function ToursPage() {
     search: search || undefined,
     status: status as "DRAFT" | "PUBLISHED" | "ARCHIVED" | undefined,
     destination,
+    isFamily: onlyFamily ? true : undefined,
   });
 
   return (
@@ -91,6 +93,13 @@ export default function ToursPage() {
             <SelectItem value="ARCHIVED">Archivado</SelectItem>
           </SelectContent>
         </Select>
+        <Button
+          variant={onlyFamily ? "default" : "outline"}
+          aria-pressed={onlyFamily}
+          onClick={() => { setOnlyFamily((v) => !v); setPage(1); }}
+        >
+          Solo Familia
+        </Button>
         {destination && (
           <Button
             variant="secondary"

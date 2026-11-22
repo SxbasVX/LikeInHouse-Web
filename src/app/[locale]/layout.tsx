@@ -118,7 +118,8 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const messages = await getMessages();
+  // Los textos de la web familiar no viajan a la web general (no se usan en el cliente y está en borrador).
+  const { familia: _familyMessages, ...messages } = await getMessages();
 
   return (
     <html lang={locale} suppressHydrationWarning>

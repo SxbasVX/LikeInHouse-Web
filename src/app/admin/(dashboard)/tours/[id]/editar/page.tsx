@@ -81,6 +81,10 @@ export default function EditarTourPage() {
     metaTitleEn: tour.metaTitleEn || "",
     metaDescEn: tour.metaDescEn || "",
     isFeatured: tour.isFeatured,
+    isFamily: tour.isFamily,
+    minAge: tour.minAge,
+    recommendedAgeMin: tour.recommendedAgeMin,
+    recommendedAgeMax: tour.recommendedAgeMax,
     itinerary: tour.itinerary.map((day) => ({
       dayNumber: day.dayNumber,
       titleEs: day.titleEs,

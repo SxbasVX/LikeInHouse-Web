@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { MapPin, Clock, Star, ShoppingCart, Check, ArrowRight, Tag } from "lucide-react";
+import { MapPin, Clock, Star, ShoppingCart, Check, ArrowRight, Tag, Baby } from "lucide-react";
 import { useCartStore, useCartHydration } from "@/lib/cart-store";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { getFinalPrice, lowestTierPrice } from "@/lib/pricing";
 import { formatDuration } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 import { useCurrency } from "@/hooks/use-currency";
+import { formatTourAges } from "@/lib/tour-ages";
 
 interface TourCardProps {
   tour: {
@@ -29,6 +30,9 @@ interface TourCardProps {
     durationHours?: number | null;
     isFeatured: boolean;
     tourType?: string;
+    minAge?: number | null;
+    recommendedAgeMin?: number | null;
+    recommendedAgeMax?: number | null;
     images: { url: string; altEs?: string | null; altEn?: string | null }[];
     pricing: {
       basePriceUsdAdult: any;
@@ -100,6 +104,7 @@ export function TourCard({ tour }: TourCardProps) {
   }, [tour.pricing, isEs, globalPct]);
 
   const diff = difficultyLabel[tour.difficulty];
+  const ages = formatTourAges(tour, locale);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -192,6 +197,14 @@ export function TourCard({ tour }: TourCardProps) {
           {formatDuration(tour.durationDays, tour.durationNights, tour.durationHours)}
         </span>
       </div>
+
+      {/* Edades recomendadas (sólo si el tour las tiene) */}
+      {ages && (
+        <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-brand-beige px-2.5 py-0.5 text-[11px] font-semibold text-brand-darkRed">
+          <Baby className="h-3 w-3" aria-hidden="true" />
+          {ages}
+        </span>
+      )}
 
       {/* Title */}
       <h3 className="text-xl font-semibold text-brand-darkRed mb-2 leading-tight line-clamp-2 group-hover:text-brand-orange transition-colors">

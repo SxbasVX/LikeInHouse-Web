@@ -6,6 +6,8 @@ export default defineConfig({
         environment: "node",
         globals: true,
         include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+        // next-intl importa "next/server" sin extensión; procesarlo con Vite permite probar el middleware.
+        server: { deps: { inline: ["next-intl"] } },
     },
     resolve: {
         alias: {

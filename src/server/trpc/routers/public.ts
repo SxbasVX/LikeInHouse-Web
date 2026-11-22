@@ -4,6 +4,7 @@ import { RATE_LIMITS } from "@/server/lib/rate-limit";
 import { sanitizePlainText } from "@/server/lib/sanitize";
 import {
   getCachedFeaturedTours,
+  getCachedFamilyFeaturedTours,
   getCachedDestinations,
   getCachedQuoteDestinations,
   getCachedCategories,
@@ -15,6 +16,7 @@ import {
   getCachedSettings,
 } from "@/server/lib/cache";
 import { serializeDecimals } from "@/server/lib/serialize";
+import { FAMILY_PREVIEW_TOKEN_KEY, isFamilyFaq } from "@/lib/family-site";
 import { getExchangeRates } from "@/server/lib/exchange";
 import { linkQuoteRequestClient, syncQuoteRequestToCrm } from "@/server/lib/quote-requests";
 
@@ -32,6 +34,8 @@ export const publicRouter = router({
         minPrice: z.number().optional(),
         maxPrice: z.number().optional(),
         sort: z.enum(["price_asc", "price_desc", "newest", "popular"]).default("newest"),
+        // Web familiar: sólo tours marcados como "Familia".
+        family: z.boolean().optional(),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -39,6 +43,7 @@ export const publicRouter = router({
       const skip = (page - 1) * limit;
 
       const where: any = { status: "PUBLISHED", isActive: true };
+      if (input.family) where.isFamily = true;
 
       if (search) {
         const term = search.trim();
@@ -106,12 +111,22 @@ export const publicRouter = router({
     return getCachedFeaturedTours();
   }),
 
+  // Tours destacados de la web familiar (destacados primero, luego los más recientes)
+  familyFeaturedTours: publicProcedure.query(async () => {
+    return getCachedFamilyFeaturedTours();
+  }),
+
   // Tour por slug
   tourBySlug: publicProcedure
-    .input(z.object({ slug: z.string() }))
+    .input(z.object({ slug: z.string(), family: z.boolean().optional() }))
     .query(async ({ ctx, input }) => {
       const tour = await ctx.db.tour.findUnique({
-        where: { slug: input.slug, status: "PUBLISHED", isActive: true },
+        where: {
+          slug: input.slug,
+          status: "PUBLISHED",
+          isActive: true,
+          ...(input.family ? { isFamily: true } : {}),
+        },
         include: {
           images: { orderBy: { sortOrder: "asc" }, take: 12 },
           itinerary: { orderBy: { dayNumber: "asc" } },
@@ -137,10 +152,15 @@ export const publicRouter = router({
     return getCachedTestimonials();
   }),
 
-  // FAQs publicadas
-  faqs: publicProcedure.query(async () => {
-    return getCachedFaqs();
-  }),
+  // FAQs publicadas. Las de categoría "familia" son de la web familiar: la web general no las muestra.
+  faqs: publicProcedure
+    .input(z.object({ scope: z.enum(["general", "all"]).default("general") }).optional())
+    .query(async ({ ctx, input }) => {
+      const faqs = await getCachedFaqs();
+      // Las FAQ familiares sólo se entregan a la web familiar (que además exige acceso para verse).
+      const includeFamily = input?.scope === "all" && ctx.site === "FAMILY";
+      return includeFamily ? faqs : faqs.filter((f) => !isFamilyFaq(f.category));
+    }),
 
   // Secciones del home
   homeSections: publicProcedure.query(async () => {
@@ -185,7 +205,9 @@ export const publicRouter = router({
 
   // Settings públicos
   settings: publicProcedure.query(async () => {
-    return getCachedSettings();
+    // El token de vista previa de la web familiar es secreto: no sale al navegador.
+    const { [FAMILY_PREVIEW_TOKEN_KEY]: _secret, ...settings } = await getCachedSettings();
+    return settings;
   }),
 
   // Tours agrupados por destino (para navbar dinámico)

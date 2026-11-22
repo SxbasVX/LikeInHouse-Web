@@ -63,6 +63,38 @@ export const getCachedFeaturedTours = unstable_cache(
     { revalidate: 300, tags: [CACHE_TAGS.tours] }
 );
 
+// Web familiar: hasta 6 tours "Familia", primero los destacados.
+export const getCachedFamilyFeaturedTours = unstable_cache(
+    async () => {
+        const tours = await db.tour.findMany({
+            where: { status: "PUBLISHED", isActive: true, isFamily: true },
+            take: 6,
+            orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
+            include: {
+                images: { where: { isPrimary: true }, take: 1 },
+                pricing: {
+                    select: {
+                        basePriceUsdAdult: true,
+                        promoDiscountPercent: true,
+                        promoStartDate: true,
+                        promoEndDate: true,
+                        promoLabelEs: true,
+                        promoLabelEn: true,
+                        tiers: {
+                            where: { isDefault: true },
+                            take: 1,
+                            select: { priceUsd: true, isDefault: true, labelEs: true, labelEn: true },
+                        },
+                    },
+                },
+            },
+        });
+        return tours.map((t) => ({ ...t, pricing: serializeDecimals(t.pricing) }));
+    },
+    ["family-featured-tours"],
+    { revalidate: 300, tags: [CACHE_TAGS.tours] }
+);
+
 export const getCachedDestinations = unstable_cache(
     async () => {
         const tours = await db.tour.findMany({
