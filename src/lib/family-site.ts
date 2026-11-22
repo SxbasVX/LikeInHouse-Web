@@ -61,19 +61,42 @@ export const FAMILY_IMAGES_SETTING_KEY = "familySiteImages";
 /** Máximo de fotos en "Momentos en familia". */
 export const FAMILY_GALLERY_MAX = 8;
 
+export interface FamilyGalleryItem {
+  url: string;
+  /** Leyenda opcional, por ejemplo "Familia Rodríguez · Cusco 2025". */
+  caption: string;
+}
+
 export interface FamilySiteImages {
   hero: string | null;
-  gallery: string[];
+  gallery: FamilyGalleryItem[];
 }
+
+/** Largo máximo de la leyenda de una foto. */
+export const FAMILY_CAPTION_MAX = 80;
 
 // Sólo URLs https (las sube el panel a Cloudinary).
 const isHttpsUrl = (v: unknown): v is string => typeof v === "string" && /^https:\/\/\S+$/.test(v);
+
+// Acepta el formato anterior (sólo la URL) y el nuevo ({ url, caption }).
+function toGalleryItem(v: unknown): FamilyGalleryItem | null {
+  if (isHttpsUrl(v)) return { url: v, caption: "" };
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    if (!isHttpsUrl(o.url)) return null;
+    const caption = typeof o.caption === "string" ? o.caption.trim().slice(0, FAMILY_CAPTION_MAX) : "";
+    return { url: o.url, caption };
+  }
+  return null;
+}
 
 /** Lee las fotos de la web familiar desde el mapa de ajustes; ignora valores inválidos. */
 export function parseFamilySiteImages(settings: Record<string, unknown> | null | undefined): FamilySiteImages {
   const raw = settings?.[FAMILY_IMAGES_SETTING_KEY];
   if (!raw || typeof raw !== "object") return { hero: null, gallery: [] };
   const v = raw as Record<string, unknown>;
-  const gallery = Array.isArray(v.gallery) ? v.gallery.filter(isHttpsUrl).slice(0, FAMILY_GALLERY_MAX) : [];
+  const gallery = Array.isArray(v.gallery)
+    ? v.gallery.map(toGalleryItem).filter((g): g is FamilyGalleryItem => g !== null).slice(0, FAMILY_GALLERY_MAX)
+    : [];
   return { hero: isHttpsUrl(v.hero) ? v.hero : null, gallery };
 }

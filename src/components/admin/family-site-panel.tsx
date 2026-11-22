@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Baby, Copy, ExternalLink, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { FAMILY_GALLERY_MAX, type FamilySiteImages } from "@/lib/family-site";
+import { FAMILY_CAPTION_MAX, FAMILY_GALLERY_MAX, type FamilySiteImages } from "@/lib/family-site";
+import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
 import { formatTrpcError } from "@/lib/trpc-error";
@@ -156,25 +157,42 @@ export function FamilySitePanel() {
               </div>
 
               <div>
-                <h3 className="font-semibold">Momentos en familia ({data.images.gallery.length}/{FAMILY_GALLERY_MAX})</h3>
+                <h3 className="font-semibold">Estas familias también lo vivieron ({data.images.gallery.length}/{FAMILY_GALLERY_MAX})</h3>
                 <p className="mb-3 text-sm text-muted-foreground">
-                  Fotos reales de familias en sus tours. La sección aparece en el inicio cuando hay al menos 3. Pide permiso a las familias antes de publicarlas.
+                  Fotos reales de familias en sus tours, con una leyenda opcional (ej. &quot;Familia Rodríguez · Cusco 2025&quot;). El carrusel aparece en el inicio cuando hay al menos 3. Pide permiso a las familias antes de publicarlas.
                 </p>
-                <ul className="mb-3 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-                  {data.images.gallery.map((url, i) => (
-                    <li key={url} className="relative aspect-square overflow-hidden rounded-md border">
-                      <Image src={url} alt={`Foto ${i + 1} de Momentos en familia`} fill className="object-cover" sizes="160px" />
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="destructive"
-                        className="absolute right-1 top-1 h-7 w-7"
-                        aria-label={`Quitar foto ${i + 1}`}
+                <ul className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {data.images.gallery.map((item, i) => (
+                    <li key={item.url} className="space-y-2">
+                      <div className="relative aspect-square overflow-hidden rounded-md border">
+                        <Image src={item.url} alt={item.caption || `Foto ${i + 1}`} fill className="object-cover" sizes="200px" />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="destructive"
+                          className="absolute right-1 top-1 h-7 w-7"
+                          aria-label={`Quitar foto ${i + 1}`}
+                          disabled={saveImages.isPending}
+                          onClick={() => updateImages({ ...data.images, gallery: data.images.gallery.filter((g) => g.url !== item.url) })}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <Input
+                        aria-label={`Leyenda de la foto ${i + 1}`}
+                        placeholder="Familia Rodríguez · Cusco 2025"
+                        maxLength={FAMILY_CAPTION_MAX}
+                        defaultValue={item.caption}
                         disabled={saveImages.isPending}
-                        onClick={() => updateImages({ ...data.images, gallery: data.images.gallery.filter((g) => g !== url) })}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                        onBlur={(e) => {
+                          const caption = e.currentTarget.value.trim();
+                          if (caption === item.caption) return;
+                          updateImages({
+                            ...data.images,
+                            gallery: data.images.gallery.map((g) => (g.url === item.url ? { ...g, caption } : g)),
+                          });
+                        }}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -182,7 +200,7 @@ export function FamilySitePanel() {
                   <ImageUpload
                     value=""
                     disabled={saveImages.isPending}
-                    onChange={(url) => updateImages({ ...data.images, gallery: [...data.images.gallery, url] })}
+                    onChange={(url) => updateImages({ ...data.images, gallery: [...data.images.gallery, { url, caption: "" }] })}
                     onRemove={() => {}}
                   />
                 )}

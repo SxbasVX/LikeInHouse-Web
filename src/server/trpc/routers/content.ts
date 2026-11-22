@@ -6,6 +6,7 @@ import { sanitizeHtml } from "@/server/lib/sanitize";
 import { CACHE_TAGS } from "@/server/lib/cache";
 import { randomBytes } from "node:crypto";
 import {
+  FAMILY_CAPTION_MAX,
   FAMILY_GALLERY_MAX,
   FAMILY_IMAGES_SETTING_KEY,
   FAMILY_PREVIEW_TOKEN_KEY,
@@ -353,7 +354,12 @@ export const contentRouter = router({
   familySiteImagesUpdate: roleProtectedProcedure(["ADMIN", "MARKETING"])
     .input(z.object({
       hero: z.string().url().startsWith("https://").max(1000).nullable(),
-      gallery: z.array(z.string().url().startsWith("https://").max(1000)).max(FAMILY_GALLERY_MAX),
+      gallery: z
+        .array(z.object({
+          url: z.string().url().startsWith("https://").max(1000),
+          caption: z.string().trim().max(FAMILY_CAPTION_MAX).default(""),
+        }))
+        .max(FAMILY_GALLERY_MAX),
     }))
     .mutation(async ({ ctx, input }) => {
       const value = { hero: input.hero, gallery: input.gallery };

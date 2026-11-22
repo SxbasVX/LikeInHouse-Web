@@ -465,10 +465,12 @@
     "banner_eyebrow": "Like In House Family",
     "banner_title_1": "Traveling",
     "banner_title_2": "as a family?",
-    "moments_eyebrow": "Family moments",
-    "moments_title_1": "Trips you",
-    "moments_title_2": "remember together",
-    "moments_text": "Families who have already traveled across Peru with us.",
-    "moments_alt": "Family traveling with Like In House, photo {n}"
+    "moments_eyebrow": "Like In House families",
+    "moments_title_1": "These families",
+    "moments_title_2": "lived it too",
+    "moments_text": "Grandparents, parents and kids who have already explored Peru with us.",
+    "moments_alt": "Family traveling with Like In House, photo {n}",
+    "moments_prev": "See previous photos",
+    "moments_next": "See more photos"
   }
 }

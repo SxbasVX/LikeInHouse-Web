@@ -465,10 +465,12 @@
     "banner_eyebrow": "Like In House Familia",
     "banner_title_1": "¿Viajas",
     "banner_title_2": "en familia?",
-    "moments_eyebrow": "Momentos en familia",
-    "moments_title_1": "Viajes que se",
-    "moments_title_2": "recuerdan juntos",
-    "moments_text": "Familias que ya viajaron con nosotros por el Perú.",
-    "moments_alt": "Familia viajando con Like In House, foto {n}"
+    "moments_eyebrow": "Familias Like In House",
+    "moments_title_1": "Estas familias",
+    "moments_title_2": "también lo vivieron",
+    "moments_text": "Abuelos, papás e hijos que ya recorrieron el Perú con nosotros.",
+    "moments_alt": "Familia viajando con Like In House, foto {n}",
+    "moments_prev": "Ver fotos anteriores",
+    "moments_next": "Ver más fotos"
   }
 }

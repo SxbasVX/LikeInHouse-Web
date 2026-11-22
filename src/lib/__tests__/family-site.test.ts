@@ -98,6 +98,18 @@ describe("parseFamilySiteImages", () => {
     });
     expect(out.hero).toBeNull();
     expect(out.gallery).toHaveLength(FAMILY_GALLERY_MAX);
-    expect(out.gallery[0]).toBe(urls[0]);
+    expect(out.gallery[0]).toEqual({ url: urls[0], caption: "" });
+  });
+  it("lee leyendas y acepta el formato anterior de sólo URL", () => {
+    const out = parseFamilySiteImages({
+      [FAMILY_IMAGES_SETTING_KEY]: {
+        hero: null,
+        gallery: ["https://res.cloudinary.com/a.jpg", { url: "https://res.cloudinary.com/b.jpg", caption: "  Familia Rodríguez · Cusco  " }, { url: "ftp://x" }],
+      },
+    });
+    expect(out.gallery).toEqual([
+      { url: "https://res.cloudinary.com/a.jpg", caption: "" },
+      { url: "https://res.cloudinary.com/b.jpg", caption: "Familia Rodríguez · Cusco" },
+    ]);
   });
 });

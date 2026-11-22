@@ -8,10 +8,10 @@ import { getServerCaller } from "@/lib/trpc-server";
 import { buildFamilyMetadata, canViewFamilySite } from "@/lib/family-page";
 import { DEFAULT_HERO_IMAGE } from "@/lib/site-images";
 import { FeaturedToursSection } from "@/components/public/sections/featured-tours";
-import { HowToBookSection } from "@/components/public/sections/how-to-book";
 import { TestimonialsSection } from "@/components/public/sections/testimonials";
 import { FAQSection } from "@/components/public/sections/faq";
 import { FamilyHero } from "@/components/familia/family-hero";
+import { FamilyCarousel } from "@/components/familia/family-carousel";
 import { FamilyQuoteButton } from "@/components/familia/family-quote-button";
 import { SectionHeading } from "@/components/familia/section-heading";
 import { familyBtnPrimary } from "@/components/familia/styles";
@@ -38,9 +38,6 @@ const GENERATIONS = [
   { key: "gen_parents", icon: "map", color: "#15A58E", tilt: "lg:-rotate-1" },
   { key: "gen_grandparents", icon: "tea", color: "#441514", tilt: "lg:rotate-2" },
 ] as const;
-
-// Inclinación de cada foto del álbum "Momentos en familia".
-const POLAROID_TILT = ["-rotate-2", "rotate-1", "rotate-2", "-rotate-1", "rotate-1", "-rotate-2", "rotate-2", "-rotate-1"];
 
 type HomeSection = { type: string; imageUrl: string | null };
 
@@ -118,33 +115,27 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
             ))}
           </ul>
         </div>
-        {images.gallery.length < 3 && <SoftWave position="bottom" color="#faf8f5" />}
+        {images.gallery.length < 3 && <SoftWave position="bottom" />}
       </section>
 
-      {/* Momentos en familia: fotos reales que se suben en el panel */}
+      {/* Estas familias también lo vivieron: carrusel de fotos reales que se suben en el panel */}
       {images.gallery.length >= 3 && (
-        <section className="relative bg-[#FFF8EC] pb-24 lg:pb-32" aria-labelledby="family-moments">
+        <section className="relative overflow-hidden bg-[#FFF8EC] pb-24 lg:pb-32" aria-labelledby="family-moments">
           <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
             <SectionHeading id="family-moments" eyebrow={t("moments_eyebrow")} title={t("moments_title_1")} accent={t("moments_title_2")} text={t("moments_text")} />
-            {/* Álbum de fotos: polaroids levemente inclinadas */}
-            <ul className="mt-14 grid grid-cols-2 gap-5 sm:gap-8 lg:grid-cols-4">
-              {images.gallery.map((url, i) => (
-                <li
-                  key={url}
-                  className={`bg-white p-2.5 pb-8 shadow-[0_12px_30px_-12px_rgba(68,21,20,0.35)] transition-transform duration-300 ease-out hover:z-10 hover:rotate-0 hover:scale-[1.03] motion-reduce:transform-none sm:p-3 sm:pb-10 ${POLAROID_TILT[i % POLAROID_TILT.length]}`}
-                >
-                  <div className="relative aspect-square overflow-hidden bg-gray-100">
-                    <Image src={url} alt={t("moments_alt", { n: i + 1 })} fill className="object-cover" sizes="(min-width: 1024px) 25vw, 50vw" />
-                  </div>
-                </li>
-              ))}
-            </ul>
           </div>
-          <SoftWave position="bottom" color="#faf8f5" />
+          <div className="mt-8">
+            <FamilyCarousel
+              items={images.gallery}
+              label={t("moments_eyebrow")}
+              prevLabel={t("moments_prev")}
+              nextLabel={t("moments_next")}
+              alts={images.gallery.map((g, i) => g.caption || t("moments_alt", { n: i + 1 }))}
+            />
+          </div>
+          <SoftWave position="bottom" />
         </section>
       )}
-
-      <HowToBookSection />
 
       {testimonials.length > 0 && <TestimonialsSection testimonials={testimonials} />}
 
