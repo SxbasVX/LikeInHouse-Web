@@ -1,3 +1,4 @@
+import { ArrowUpRight } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { familyBtnPrimary, familyBtnSecondary } from "@/components/familia/styles";
@@ -11,7 +12,8 @@ export default async function FamilyNotFound() {
       <p className="mt-4 max-w-lg text-lg font-light text-gray-500">{t("not_found_text")}</p>
       <div className="mt-9 flex flex-wrap justify-center gap-3">
         <Link href="/" className={familyBtnPrimary}>{t("not_found_back")}</Link>
-        <Link href="/tours" className={familyBtnSecondary}>{t("not_found_tours")}</Link>
+        <Link href="/tours" className={familyBtnSecondary}>{t("not_found_tours")}
+              <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></Link>
       </div>
     </div>
   );

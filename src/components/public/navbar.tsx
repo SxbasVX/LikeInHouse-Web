@@ -190,7 +190,7 @@ export function Navbar({ variant = "general" }: { variant?: "general" | "family"
             </DropdownMenu>
             <AirbnbButton listings={airbnbListings} variant="dark" />
             <Button asChild className="h-10 lg:h-11 rounded-full bg-white/20 hover:bg-white text-white hover:text-brand-darkRed border border-white/30 pl-5 pr-1.5 text-[14px] font-semibold transition-all ml-1 group">
-              <Link href="/tours" className="flex items-center gap-2.5">
+              <Link href={isFamily ? "/contacto" : "/tours"} className="flex items-center gap-2.5">
                 {t("book", { fallback: "Reservar" })}
                 <div className="flex items-center justify-center bg-white text-brand-darkRed rounded-full h-8 w-8 group-hover:bg-brand-orange group-hover:text-white transition-colors duration-300">
                   <ArrowUpRight className="h-4 w-4 group-hover:rotate-12 transition-transform" />
@@ -283,7 +283,7 @@ export function Navbar({ variant = "general" }: { variant?: "general" | "family"
           </DropdownMenu>
           <AirbnbButton listings={airbnbListings} variant="light" />
           <Button asChild className="h-10 lg:h-11 rounded-full bg-brand-darkRed hover:bg-brand-orange text-white pl-5 pr-1.5 text-[14px] font-semibold transition-all ml-1 group shadow-sm">
-            <Link href="/tours" className="flex items-center gap-2.5">
+            <Link href={isFamily ? "/contacto" : "/tours"} className="flex items-center gap-2.5">
               {t("book", { fallback: "Reservar" })}
               <div className="flex items-center justify-center bg-white/20 rounded-full h-8 w-8 group-hover:bg-white group-hover:text-brand-darkRed transition-colors duration-300">
                 <ArrowUpRight className="h-4 w-4 group-hover:rotate-12 transition-transform" />
@@ -417,7 +417,7 @@ function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMo
         <Button variant="outline" className="flex-1 rounded-2xl h-14 font-semibold text-lg border-neutral-200" onClick={() => { switchLocale(isEs ? "en" : "es"); setMobileOpen(false); }}>
           {isEs ? "English" : "Español"}
         </Button>
-        <Button className="flex-1 rounded-2xl h-14 font-semibold text-lg bg-brand-orange hover:bg-brand-orange/90 text-white shadow-lg" onClick={() => { intlRouter.push("/tours"); setMobileOpen(false); }}>
+        <Button className="flex-1 rounded-2xl h-14 font-semibold text-lg bg-brand-orange hover:bg-brand-orange/90 text-white shadow-lg" onClick={() => { intlRouter.push(isFamily ? "/contacto" : "/tours"); setMobileOpen(false); }}>
           {t("book", { fallback: "Reservar" })}
         </Button>
       </div>

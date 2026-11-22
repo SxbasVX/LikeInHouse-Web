@@ -1,3 +1,4 @@
+import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 import { SectionHeading } from "@/components/familia/section-heading";
 import { isFamilyFaq } from "@/lib/family-site";
@@ -54,7 +55,7 @@ export default async function FamilyFAQPage({ params }: { params: Promise<{ loca
       )}
       <section className="border-b border-gray-100 bg-[#faf8f5] py-16 lg:py-24">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
-          <SectionHeading as="h1" eyebrow={t("faq_eyebrow")} title={t("faq_page_title_1")} accent={t("faq_page_title_2")} text={t("faq_page_text")} />
+          <SectionHeading as="h1" eyebrow={t("faq_eyebrow")} title={t("faq_page_title_1")} accent={t("faq_page_title_2")} text={[t("faq_page_text_1"), t("faq_page_text_2")]} />
         </div>
       </section>
       <section className="bg-white px-4 py-14 sm:px-6 lg:py-20">
@@ -68,6 +69,7 @@ export default async function FamilyFAQPage({ params }: { params: Promise<{ loca
           <div className="mt-10 text-center">
             <Link href="/contacto" className={familyBtnPrimary}>
               {t("faq_contact")}
+              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
         </div>

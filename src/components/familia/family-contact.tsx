@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Clock, Mail, Phone } from "lucide-react";
+import { Clock, Mail, Phone, ArrowUpRight } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { waUrl } from "@/lib/whatsapp";
 import { QuoteRequestForm } from "@/components/public/quote-request-form";
@@ -51,6 +51,7 @@ export function FamilyContact() {
               className={`${familyBtnPrimary} mt-6 w-full`}
             >
               {t("contact_whatsapp_button")}
+              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
             </a>
           </div>
 

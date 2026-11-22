@@ -67,10 +67,22 @@ export interface FamilyGalleryItem {
   caption: string;
 }
 
+/** Generaciones con foto propia en "Pensado para cada generación". */
+export const FAMILY_GENERATIONS = ["kids", "teens", "parents", "grandparents"] as const;
+export type FamilyGeneration = (typeof FAMILY_GENERATIONS)[number];
+
 export interface FamilySiteImages {
   hero: string | null;
   gallery: FamilyGalleryItem[];
+  generations: Record<FamilyGeneration, string | null>;
 }
+
+const emptyGenerations = (): Record<FamilyGeneration, string | null> => ({
+  kids: null,
+  teens: null,
+  parents: null,
+  grandparents: null,
+});
 
 /** Largo máximo de la leyenda de una foto. */
 export const FAMILY_CAPTION_MAX = 80;
@@ -93,10 +105,15 @@ function toGalleryItem(v: unknown): FamilyGalleryItem | null {
 /** Lee las fotos de la web familiar desde el mapa de ajustes; ignora valores inválidos. */
 export function parseFamilySiteImages(settings: Record<string, unknown> | null | undefined): FamilySiteImages {
   const raw = settings?.[FAMILY_IMAGES_SETTING_KEY];
-  if (!raw || typeof raw !== "object") return { hero: null, gallery: [] };
+  if (!raw || typeof raw !== "object") return { hero: null, gallery: [], generations: emptyGenerations() };
   const v = raw as Record<string, unknown>;
   const gallery = Array.isArray(v.gallery)
     ? v.gallery.map(toGalleryItem).filter((g): g is FamilyGalleryItem => g !== null).slice(0, FAMILY_GALLERY_MAX)
     : [];
-  return { hero: isHttpsUrl(v.hero) ? v.hero : null, gallery };
+  const generations = emptyGenerations();
+  if (v.generations && typeof v.generations === "object") {
+    const g = v.generations as Record<string, unknown>;
+    for (const key of FAMILY_GENERATIONS) generations[key] = isHttpsUrl(g[key]) ? g[key] : null;
+  }
+  return { hero: isHttpsUrl(v.hero) ? v.hero : null, gallery, generations };
 }

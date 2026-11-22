@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { HeartHandshake, Leaf, ReceiptText } from "lucide-react";
+import { HeartHandshake, Leaf, ReceiptText, ArrowUpRight } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { buildFamilyMetadata, canViewFamilySite } from "@/lib/family-page";
 import { SectionHeading } from "@/components/familia/section-heading";
@@ -33,7 +33,7 @@ export default async function FamilyAboutPage({ params }: { params: Promise<{ lo
     <div>
       <section className="border-b border-gray-100 bg-[#faf8f5] py-16 lg:py-24">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
-          <SectionHeading as="h1" eyebrow={t("about_eyebrow")} title={t("about_title_1")} accent={t("about_title_2")} text={t("about_intro")} />
+          <SectionHeading as="h1" eyebrow={t("about_eyebrow")} title={t("about_title_1")} accent={t("about_title_2")} text={[t("about_intro_1"), t("about_intro_2"), t("about_intro_3")]} />
         </div>
       </section>
 
@@ -43,6 +43,7 @@ export default async function FamilyAboutPage({ params }: { params: Promise<{ lo
           <div className="max-w-[65ch] space-y-5 text-lg font-light leading-relaxed text-gray-600">
             <p>{t("about_story_1")}</p>
             <p>{t("about_story_2")}</p>
+            <p>{t("about_story_3")}</p>
           </div>
         </div>
       </section>
@@ -64,6 +65,7 @@ export default async function FamilyAboutPage({ params }: { params: Promise<{ lo
           <div className="mt-12 text-center">
             <Link href="/tours" className={familyBtnPrimary}>
               {t("about_cta_button")}
+              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
         </div>

@@ -135,7 +135,7 @@ export function Footer({ variant = "general" }: { variant?: "general" | "family"
                 href="/tours"
                 className="mt-2 inline-flex w-fit items-center justify-between rounded-full bg-brand-orange hover:bg-brand-darkRed text-white pl-5 pr-1.5 py-1.5 text-sm font-bold transition-all group"
               >
-                {isEs ? "Ver todos los tours" : "View all tours"}
+                {t("cta_tours")}
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 group-hover:bg-white group-hover:text-brand-orange transition-colors ml-3">
                   <ArrowUpRight className="h-4 w-4 group-hover:rotate-12 transition-transform" />
                 </span>
@@ -171,7 +171,7 @@ export function Footer({ variant = "general" }: { variant?: "general" | "family"
                 </ul>
                 {isFamily && (
                   <a href={`${getBaseUrl()}/${locale}`} className="mt-5 inline-block text-sm font-semibold text-white/70 hover:text-brand-orange transition-colors">
-                    {isEs ? "Ir a la web principal" : "Go to the main site"}
+                    {t("main_site")}
                   </a>
                 )}
               </div>

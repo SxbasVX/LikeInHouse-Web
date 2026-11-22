@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { FamilyTourMeta } from "@/components/public/family-tour-meta";
+import type { SectionCopy } from "@/lib/section-copy";
 import { useTranslations, useLocale } from "next-intl";
 import { lowestTierPrice } from "@/lib/pricing";
 import { Link } from "@/i18n/routing";
@@ -25,6 +27,11 @@ interface Tour {
   durationHours?: number | null;
   isFeatured: boolean;
   tourType?: string;
+  // Datos de la web familiar (opcionales)
+  isFamily?: boolean;
+  minAge?: number | null;
+  recommendedAgeMin?: number | null;
+  recommendedAgeMax?: number | null;
   images: { url: string; altEs: string | null; altEn: string | null }[];
   pricing: { basePriceUsdAdult: any; tiers?: { priceUsd: any; isDefault: boolean }[] } | null;
 }
@@ -35,9 +42,11 @@ interface FeaturedToursSectionProps {
   tours: Tour[];
   title?: string;
   subtitle?: string;
+  /** Encabezado propio (web familiar). */
+  copy?: SectionCopy;
 }
 
-export function FeaturedToursSection({ tours, title, subtitle }: FeaturedToursSectionProps) {
+export function FeaturedToursSection({ tours, title, subtitle, copy }: FeaturedToursSectionProps) {
   const t = useTranslations("home");
   const tt = useTranslations("tours");
   const tc = useTranslations("common");
@@ -60,9 +69,24 @@ export function FeaturedToursSection({ tours, title, subtitle }: FeaturedToursSe
         {/* Header - Editorial Style */}
         <div ref={header.ref} className={`${header.isVisible ? "scroll-visible" : "scroll-hidden"} text-center mb-20`}>
           <span className="inline-block text-xs font-bold uppercase tracking-widest text-brand-orange mb-3">
-            {isEs ? "Experiencias" : "Experiences"}
+            {copy?.eyebrow ?? (isEs ? "Experiencias" : "Experiences")}
           </span>
-          {title ? (
+          {copy?.title ? (
+            <>
+              <h2 className="font-heading text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl leading-tight">
+                {copy.title}
+                {copy.accent && (
+                  <>
+                    <br />
+                    <span className="font-serif italic font-normal text-brand-orange">{copy.accent}</span>
+                  </>
+                )}
+              </h2>
+              {copy.description && (
+                <p className="mx-auto mt-6 max-w-3xl text-lg text-gray-500 font-light leading-relaxed">{copy.description}</p>
+              )}
+            </>
+          ) : title ? (
             <h2 className="font-heading text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl leading-tight">
               {title}
               {subtitle && (
@@ -120,6 +144,7 @@ export function FeaturedToursSection({ tours, title, subtitle }: FeaturedToursSe
                   )}
                 </div>
 
+                <FamilyTourMeta tour={tour} locale={locale} className="mb-3" />
                 <h3 className="text-xl font-semibold text-brand-darkRed mb-2 leading-tight line-clamp-2 group-hover:text-brand-orange transition-colors">
                   {name}
                 </h3>

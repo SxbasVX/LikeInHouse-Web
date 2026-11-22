@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations, useLocale } from "next-intl";
+import type { SectionCopy } from "@/lib/section-copy";
 import { Star } from "lucide-react";
 import { useScrollAnimation, useStaggerAnimation } from "@/hooks/use-scroll-animation";
 
@@ -45,7 +46,7 @@ function getAvatarColor(name: string): string {
   return GOOGLE_AVATAR_COLORS[Math.abs(hash) % GOOGLE_AVATAR_COLORS.length];
 }
 
-export function TestimonialsSection({ testimonials, title, subtitle }: TestimonialsSectionProps) {
+export function TestimonialsSection({ testimonials, title, subtitle, copy }: TestimonialsSectionProps & { copy?: SectionCopy }) {
   const t = useTranslations("home");
   const locale = useLocale();
   const isEs = locale === "es";
@@ -85,12 +86,18 @@ export function TestimonialsSection({ testimonials, title, subtitle }: Testimoni
                 <span className="text-sm font-semibold text-white">{googleRating.toFixed(1)}</span>
                 <span className="text-xs text-white/40">· Google</span>
             </div>
+            {copy?.eyebrow && (
+              <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-white/50">{copy.eyebrow}</p>
+            )}
             <h2 className="font-heading text-3xl font-light text-white sm:text-4xl lg:text-5xl tracking-tight leading-[1.1]">
-              {isEs ? "Viajeros que " : "Travelers who "}
+              {copy?.title ? `${copy.title} ` : isEs ? "Viajeros que " : "Travelers who "}
               <span className="font-serif italic text-brand-orange">
-                {isEs ? "nos recomiendan" : "recommend us"}
+                {copy?.title ? copy.accent : isEs ? "nos recomiendan" : "recommend us"}
               </span>
             </h2>
+            {copy?.description && (
+              <p className="mt-4 max-w-xl text-base font-light leading-relaxed text-white/60">{copy.description}</p>
+            )}
           </div>
           <a
             href="https://maps.app.goo.gl/6rabtDimdxUo7ZsXA"
@@ -99,7 +106,7 @@ export function TestimonialsSection({ testimonials, title, subtitle }: Testimoni
             className="shrink-0 inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-sm text-white/60 hover:text-white hover:border-white/30 transition-all"
           >
             <GoogleIcon className="h-4 w-4" />
-            {isEs ? "Ver en Google" : "View on Google"}
+            {copy?.link ?? (isEs ? "Ver en Google" : "View on Google")}
           </a>
         </div>
 

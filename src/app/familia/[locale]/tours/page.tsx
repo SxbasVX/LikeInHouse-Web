@@ -53,7 +53,7 @@ export default async function FamilyToursPage({
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-lg font-light text-gray-500">{t("catalog_text")}</p>
             <div className="mx-auto mt-10 max-w-3xl text-left">
-              <WhoTravels mode="filter" tone="light" initial={travelers} />
+              <WhoTravels mode="filter" title={t("who_title_catalog")} initial={travelers} />
             </div>
           </div>
         }

@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FamilyIcon } from "@/components/familia/family-icons";
 import { DrawOnView } from "@/components/familia/draw-on-view";
 import { isFamilyFaq, parseFamilySiteImages } from "@/lib/family-site";
+import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import { getServerCaller } from "@/lib/trpc-server";
 import { buildFamilyMetadata, canViewFamilySite } from "@/lib/family-page";
@@ -33,10 +34,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 // Cada generación con su color de la marca y una leve inclinación (se endereza al pasar el mouse).
 const GENERATIONS = [
-  { key: "gen_kids", icon: "kite", color: "#F2B33D", tilt: "lg:-rotate-2" },
-  { key: "gen_teens", icon: "mountain", color: "#FC451F", tilt: "lg:rotate-1" },
-  { key: "gen_parents", icon: "map", color: "#15A58E", tilt: "lg:-rotate-1" },
-  { key: "gen_grandparents", icon: "tea", color: "#441514", tilt: "lg:rotate-2" },
+  { key: "gen_kids", photo: "kids", icon: "kite", color: "#E0A126" },
+  { key: "gen_teens", photo: "teens", icon: "mountain", color: "#FC451F" },
+  { key: "gen_parents", photo: "parents", icon: "map", color: "#15A58E" },
+  { key: "gen_grandparents", photo: "grandparents", icon: "tea", color: "#441514" },
 ] as const;
 
 type HomeSection = { type: string; imageUrl: string | null };
@@ -67,26 +68,37 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
   const familyFaqs = allFaqs.filter((f) => isFamilyFaq(f.category));
   const faqs = familyFaqs.length > 0 ? familyFaqs : allFaqs;
 
+  // Polaroid del hero: la primera foto real de "Así se vive el Perú en familia" (si hay).
+  const polaroid = images.gallery[0] ?? null;
+
   return (
     <div>
-      <FamilyHero locale={locale} imageUrl={heroImage} />
+      {/* Emoción */}
+      <FamilyHero locale={locale} imageUrl={heroImage} polaroid={polaroid} />
 
+      {/* Descubrimiento */}
       {tours.length > 0 ? (
-        <FeaturedToursSection tours={tours} title={t("tours_title_1")} subtitle={t("tours_title_2")} />
+        <FeaturedToursSection
+          tours={tours}
+          copy={{ eyebrow: t("tours_eyebrow"), title: t("tours_title_1"), accent: t("tours_title_2"), description: t("tours_text") }}
+        />
       ) : (
         <section className="bg-white py-20 lg:py-28">
           <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
-            <SectionHeading eyebrow={t("tours_eyebrow")} title={t("tours_title_1")} accent={t("tours_title_2")} />
+            <SectionHeading eyebrow={t("tours_eyebrow")} title={t("tours_title_1")} accent={t("tours_title_2")} text={t("tours_text")} />
             <div className="mx-auto mt-12 flex max-w-3xl flex-col items-center gap-6 rounded-[2rem] border border-gray-100 bg-[#faf8f5] px-6 py-12 text-center sm:px-12">
               <h3 className="font-heading text-2xl font-bold text-brand-darkRed">{t("tours_empty_title")}</h3>
               <p className="max-w-xl text-lg font-light text-gray-500">{t("tours_empty_text")}</p>
-              <FamilyQuoteButton className={familyBtnPrimary}>{t("tours_empty_cta")}</FamilyQuoteButton>
+              <FamilyQuoteButton className={familyBtnPrimary}>
+                {t("tours_empty_cta")}
+                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+              </FamilyQuoteButton>
             </div>
           </div>
         </section>
       )}
 
-      {/* Pensado para cada generación */}
+      {/* Personalización: pensado para cada generación (foto real por grupo, o su ícono) */}
       <section className="relative bg-[#FFF8EC] py-24 lg:py-32" aria-labelledby="family-generations">
         <SoftWave position="top" />
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
@@ -97,28 +109,52 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
             accent={t("gen_title_2")}
             text={t("gen_text")}
           />
-          <ul className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {GENERATIONS.map(({ key, icon, color, tilt }) => (
-              <li
-                key={key}
-                className={`rounded-[2.5rem] border-t-4 bg-white p-8 shadow-[0_10px_30px_-12px_rgba(68,21,20,0.15)] transition-transform duration-300 ease-out hover:rotate-0 hover:-translate-y-1 motion-reduce:transform-none ${tilt}`}
-                style={{ borderTopColor: color }}
-              >
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: `${color}1F`, color }}>
-                  <DrawOnView>
-                    <FamilyIcon name={icon} className="h-8 w-8" />
-                  </DrawOnView>
-                </span>
-                <h3 className="mt-6 font-heading text-xl font-bold text-brand-darkRed">{t(`${key}_title`)}</h3>
-                <p className="mt-3 text-[15px] font-light leading-relaxed text-gray-500">{t(`${key}_text`)}</p>
-              </li>
-            ))}
+          {/* En el celular se desliza de lado; en pantallas grandes es una grilla */}
+          <ul className="-mx-4 mt-14 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-6 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+            {GENERATIONS.map(({ key, photo, icon, color }) => {
+              const src = images.generations[photo];
+              return (
+                <li key={key} className="group w-[82%] shrink-0 snap-center sm:w-auto">
+                  <div
+                    className="relative aspect-[4/5] overflow-hidden rounded-[2rem]"
+                    style={{ backgroundColor: `${color}1F` }}
+                  >
+                    {src ? (
+                      <Image
+                        src={src}
+                        alt={t(`${key}_title`)}
+                        fill
+                        className="object-cover transition-transform duration-700 ease-out group-hover:scale-105 motion-reduce:transform-none"
+                        sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 82vw"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center" style={{ color }}>
+                        <DrawOnView>
+                          <FamilyIcon name={icon} className="h-24 w-24" />
+                        </DrawOnView>
+                      </div>
+                    )}
+                    <span className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-white/95 py-1.5 pl-1.5 pr-3.5 text-xs font-bold text-brand-darkRed shadow-sm sm:text-sm">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full" style={{ backgroundColor: `${color}26`, color }}>
+                        <FamilyIcon name={icon} className="h-4 w-4" />
+                      </span>
+                      {t(`${key}_title`)}
+                    </span>
+                  </div>
+                  <div className="relative mx-3 -mt-16 rounded-[1.75rem] bg-white p-6 shadow-[0_14px_34px_-16px_rgba(68,21,20,0.3)]">
+                    <span aria-hidden="true" className="mb-4 block h-1 w-10 rounded-full" style={{ backgroundColor: color }} />
+                    <h3 className="font-serif text-xl italic leading-snug text-brand-darkRed">{t(`${key}_lead`)}</h3>
+                    <p className="mt-3 text-[15px] font-light leading-relaxed text-gray-500">{t(`${key}_text`)}</p>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
         {images.gallery.length < 3 && <SoftWave position="bottom" />}
       </section>
 
-      {/* Estas familias también lo vivieron: carrusel de fotos reales que se suben en el panel */}
+      {/* Emoción compartida: así se vive el Perú en familia (fotos reales del panel) */}
       {images.gallery.length >= 3 && (
         <section className="relative overflow-hidden bg-[#FFF8EC] pb-24 lg:pb-32" aria-labelledby="family-moments">
           <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
@@ -137,9 +173,19 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
         </section>
       )}
 
-      {testimonials.length > 0 && <TestimonialsSection testimonials={testimonials} />}
+      {/* Confianza: reseñas reales de Google */}
+      {testimonials.length > 0 && (
+        <TestimonialsSection
+          testimonials={testimonials}
+          copy={{ eyebrow: t("testi_eyebrow"), title: t("testi_title_1"), accent: t("testi_title_2"), description: t("testi_text"), link: t("testi_link") }}
+        />
+      )}
 
-      <FAQSection faqs={faqs} />
+      {/* Dudas antes de reservar */}
+      <FAQSection
+        faqs={faqs}
+        copy={{ eyebrow: t("faqh_eyebrow"), title: t("faqh_title_1"), accent: t("faqh_title_2"), description: t("faqh_text"), link: t("faqh_link") }}
+      />
     </div>
   );
 }

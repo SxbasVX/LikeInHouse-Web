@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Baby, Copy, ExternalLink, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { FAMILY_CAPTION_MAX, FAMILY_GALLERY_MAX, type FamilySiteImages } from "@/lib/family-site";
+import { FAMILY_CAPTION_MAX, FAMILY_GALLERY_MAX, FAMILY_GENERATIONS, type FamilyGeneration, type FamilySiteImages } from "@/lib/family-site";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+
+const GENERATION_LABELS: Record<FamilyGeneration, string> = {
+  kids: "Los más pequeños",
+  teens: "Los adolescentes",
+  parents: "Mamá y papá",
+  grandparents: "Los abuelos",
+};
 
 // Web familiar (familia.likeinhouseperu.com): queda en borrador hasta que un administrador la aprueba aquí.
 export function FamilySitePanel() {
@@ -154,6 +161,26 @@ export function FamilySitePanel() {
                   onChange={(url) => updateImages({ ...data.images, hero: url })}
                   onRemove={() => updateImages({ ...data.images, hero: null })}
                 />
+              </div>
+
+              <div>
+                <h3 className="font-semibold">Fotos de cada generación</h3>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Una foto real por grupo para &quot;Pensado para cada generación&quot;. Mientras no haya foto, se muestra el ícono dibujado.
+                </p>
+                <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                  {FAMILY_GENERATIONS.map((gen) => (
+                    <li key={gen} className="space-y-2">
+                      <p className="text-sm font-medium">{GENERATION_LABELS[gen]}</p>
+                      <ImageUpload
+                        value={data.images.generations[gen] ?? ""}
+                        disabled={saveImages.isPending}
+                        onChange={(url) => updateImages({ ...data.images, generations: { ...data.images.generations, [gen]: url } })}
+                        onRemove={() => updateImages({ ...data.images, generations: { ...data.images.generations, [gen]: null } })}
+                      />
+                    </li>
+                  ))}
+                </ul>
               </div>
 
               <div>

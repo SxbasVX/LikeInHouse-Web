@@ -13,7 +13,8 @@ export function SectionHeading({
   eyebrow?: string;
   title: string;
   accent?: string;
-  text?: string;
+  /** Uno o varios párrafos. */
+  text?: string | string[];
   as?: "h1" | "h2";
   align?: "center" | "left";
 }) {
@@ -41,9 +42,12 @@ export function SectionHeading({
           </>
         )}
       </Tag>
-      {text && (
-        <p className={`mt-4 text-lg font-light text-gray-500 ${centered ? "mx-auto max-w-xl" : "max-w-xl"}`}>{text}</p>
-      )}
+      {text &&
+        (Array.isArray(text) ? text : [text]).map((para, i) => (
+          <p key={i} className={`mt-4 text-lg font-light leading-relaxed text-gray-500 ${centered ? "mx-auto max-w-2xl" : "max-w-2xl"}`}>
+            {para}
+          </p>
+        ))}
     </div>
   );
 }

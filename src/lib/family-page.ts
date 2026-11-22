@@ -10,12 +10,14 @@ export async function buildFamilyMetadata(
   opts: Omit<BuildMetadataOptions, "baseUrl" | "siteName">
 ): Promise<Metadata> {
   const access = await getFamilySiteAccess();
-  return buildMetadata({
+  const metadata = buildMetadata({
     ...opts,
     baseUrl: getFamilyBaseUrl(),
     siteName: FAMILY_SITE_NAME,
     noindex: opts.noindex || !access.published,
   });
+  // Los títulos de la web familiar ya vienen completos para Google (sin sufijo automático).
+  return { ...metadata, title: { absolute: opts.title } };
 }
 
 /** Robots para páginas reutilizadas de la web general: noindex si la web familiar no está publicada. */

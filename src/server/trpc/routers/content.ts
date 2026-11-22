@@ -16,6 +16,8 @@ import {
   parseFamilySiteSetting,
 } from "@/lib/family-site";
 
+const familyPhotoUrl = z.string().url().startsWith("https://").max(1000);
+
 const familyPreviewUrl = (token: string) =>
   `${getFamilyBaseUrl()}/api/familia/preview?token=${encodeURIComponent(token)}`;
 
@@ -360,9 +362,17 @@ export const contentRouter = router({
           caption: z.string().trim().max(FAMILY_CAPTION_MAX).default(""),
         }))
         .max(FAMILY_GALLERY_MAX),
+      generations: z
+        .object({
+          kids: familyPhotoUrl.nullable(),
+          teens: familyPhotoUrl.nullable(),
+          parents: familyPhotoUrl.nullable(),
+          grandparents: familyPhotoUrl.nullable(),
+        })
+        .default({ kids: null, teens: null, parents: null, grandparents: null }),
     }))
     .mutation(async ({ ctx, input }) => {
-      const value = { hero: input.hero, gallery: input.gallery };
+      const value = { hero: input.hero, gallery: input.gallery, generations: input.generations };
       await ctx.db.setting.upsert({
         where: { key: FAMILY_IMAGES_SETTING_KEY },
         create: { key: FAMILY_IMAGES_SETTING_KEY, value },

@@ -50,6 +50,21 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+type Messages = Record<string, unknown>;
+
+// La web familiar reutiliza componentes de la principal (menú, tarjetas, buscador, formulario,
+// pie). Sus textos propios viven en `familia.overrides` y se mezclan encima sólo aquí.
+function withFamilyOverrides(messages: Messages): Messages {
+  const familia = messages.familia as Messages | undefined;
+  const overrides = familia?.overrides as Record<string, Messages> | undefined;
+  if (!overrides) return messages;
+  const merged: Messages = { ...messages };
+  for (const [ns, values] of Object.entries(overrides)) {
+    merged[ns] = { ...((messages[ns] as Messages) ?? {}), ...values };
+  }
+  return merged;
+}
+
 function isLocale(value: string): value is "es" | "en" {
   return (routing.locales as readonly string[]).includes(value);
 }
@@ -150,7 +165,7 @@ export default async function FamilyLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLd(travelAgencyJsonLd(locale)) }}
         />
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider messages={withFamilyOverrides(messages)}>
           <TRPCProvider>
             {/* Misma barra y pie que la web principal, con la marca "Familia" */}
             <div className="flex min-h-screen flex-col">

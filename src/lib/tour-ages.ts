@@ -34,20 +34,25 @@ export function formatTourAges(
 
   let recommended: string | null = null;
   if (from != null && to != null) {
-    recommended = from === to
-      ? (isEs ? `Ideal ${from} años` : `Ideal for age ${from}`)
-      : (isEs ? `Ideal ${from}–${to} años` : `Ideal for ages ${from}–${to}`);
+    if (from === to) {
+      recommended = isEs ? `Recomendado para ${from} años` : `Recommended for age ${from}`;
+    } else {
+      // "niños" sólo si el rango no llega a la adolescencia
+      recommended = isEs
+        ? to <= 12 ? `Recomendado para niños de ${from} a ${to} años` : `Recomendado de ${from} a ${to} años`
+        : `Recommended for ages ${from}–${to}`;
+    }
   } else if (from != null && from > 0) {
-    recommended = isEs ? `Ideal desde ${from} años` : `Ideal for ages ${from}+`;
+    recommended = isEs ? `Recomendado desde los ${from} años` : `Recommended for ages ${from} and up`;
   } else if (to != null) {
-    recommended = isEs ? `Ideal hasta ${to} años` : `Ideal for ages up to ${to}`;
+    recommended = isEs ? `Recomendado hasta los ${to} años` : `Recommended for ages up to ${to}`;
   }
 
-  const minimum = min != null ? (isEs ? `Desde ${min} años` : `Ages ${min}+`) : null;
+  const minimum = min != null ? (isEs ? `Disponible desde los ${min} años` : `Available for ages ${min} and up`) : null;
 
   if (!recommended) return minimum;
   if (options.withMinimum && minimum && (from == null || min! < from)) {
-    return isEs ? `${recommended} (mínimo ${min} años)` : `${recommended} (minimum age ${min})`;
+    return isEs ? `${recommended} (disponible desde los ${min} años)` : `${recommended} (available for ages ${min} and up)`;
   }
   return recommended;
 }

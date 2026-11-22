@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { SectionCopy } from "@/lib/section-copy";
 import { useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { ChevronDown, ArrowUpRight } from "lucide-react";
@@ -20,7 +21,7 @@ interface FAQSectionProps {
   subtitle?: string;
 }
 
-export function FAQSection({ faqs, title, subtitle }: FAQSectionProps) {
+export function FAQSection({ faqs, title, subtitle, copy }: FAQSectionProps & { copy?: SectionCopy }) {
   const locale = useLocale();
   const isEs = locale === "es";
   const [openId, setOpenId] = useState<string | null>(null);
@@ -38,15 +39,18 @@ export function FAQSection({ faqs, title, subtitle }: FAQSectionProps) {
         {/* Header */}
         <div className="text-center mb-12">
           <span className="inline-block text-xs font-bold uppercase tracking-widest text-brand-orange mb-3">
-            {isEs ? "Preguntas Frecuentes" : "FAQ"}
+            {copy?.eyebrow ?? (isEs ? "Preguntas Frecuentes" : "FAQ")}
           </span>
           <h2 className="font-heading text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl leading-tight">
-            {isEs ? "¿Tienes dudas?" : "Got questions?"}
+            {copy?.title ?? (isEs ? "¿Tienes dudas?" : "Got questions?")}
             <br />
             <span className="font-serif italic font-normal text-brand-darkRed">
-              {isEs ? "Nosotros respondemos." : "We have answers."}
+              {copy?.accent ?? (isEs ? "Nosotros respondemos." : "We have answers.")}
             </span>
           </h2>
+          {copy?.description && (
+            <p className="mx-auto mt-4 max-w-xl text-lg font-light text-gray-500">{copy.description}</p>
+          )}
         </div>
 
         {/* Acordeón */}
@@ -88,14 +92,14 @@ export function FAQSection({ faqs, title, subtitle }: FAQSectionProps) {
           })}
         </div>
 
-        {/* Link a página completa */}
-        {faqs.length > 6 && (
+        {/* Link a página completa (la web familiar lo muestra siempre, con su propio texto) */}
+        {(faqs.length > 6 || copy?.link) && (
           <div className="mt-8 text-center">
             <Link
               href="/faq"
               className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:border-brand-orange hover:text-brand-darkRed transition-all"
             >
-              {isEs ? "Ver todas las preguntas" : "View all questions"}
+              {copy?.link ?? (isEs ? "Ver todas las preguntas" : "View all questions")}
               <ArrowUpRight className="h-4 w-4" />
             </Link>
           </div>

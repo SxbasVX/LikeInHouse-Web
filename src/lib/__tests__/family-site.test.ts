@@ -88,8 +88,8 @@ describe("isFamilyFaq", () => {
 
 describe("parseFamilySiteImages", () => {
   it("sin ajuste no hay fotos", () => {
-    expect(parseFamilySiteImages({})).toEqual({ hero: null, gallery: [] });
-    expect(parseFamilySiteImages(undefined)).toEqual({ hero: null, gallery: [] });
+    expect(parseFamilySiteImages({})).toEqual({ hero: null, gallery: [], generations: { kids: null, teens: null, parents: null, grandparents: null } });
+    expect(parseFamilySiteImages(undefined).gallery).toEqual([]);
   });
   it("acepta sólo URLs https y respeta el máximo", () => {
     const urls = Array.from({ length: 12 }, (_, i) => `https://res.cloudinary.com/x/${i}.jpg`);
@@ -111,5 +111,11 @@ describe("parseFamilySiteImages", () => {
       { url: "https://res.cloudinary.com/a.jpg", caption: "" },
       { url: "https://res.cloudinary.com/b.jpg", caption: "Familia Rodríguez · Cusco" },
     ]);
+  });
+  it("lee las fotos de cada generación y descarta las inválidas", () => {
+    const out = parseFamilySiteImages({
+      [FAMILY_IMAGES_SETTING_KEY]: { generations: { kids: "https://res.cloudinary.com/k.jpg", teens: "http://inseguro.jpg", otro: "https://x.jpg" } },
+    });
+    expect(out.generations).toEqual({ kids: "https://res.cloudinary.com/k.jpg", teens: null, parents: null, grandparents: null });
   });
 });
