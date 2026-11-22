@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SectionHeading } from "@/components/familia/section-heading";
 import { isFamilyFaq } from "@/lib/family-site";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/routing";
@@ -6,7 +7,7 @@ import { getServerCaller } from "@/lib/trpc-server";
 import { buildFamilyMetadata, canViewFamilySite } from "@/lib/family-page";
 import { safeJsonLd } from "@/lib/seo";
 import { FAQList } from "@/components/public/faq-list";
-import { familyBtnSecondary } from "@/components/familia/styles";
+import { familyBtnPrimary } from "@/components/familia/styles";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -51,21 +52,24 @@ export default async function FamilyFAQPage({ params }: { params: Promise<{ loca
       {faqs.length > 0 && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }} />
       )}
-      <section className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:py-20">
-        <div>
-          <h1 className="font-familia text-4xl leading-[1.06] text-fam-tinta sm:text-5xl">{t("faq_page_title")}</h1>
-          <p className="mt-4 max-w-md text-lg leading-relaxed text-fam-tinta/75">{t("faq_page_text")}</p>
-          <Link href="/contacto" className={`${familyBtnSecondary} mt-8`}>
-            {t("faq_contact")}
-          </Link>
+      <section className="border-b border-gray-100 bg-[#faf8f5] py-16 lg:py-24">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
+          <SectionHeading as="h1" eyebrow={t("faq_eyebrow")} title={t("faq_page_title_1")} accent={t("faq_page_title_2")} text={t("faq_page_text")} />
         </div>
-        <div>
+      </section>
+      <section className="bg-white px-4 py-14 sm:px-6 lg:py-20">
+        <div className="mx-auto max-w-3xl">
           {usingGeneral && faqs.length > 0 && (
-            <p className="mb-6 rounded-2xl bg-fam-niebla px-5 py-4 text-sm leading-relaxed text-fam-tinta/80">
+            <p className="mb-6 rounded-2xl border border-gray-100 bg-[#faf8f5] px-5 py-4 text-sm font-light leading-relaxed text-gray-600">
               {t("faq_general_note")}
             </p>
           )}
           <FAQList faqs={faqs} />
+          <div className="mt-10 text-center">
+            <Link href="/contacto" className={familyBtnPrimary}>
+              {t("faq_contact")}
+            </Link>
+          </div>
         </div>
       </section>
     </div>

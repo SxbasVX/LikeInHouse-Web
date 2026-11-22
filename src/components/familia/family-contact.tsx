@@ -5,7 +5,8 @@ import { Clock, Mail, Phone } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { waUrl } from "@/lib/whatsapp";
 import { QuoteRequestForm } from "@/components/public/quote-request-form";
-import { familyBtnOnDark } from "@/components/familia/styles";
+import { familyBtnPrimary } from "@/components/familia/styles";
+import { SectionHeading } from "@/components/familia/section-heading";
 
 // Contacto de la web familiar: formulario de cotización + WhatsApp y datos.
 export function FamilyContact() {
@@ -26,44 +27,45 @@ export function FamilyContact() {
 
   return (
     <div>
-      <section className="mx-auto max-w-6xl px-4 pb-10 pt-14 sm:px-6 lg:pt-20">
-        <h1 className="max-w-[18ch] font-familia text-4xl leading-[1.06] text-fam-tinta sm:text-5xl">{t("contact_title")}</h1>
-        <p className="mt-5 max-w-2xl text-lg leading-relaxed text-fam-tinta/75">{t("contact_text")}</p>
+      <section className="border-b border-gray-100 bg-[#faf8f5] py-16 lg:py-24">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
+          <SectionHeading as="h1" eyebrow={t("contact_eyebrow")} title={t("contact_title_1")} accent={t("contact_title_2")} text={t("contact_text")} />
+        </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-10 px-4 pb-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:pb-24">
-        <div id="cotizar" className="scroll-mt-28 rounded-3xl border border-fam-tinta/10 bg-white p-5 sm:p-8">
-          <h2 className="font-familia text-2xl text-fam-tinta">{t("contact_form_title")}</h2>
-          <p className="mb-6 mt-2 text-fam-tinta/75">{t("contact_form_text")}</p>
+      <section className="mx-auto grid max-w-[1400px] gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:px-12 lg:py-20">
+        <div id="cotizar" className="scroll-mt-28 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm sm:p-10">
+          <h2 className="font-heading text-2xl font-bold text-brand-darkRed">{t("contact_form_title")}</h2>
+          <p className="mb-6 mt-2 font-light text-gray-500">{t("contact_form_text")}</p>
           <QuoteRequestForm />
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-28">
-          <div className="rounded-3xl bg-fam-valle p-6 text-white">
-            <h2 className="font-familia text-2xl">{t("contact_whatsapp_title")}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/80">{t("contact_whatsapp_text")}</p>
+          <div className="rounded-[2rem] bg-brand-darkRed p-8 text-white">
+            <h2 className="font-heading text-2xl font-bold">{t("contact_whatsapp_title")}</h2>
+            <p className="mt-2 text-sm font-light leading-relaxed text-white/75">{t("contact_whatsapp_text")}</p>
             <a
               href={waUrl(t("cta_whatsapp_message"))}
               target="_blank"
               rel="noopener noreferrer"
-              className={`${familyBtnOnDark} mt-5 w-full`}
+              className={`${familyBtnPrimary} mt-6 w-full`}
             >
               {t("contact_whatsapp_button")}
             </a>
           </div>
 
-          <ul className="divide-y divide-fam-tinta/10 px-1">
+          <ul className="divide-y divide-gray-100 rounded-[2rem] border border-gray-100 bg-white px-8">
             {rows.map(({ icon: Icon, label, value, href }) => (
-              <li key={label} className="flex items-start gap-3 py-4">
-                <Icon className="mt-0.5 h-5 w-5 shrink-0 text-fam-valle" aria-hidden="true" />
+              <li key={label} className="flex items-start gap-3 py-5">
+                <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brand-orange" aria-hidden="true" />
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-fam-tinta">{label}</p>
+                  <p className="text-sm font-bold text-brand-darkRed">{label}</p>
                   {href ? (
-                    <a href={href} className="break-all text-sm text-fam-tinta/80 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fam-maiz">
+                    <a href={href} className="break-all text-sm font-light text-gray-600 hover:text-brand-orange focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange">
                       {value}
                     </a>
                   ) : (
-                    <p className="text-sm text-fam-tinta/80">{value}</p>
+                    <p className="text-sm font-light text-gray-600">{value}</p>
                   )}
                 </div>
               </li>

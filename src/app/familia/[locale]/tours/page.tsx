@@ -46,12 +46,15 @@ export default async function FamilyToursPage({
         categories={categories}
         family
         header={
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
-            <div>
-              <h1 className="font-familia text-4xl leading-[1.06] text-fam-tinta sm:text-5xl">{t("catalog_title")}</h1>
-              <p className="mt-4 max-w-md text-base leading-relaxed text-fam-tinta/75">{t("catalog_text")}</p>
+          <div className="text-center">
+            <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-brand-teal">{t("catalog_eyebrow")}</p>
+            <h1 className="font-heading text-4xl font-light leading-[1.1] tracking-tight text-brand-darkRed sm:text-5xl lg:text-[3.5rem]">
+              {t("catalog_title_1")} <span className="font-serif font-normal italic text-brand-teal">{t("catalog_title_2")}</span>
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-lg font-light text-gray-500">{t("catalog_text")}</p>
+            <div className="mx-auto mt-10 max-w-3xl text-left">
+              <WhoTravels mode="filter" tone="light" initial={travelers} />
             </div>
-            <WhoTravels mode="filter" tone="light" initial={travelers} />
           </div>
         }
       />

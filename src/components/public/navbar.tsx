@@ -27,7 +27,15 @@ const rightLinks = [
   { key: "contact", href: "/contacto" },
 ];
 
-export function Navbar() {
+// Web familiar: misma barra, sin Blog, sin menú de destinos y sin Airbnb.
+const familyRightLinks = [
+  { key: "about", href: "/nosotros" },
+  { key: "faq", href: "/faq" },
+  { key: "contact", href: "/contacto" },
+];
+
+export function Navbar({ variant = "general" }: { variant?: "general" | "family" } = {}) {
+  const isFamily = variant === "family";
   const t = useTranslations("common");
   const locale = useLocale();
   const isEs = locale === "es";
@@ -94,9 +102,9 @@ export function Navbar() {
     staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
-  const airbnbListings = parseAirbnbListings(settings as Record<string, unknown> | null | undefined);
+  const airbnbListings = isFamily ? [] : parseAirbnbListings(settings as Record<string, unknown> | null | undefined);
   // Enlace a la web familiar (otro dominio): sólo cuando está publicada
-  const familyHref = isFamilySitePublished(settings as Record<string, unknown> | null | undefined)
+  const familyHref = !isFamily && isFamilySitePublished(settings as Record<string, unknown> | null | undefined)
     ? `${getFamilyBaseUrl()}/${locale}`
     : null;
 
@@ -129,6 +137,7 @@ export function Navbar() {
               className="w-28 sm:w-36 md:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
               priority
             />
+            {isFamily && <FamilyMark />}
           </Link>
 
           <div className="pointer-events-none absolute left-0 right-0 hidden lg:flex justify-center" style={{ top: '50%', transform: 'translateY(-50%)' }}>
@@ -139,8 +148,14 @@ export function Navbar() {
               <Link href="/" data-active={isActive("/")} className={cn("relative z-10 px-5 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-200", isActive("/") ? "text-brand-darkRed" : "text-white/85 hover:text-white hover:bg-white/10")}>
                 {t("home")}
               </Link>
-              <ToursMegaMenu destinations={destinations} toursByDest={toursByDest} featuredTours={featuredTours?.slice(0, 2) || []} isEs={isEs} isActive={isActive("/tours")} toursLabel={t("tours", { fallback: "Packages" })} heroMode />
-              {rightLinks.slice(0, 3).map((link) => (
+              {isFamily ? (
+                <Link href="/tours" data-active={isActive("/tours")} className={cn("relative z-10 px-5 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-200", isActive("/tours") ? "text-brand-darkRed" : "text-white/85 hover:text-white hover:bg-white/10")}>
+                  {t("tours")}
+                </Link>
+              ) : (
+                <ToursMegaMenu destinations={destinations} toursByDest={toursByDest} featuredTours={featuredTours?.slice(0, 2) || []} isEs={isEs} isActive={isActive("/tours")} toursLabel={t("tours", { fallback: "Packages" })} heroMode />
+              )}
+              {(isFamily ? familyRightLinks : rightLinks).map((link) => (
                 <Link key={link.key} href={link.href} data-active={isActive(link.href)}
                   className={cn("relative z-10 px-5 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-200", isActive(link.href) ? "text-brand-darkRed" : "text-white/85 hover:text-white hover:bg-white/10")}
                 >
@@ -197,7 +212,7 @@ export function Navbar() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbListings={airbnbListings} familyHref={familyHref} />
+              <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbListings={airbnbListings} familyHref={familyHref} isFamily={isFamily} />
             </Sheet>
           </div>
         </div>
@@ -215,6 +230,7 @@ export function Navbar() {
             className="w-28 sm:w-36 md:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
             priority
           />
+          {isFamily && <FamilyMark />}
         </Link>
 
         <nav ref={navRef} className="hidden lg:flex items-center gap-0.5 flex-1 justify-center relative">
@@ -224,8 +240,14 @@ export function Navbar() {
           <Link href="/" data-active={isActive("/")} className={cn("relative z-10 px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200", isActive("/") ? "text-brand-darkRed" : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100")}>
             {t("home")}
           </Link>
-          <ToursMegaMenu destinations={destinations} toursByDest={toursByDest} featuredTours={featuredTours?.slice(0, 2) || []} isEs={isEs} isActive={isActive("/tours")} toursLabel={t("tours", { fallback: "Packages" })} heroMode={false} />
-          {rightLinks.slice(0, 3).map((link) => (
+          {isFamily ? (
+            <Link href="/tours" data-active={isActive("/tours")} className={cn("relative z-10 px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200", isActive("/tours") ? "text-brand-darkRed" : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100")}>
+              {t("tours")}
+            </Link>
+          ) : (
+            <ToursMegaMenu destinations={destinations} toursByDest={toursByDest} featuredTours={featuredTours?.slice(0, 2) || []} isEs={isEs} isActive={isActive("/tours")} toursLabel={t("tours", { fallback: "Packages" })} heroMode={false} />
+          )}
+          {(isFamily ? familyRightLinks : rightLinks).map((link) => (
             <Link key={link.key} href={link.href} data-active={isActive(link.href)}
               className={cn("relative z-10 px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-200", isActive(link.href) ? "text-brand-darkRed" : "text-gray-600 hover:text-brand-darkRed hover:bg-gray-100")}
             >
@@ -283,7 +305,7 @@ export function Navbar() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbListings={airbnbListings} familyHref={familyHref} />
+            <MobileMenuContent t={t} isEs={isEs} cartCount={safeCartCount} switchLocale={switchLocale} intlRouter={intlRouter} setMobileOpen={setMobileOpen} airbnbListings={airbnbListings} familyHref={familyHref} isFamily={isFamily} />
           </Sheet>
         </div>
       </div>
@@ -291,14 +313,25 @@ export function Navbar() {
   );
 }
 
+// "Familia" en la cursiva naranja de la marca, junto al logo.
+function FamilyMark() {
+  const t = useTranslations("common");
+  return (
+    <span className="ml-1.5 self-end pb-0.5 font-serif text-lg italic leading-none text-brand-orange sm:ml-2 sm:text-2xl lg:text-[28px]">
+      {t("family_tag")}
+    </span>
+  );
+}
+
 // ─── Shared Mobile Menu Content ───────────────────────────────────────────────
-function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMobileOpen, airbnbListings, familyHref }: {
+function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMobileOpen, airbnbListings, familyHref, isFamily }: {
   t: any; isEs: boolean; cartCount: number;
   switchLocale: (loc: "es" | "en") => void;
   intlRouter: any;
   setMobileOpen: (v: boolean) => void;
   airbnbListings: AirbnbListing[];
   familyHref: string | null;
+  isFamily: boolean;
 }) {
   return (
     <SheetContent side="left" className="w-[95vw] sm:w-[500px] p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] m-2 sm:m-4 h-[calc(100vh-16px)] sm:h-[calc(100vh-32px)] border-0 shadow-2xl overflow-y-auto flex flex-col bg-white">
@@ -312,6 +345,7 @@ function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMo
           <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 group">
             <Map className="h-6 w-6 text-brand-orange" />
             <span className="text-xl font-bold tracking-widest uppercase text-black">LikeInHouse</span>
+            {isFamily && <span className="font-serif text-xl italic text-brand-orange">{t("family_tag")}</span>}
           </Link>
         </div>
         <div className="h-12 w-12" />
@@ -321,7 +355,7 @@ function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMo
         {[
           { key: "home", href: "/" },
           { key: "tours", href: "/tours" },
-          { key: "blog", href: "/blog" },
+          ...(isFamily ? [] : [{ key: "blog", href: "/blog" }]),
           { key: "about", href: "/nosotros" },
           { key: "faq", href: "/faq" },
           { key: "contact", href: "/contacto" },

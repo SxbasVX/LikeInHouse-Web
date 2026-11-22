@@ -95,15 +95,14 @@ function ToursCatalogInner({ initialData, destinations, categories, family, head
   );
 
   const displayData = data || initialData;
-  // La web familiar alinea el catálogo con su barra (max-w-6xl); la general usa el ancho amplio.
-  const container = family ? "mx-auto max-w-6xl px-4 sm:px-6" : "mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12";
+  const container = "mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12";
   const activeFilterCount = [destination, category, activeSearch].filter(Boolean).length;
 
   return (
     <section className="bg-white min-h-screen">
 
       {/* Hero Header */}
-      <div className={family ? "border-b border-fam-tinta/10 bg-fam-niebla" : "bg-[#faf8f5] border-b border-gray-100"}>
+      <div className="bg-[#faf8f5] border-b border-gray-100">
         <div className={`${container} pt-16 pb-8 lg:pt-24 lg:pb-12`}>
           {header ?? <div className="text-center">
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-teal mb-4">
@@ -318,7 +317,7 @@ function ToursCatalogInner({ initialData, destinations, categories, family, head
 }
 
 export function ToursCatalog(props: ToursCatalogProps) {
-  const container = props.family ? "mx-auto max-w-6xl px-4 sm:px-6" : "mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12";
+  const container = "mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12";
   return (
     <Suspense fallback={
       <div className={`${container} py-16`}>

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
-import { Montserrat, Lato, Playfair_Display, Young_Serif } from "next/font/google";
+import { Montserrat, Lato, Playfair_Display } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { TRPCProvider } from "@/lib/trpc-provider";
@@ -8,8 +8,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { WhatsAppButton } from "@/components/public/whatsapp-button";
 import { Analytics } from "@/components/public/analytics";
 import { TrafficTracker } from "@/components/public/traffic-tracker";
-import { FamilyNavbar } from "@/components/familia/family-navbar";
-import { FamilyFooter } from "@/components/familia/family-footer";
+import { Navbar } from "@/components/public/navbar";
+import { Footer } from "@/components/public/footer";
 import { FamilyComingSoon } from "@/components/familia/family-coming-soon";
 import { routing } from "@/i18n/routing";
 import { getFamilyBaseUrl } from "@/lib/family-site";
@@ -44,16 +44,8 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
 });
 
-// Titulares de la web familiar: serif cálida y adulta.
-const youngSerif = Young_Serif({
-  weight: "400",
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-young-serif",
-});
-
 export const viewport: Viewport = {
-  themeColor: "#0E6650",
+  themeColor: "#4E6E69",
   width: "device-width",
   initialScale: 1,
 };
@@ -139,12 +131,12 @@ export default async function FamilyLayout({
     getTranslations({ locale, namespace: "familia" }),
   ]);
 
-  const fonts = `${lato.variable} ${montserrat.variable} ${playfair.variable} ${youngSerif.variable}`;
+  const fonts = `${lato.variable} ${montserrat.variable} ${playfair.variable}`;
 
   if (!access.canView) {
     return (
       <html lang={locale}>
-        <body className={`${fonts} font-sans antialiased text-fam-tinta bg-fam-valle`}>
+        <body className={`${fonts} font-sans antialiased text-brand-darkRed bg-black`}>
           <FamilyComingSoon locale={locale} />
         </body>
       </html>
@@ -153,29 +145,31 @@ export default async function FamilyLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className={`${fonts} font-sans antialiased text-fam-tinta bg-white`}>
+      <body className={`${fonts} font-sans antialiased text-brand-darkRed bg-brand-beige/20`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLd(travelAgencyJsonLd(locale)) }}
         />
         <NextIntlClientProvider messages={messages}>
           <TRPCProvider>
+            {/* Misma barra y pie que la web principal, con la marca "Familia" */}
             <div className="flex min-h-screen flex-col">
-              <div className="sticky top-0 z-50">
-                {access.isPreview && (
-                  <div role="status" className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-fam-tinta px-4 py-1.5 text-center text-xs font-semibold text-white sm:text-sm">
-                    <span>{t("preview_text")}</span>
-                    {/* Enlace normal (no prefetch): la ruta borra la cookie de vista previa */}
-                    <a href="/api/familia/preview?exit=1" className="rounded underline underline-offset-2 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fam-maiz">
-                      {t("preview_exit")}
-                    </a>
-                  </div>
-                )}
-                <FamilyNavbar />
-              </div>
-              <main className="flex-1">{children}</main>
-              <FamilyFooter />
+              <Navbar variant="family" />
+              <main className="flex-1 pt-20">{children}</main>
+              <Footer variant="family" />
             </div>
+            {access.isPreview && (
+              <div
+                role="status"
+                className="fixed bottom-4 left-4 z-[60] flex max-w-[calc(100vw-6rem)] flex-wrap items-center gap-x-3 gap-y-1 rounded-full bg-brand-darkRed px-4 py-2 text-xs font-semibold text-white shadow-lg sm:text-sm"
+              >
+                <span>{t("preview_text")}</span>
+                {/* Enlace normal (no prefetch): la ruta borra la cookie de vista previa */}
+                <a href="/api/familia/preview?exit=1" className="rounded text-brand-orange underline underline-offset-2 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                  {t("preview_exit")}
+                </a>
+              </div>
+            )}
             <WhatsAppButton />
             <TrafficTracker />
             <Toaster />

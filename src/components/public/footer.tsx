@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations, useLocale } from "next-intl";
+import { getBaseUrl } from "@/lib/seo";
 import { Link } from "@/i18n/routing";
 import { trpc } from "@/lib/trpc";
 import Image from "next/image";
@@ -50,7 +51,8 @@ const SOCIALS: { name: string; settingKey: string; fallback?: string; icon: Reac
   },
 ];
 
-export function Footer() {
+export function Footer({ variant = "general" }: { variant?: "general" | "family" } = {}) {
+  const isFamily = variant === "family";
   const t = useTranslations("footer");
   const tc = useTranslations("common");
   const locale = useLocale();
@@ -97,6 +99,9 @@ export function Footer() {
                   className="w-36 sm:w-44 h-auto object-contain brightness-0 invert"
                 />
               </Link>
+              {isFamily && (
+                <p className="-mt-3 font-serif text-2xl italic text-brand-orange">{tc("family_tag")}</p>
+              )}
               <p className="text-sm text-white/50 leading-relaxed max-w-xs">
                 {t("description", { fallback: "Experiencias auténticas en Perú con guías locales expertos, transporte seguro y momentos que duran toda la vida." })}
               </p>
@@ -145,7 +150,7 @@ export function Footer() {
                     { label: tc("home", { fallback: "Inicio" }), href: "/" },
                     { label: tc("tours", { fallback: "Tours" }), href: "/tours" },
                     { label: tc("about", { fallback: "Nosotros" }), href: "/nosotros" },
-                    { label: "Blog", href: "/blog" },
+                    ...(isFamily ? [] : [{ label: "Blog", href: "/blog" }]),
                     { label: tc("faq", { fallback: "Preguntas Frecuentes" }), href: "/faq" },
                     { label: tc("contact", { fallback: "Contacto" }), href: "/contacto" },
                   ].map((link) => (
@@ -159,6 +164,11 @@ export function Footer() {
                     </li>
                   ))}
                 </ul>
+                {isFamily && (
+                  <a href={`${getBaseUrl()}/${locale}`} className="mt-5 inline-block text-sm font-semibold text-white/70 hover:text-brand-orange transition-colors">
+                    {isEs ? "Ir a la web principal" : "Go to the main site"}
+                  </a>
+                )}
               </div>
 
               {/* Contacto */}
