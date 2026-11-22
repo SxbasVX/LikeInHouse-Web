@@ -19,7 +19,7 @@ export async function FamilyHero({ locale, imageUrl }: { locale: string; imageUr
 
       <div className="pointer-events-none absolute left-0 right-0 top-0 z-10">
         <svg viewBox="0 0 1440 120" fill="none" className="w-full" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M0 0 L1440 0 L1440 40 Q1080 120 720 60 Q360 0 0 80 Z" fill="#FC451F" fillOpacity="0.12" />
+          <path d="M0 0 L1440 0 L1440 40 Q1080 120 720 60 Q360 0 0 80 Z" fill="rgb(var(--brand-orange-rgb))" fillOpacity="0.12" />
         </svg>
       </div>
 
@@ -37,7 +37,7 @@ export async function FamilyHero({ locale, imageUrl }: { locale: string; imageUr
           style={{ fontSize: "clamp(2.1rem, 8vw, 6rem)", textShadow: "0 2px 12px rgba(0,0,0,0.4)" }}
         >
           <span
-            className="block font-serif font-normal italic text-brand-orange"
+            className="block font-serif font-normal italic text-[#3FD0B4]"
             style={{ opacity: 0, animation: "hero-title 0.85s cubic-bezier(0.16,1,0.3,1) 380ms forwards" }}
           >
             {t("hero_title_1")}
@@ -66,8 +66,8 @@ export async function FamilyHero({ locale, imageUrl }: { locale: string; imageUr
       </div>
 
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10">
-        <svg viewBox="0 0 1440 90" fill="none" className="w-full" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M0 90 L1440 90 L1440 50 Q1080 0 720 40 Q360 80 0 20 Z" fill="white" />
+        <svg viewBox="0 0 1440 140" fill="none" className="h-16 w-full sm:h-24 lg:h-32" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 140 L1440 140 L1440 60 C1200 0 960 0 720 60 C480 120 240 120 0 40 Z" fill="white" />
         </svg>
       </div>
     </section>

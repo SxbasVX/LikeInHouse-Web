@@ -26,7 +26,8 @@ const config: Config = {
       colors: {
         brand: {
           teal: "#15A58E",
-          orange: "#FC451F",
+          // Color de acento: naranja en la web principal; la web familiar lo cambia a turquesa (.theme-familia).
+          orange: "rgb(var(--brand-orange-rgb) / <alpha-value>)",
           beige: "#FBEDBE",
           darkRed: "#441514",
           darkTeal: "#0E6650"

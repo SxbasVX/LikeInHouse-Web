@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Baby, Backpack, HeartHandshake, Users } from "lucide-react";
-import { isFamilyFaq } from "@/lib/family-site";
+import { isFamilyFaq, parseFamilySiteImages } from "@/lib/family-site";
+import Image from "next/image";
 import { getServerCaller } from "@/lib/trpc-server";
 import { buildFamilyMetadata, canViewFamilySite } from "@/lib/family-page";
 import { DEFAULT_HERO_IMAGE } from "@/lib/site-images";
@@ -44,16 +45,19 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
   if (!(await canViewFamilySite())) return null;
 
   const caller = await getServerCaller();
-  const [t, tours, allFaqs, sections, testimonials] = await Promise.all([
+  const [t, tours, allFaqs, sections, testimonials, settings] = await Promise.all([
     getTranslations({ locale, namespace: "familia" }),
     caller.public.familyFeaturedTours(),
     caller.public.faqs({ scope: "all" }),
     caller.public.homeSections(),
     caller.public.testimonials(),
+    caller.public.settings(),
   ]);
+  const images = parseFamilySiteImages(settings as Record<string, unknown>);
 
-  // Foto del hero: la del primer tour familiar; si aún no hay, la del inicio de la web principal.
+  // Foto del hero: la que se sube en el panel; si no, la del primer tour familiar; si no, la del inicio principal.
   const heroImage =
+    images.hero ??
     tours.find((tour) => tour.images?.[0]?.url)?.images[0].url ??
     (sections as HomeSection[]).find((s) => s.type === "HERO")?.imageUrl ??
     DEFAULT_HERO_IMAGE;
@@ -81,7 +85,8 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
       )}
 
       {/* Pensado para cada generación */}
-      <section className="bg-white pb-20 lg:pb-28" aria-labelledby="family-generations">
+      <section className="relative bg-[#FFF8EC] py-24 lg:py-32" aria-labelledby="family-generations">
+        <SoftWave position="top" />
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
           <SectionHeading
             id="family-generations"
@@ -92,7 +97,7 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
           />
           <ul className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {GENERATIONS.map(({ key, icon: Icon }) => (
-              <li key={key} className="rounded-[2rem] border border-gray-100 bg-white p-8 shadow-sm transition-shadow hover:shadow-md">
+              <li key={key} className="rounded-[2.5rem] bg-white p-8 shadow-[0_10px_30px_-12px_rgba(68,21,20,0.15)]">
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-orange/10 text-brand-orange">
                   <Icon className="h-6 w-6" aria-hidden="true" />
                 </span>
@@ -102,7 +107,28 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
             ))}
           </ul>
         </div>
+        {images.gallery.length < 3 && <SoftWave position="bottom" color="#faf8f5" />}
       </section>
+
+      {/* Momentos en familia: fotos reales que se suben en el panel */}
+      {images.gallery.length >= 3 && (
+        <section className="relative bg-[#FFF8EC] pb-24 lg:pb-32" aria-labelledby="family-moments">
+          <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
+            <SectionHeading id="family-moments" eyebrow={t("moments_eyebrow")} title={t("moments_title_1")} accent={t("moments_title_2")} text={t("moments_text")} />
+            <ul className="mt-12 grid auto-rows-[160px] grid-cols-2 gap-3 sm:auto-rows-[200px] sm:gap-4 lg:grid-cols-4">
+              {images.gallery.map((url, i) => (
+                <li
+                  key={url}
+                  className={`relative overflow-hidden rounded-[2rem] ${i === 0 ? "col-span-2 row-span-2" : ""} ${i === 3 ? "lg:row-span-2" : ""}`}
+                >
+                  <Image src={url} alt={t("moments_alt", { n: i + 1 })} fill className="object-cover" sizes="(min-width: 1024px) 25vw, 50vw" />
+                </li>
+              ))}
+            </ul>
+          </div>
+          <SoftWave position="bottom" color="#faf8f5" />
+        </section>
+      )}
 
       <HowToBookSection />
 
@@ -110,5 +136,19 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
 
       <FAQSection faqs={faqs} />
     </div>
+  );
+}
+
+// Onda suave entre secciones (blanco ↔ crema), igual al lenguaje del hero.
+function SoftWave({ position, color = "#FFFFFF" }: { position: "top" | "bottom"; color?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 1440 80"
+      preserveAspectRatio="none"
+      className={`pointer-events-none absolute left-0 h-10 w-full sm:h-16 ${position === "top" ? "top-0" : "bottom-0 rotate-180"}`}
+    >
+      <path d="M0 0 L1440 0 L1440 30 C1180 80 960 80 720 40 C480 0 240 0 0 40 Z" fill={color} />
+    </svg>
   );
 }

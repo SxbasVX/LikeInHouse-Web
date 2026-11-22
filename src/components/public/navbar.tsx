@@ -137,7 +137,7 @@ export function Navbar({ variant = "general" }: { variant?: "general" | "family"
               className="w-28 sm:w-36 md:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
               priority
             />
-            {isFamily && <FamilyMark />}
+            {isFamily && <FamilyMark onDark />}
           </Link>
 
           <div className="pointer-events-none absolute left-0 right-0 hidden lg:flex justify-center" style={{ top: '50%', transform: 'translateY(-50%)' }}>
@@ -314,10 +314,10 @@ export function Navbar({ variant = "general" }: { variant?: "general" | "family"
 }
 
 // "Familia" en la cursiva naranja de la marca, junto al logo.
-function FamilyMark() {
+function FamilyMark({ onDark = false }: { onDark?: boolean }) {
   const t = useTranslations("common");
   return (
-    <span className="ml-1.5 self-end pb-0.5 font-serif text-lg italic leading-none text-brand-orange sm:ml-2 sm:text-2xl lg:text-[28px]">
+    <span className={cn("ml-1.5 self-end pb-0.5 font-serif text-lg italic leading-none sm:ml-2 sm:text-2xl lg:text-[28px]", onDark ? "text-[#3FD0B4]" : "text-brand-orange")}>
       {t("family_tag")}
     </span>
   );

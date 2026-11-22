@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    /* Acento de la marca (brand-orange). La web familiar lo redefine en .theme-familia */
+    --brand-orange-rgb: 252 69 31;
     --background: 26 44% 98%;
     --foreground: 1 55% 17%;
     --card: 0 0% 100%;
@@ -311,4 +313,9 @@ button[data-active="true"] {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Web familiar: mismo diseño que la principal, con el turquesa como color de acento. */
+.theme-familia {
+  --brand-orange-rgb: 15 138 118;
 }

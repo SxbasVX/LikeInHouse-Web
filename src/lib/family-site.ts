@@ -54,3 +54,26 @@ export function parseFamilySiteSetting(settings: Record<string, unknown>): Famil
 export function isFamilySitePublished(settings: Record<string, unknown> | null | undefined): boolean {
   return !!settings && parseFamilySiteSetting(settings).published;
 }
+
+/** Clave del Setting con las fotos de la web familiar `{ hero, gallery }` (público). */
+export const FAMILY_IMAGES_SETTING_KEY = "familySiteImages";
+
+/** Máximo de fotos en "Momentos en familia". */
+export const FAMILY_GALLERY_MAX = 8;
+
+export interface FamilySiteImages {
+  hero: string | null;
+  gallery: string[];
+}
+
+// Sólo URLs https (las sube el panel a Cloudinary).
+const isHttpsUrl = (v: unknown): v is string => typeof v === "string" && /^https:\/\/\S+$/.test(v);
+
+/** Lee las fotos de la web familiar desde el mapa de ajustes; ignora valores inválidos. */
+export function parseFamilySiteImages(settings: Record<string, unknown> | null | undefined): FamilySiteImages {
+  const raw = settings?.[FAMILY_IMAGES_SETTING_KEY];
+  if (!raw || typeof raw !== "object") return { hero: null, gallery: [] };
+  const v = raw as Record<string, unknown>;
+  const gallery = Array.isArray(v.gallery) ? v.gallery.filter(isHttpsUrl).slice(0, FAMILY_GALLERY_MAX) : [];
+  return { hero: isHttpsUrl(v.hero) ? v.hero : null, gallery };
+}

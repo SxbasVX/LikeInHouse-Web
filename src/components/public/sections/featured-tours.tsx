@@ -162,7 +162,7 @@ export function FeaturedToursSection({ tours, title, subtitle }: FeaturedToursSe
 
                   <Button
                     variant="outline"
-                    className="rounded-full border-gray-200 hover:border-brand-orange hover:bg-brand-orange hover:text-white px-5 h-10 font-medium transition-all group-hover:shadow-[0_4px_14px_rgba(252,69,31,0.2)]"
+                    className="rounded-full border-gray-200 hover:border-brand-orange hover:bg-brand-orange hover:text-white px-5 h-10 font-medium transition-all group-hover:shadow-[0_4px_14px_rgb(var(--brand-orange-rgb)/0.2)]"
                   >
                     {tour.tourType === "INFORMATIONAL" ? tt("quote_cta") : tt("book_now")}
                     <ArrowRight className="ml-1.5 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />

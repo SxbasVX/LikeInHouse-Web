@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
+  FAMILY_GALLERY_MAX,
+  FAMILY_IMAGES_SETTING_KEY,
   FAMILY_PREVIEW_TOKEN_KEY,
   FAMILY_SITE_SETTING_KEY,
+  parseFamilySiteImages,
   isFamilyFaq,
   isFamilyHost,
   isFamilySitePublished,
@@ -80,5 +83,21 @@ describe("isFamilyFaq", () => {
     expect(isFamilyFaq(null)).toBe(false);
     expect(isFamilyFaq("")).toBe(false);
     expect(isFamilyFaq("Pagos")).toBe(false);
+  });
+});
+
+describe("parseFamilySiteImages", () => {
+  it("sin ajuste no hay fotos", () => {
+    expect(parseFamilySiteImages({})).toEqual({ hero: null, gallery: [] });
+    expect(parseFamilySiteImages(undefined)).toEqual({ hero: null, gallery: [] });
+  });
+  it("acepta sólo URLs https y respeta el máximo", () => {
+    const urls = Array.from({ length: 12 }, (_, i) => `https://res.cloudinary.com/x/${i}.jpg`);
+    const out = parseFamilySiteImages({
+      [FAMILY_IMAGES_SETTING_KEY]: { hero: "javascript:alert(1)", gallery: ["http://inseguro.jpg", 5, ...urls] },
+    });
+    expect(out.hero).toBeNull();
+    expect(out.gallery).toHaveLength(FAMILY_GALLERY_MAX);
+    expect(out.gallery[0]).toBe(urls[0]);
   });
 });

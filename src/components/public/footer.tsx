@@ -100,7 +100,7 @@ export function Footer({ variant = "general" }: { variant?: "general" | "family"
                 />
               </Link>
               {isFamily && (
-                <p className="-mt-3 font-serif text-2xl italic text-brand-orange">{tc("family_tag")}</p>
+                <p className="-mt-3 font-serif text-2xl italic text-[#3FD0B4]">{tc("family_tag")}</p>
               )}
               <p className="text-sm text-white/50 leading-relaxed max-w-xs">
                 {t("description", { fallback: "Experiencias auténticas en Perú con guías locales expertos, transporte seguro y momentos que duran toda la vida." })}

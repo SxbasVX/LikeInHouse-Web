@@ -45,7 +45,7 @@ const playfair = Playfair_Display({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#4E6E69",
+  themeColor: "#0F8A76",
   width: "device-width",
   initialScale: 1,
 };
@@ -136,7 +136,7 @@ export default async function FamilyLayout({
   if (!access.canView) {
     return (
       <html lang={locale}>
-        <body className={`${fonts} font-sans antialiased text-brand-darkRed bg-black`}>
+        <body className={`${fonts} theme-familia font-sans antialiased text-brand-darkRed bg-black`}>
           <FamilyComingSoon locale={locale} />
         </body>
       </html>
@@ -145,7 +145,7 @@ export default async function FamilyLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className={`${fonts} font-sans antialiased text-brand-darkRed bg-brand-beige/20`}>
+      <body className={`${fonts} theme-familia font-sans antialiased text-brand-darkRed bg-brand-beige/20`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLd(travelAgencyJsonLd(locale)) }}

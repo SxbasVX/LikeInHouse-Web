@@ -60,7 +60,7 @@ export function WhoTravels({ initial = [], mode, tone }: WhoTravelsProps) {
           <button
             type="button"
             onClick={() => router.push(travelersHref(picked))}
-            className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-orange px-6 py-3.5 text-sm font-bold text-white shadow-[0_0_16px_rgba(252,69,31,0.35)] transition-all hover:scale-[1.02] hover:bg-[#e33e1a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-darkRed focus-visible:ring-offset-2 sm:text-base"
+            className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-orange px-6 py-3.5 text-sm font-bold text-white shadow-[0_0_16px_rgb(var(--brand-orange-rgb)/0.35)] transition-all hover:scale-[1.02] hover:bg-brand-darkRed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-darkRed focus-visible:ring-offset-2 sm:text-base"
           >
             {picked.length ? t("who_go") : t("who_go_all")}
             <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />

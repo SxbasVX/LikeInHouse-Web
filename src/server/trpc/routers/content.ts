@@ -6,9 +6,12 @@ import { sanitizeHtml } from "@/server/lib/sanitize";
 import { CACHE_TAGS } from "@/server/lib/cache";
 import { randomBytes } from "node:crypto";
 import {
+  FAMILY_GALLERY_MAX,
+  FAMILY_IMAGES_SETTING_KEY,
   FAMILY_PREVIEW_TOKEN_KEY,
   FAMILY_SITE_SETTING_KEY,
   getFamilyBaseUrl,
+  parseFamilySiteImages,
   parseFamilySiteSetting,
 } from "@/lib/family-site";
 
@@ -306,7 +309,7 @@ export const contentRouter = router({
   settingsList: protectedProcedure.query(async ({ ctx }) => {
     // La web familiar se maneja con su propia tarjeta; su token de vista previa no se lista aquí.
     return ctx.db.setting.findMany({
-      where: { key: { notIn: [FAMILY_SITE_SETTING_KEY, FAMILY_PREVIEW_TOKEN_KEY] } },
+      where: { key: { notIn: [FAMILY_SITE_SETTING_KEY, FAMILY_PREVIEW_TOKEN_KEY, FAMILY_IMAGES_SETTING_KEY] } },
       orderBy: { key: "asc" },
     });
   }),
@@ -314,15 +317,17 @@ export const contentRouter = router({
   // ===== Web familiar (borrador hasta que se apruebe) =====
   familySiteStatus: roleProtectedProcedure(["ADMIN", "MARKETING"]).query(async ({ ctx }) => {
     const rows = await ctx.db.setting.findMany({
-      where: { key: { in: [FAMILY_SITE_SETTING_KEY, FAMILY_PREVIEW_TOKEN_KEY] } },
+      where: { key: { in: [FAMILY_SITE_SETTING_KEY, FAMILY_PREVIEW_TOKEN_KEY, FAMILY_IMAGES_SETTING_KEY] } },
     });
-    const { published, previewToken } = parseFamilySiteSetting(Object.fromEntries(rows.map((r) => [r.key, r.value])));
+    const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    const { published, previewToken } = parseFamilySiteSetting(map);
     const familyTours = await ctx.db.tour.count({ where: { isFamily: true, isActive: true, status: "PUBLISHED" } });
     return {
       published,
       siteUrl: `${getFamilyBaseUrl()}/es`,
       previewUrl: previewToken ? familyPreviewUrl(previewToken) : null,
       familyTours,
+      images: parseFamilySiteImages(map),
     };
   }),
 
@@ -344,6 +349,23 @@ export const contentRouter = router({
       return { previewUrl: familyPreviewUrl(token) };
     }),
 
+  // Fotos de la web familiar: la del inicio y las de "Momentos en familia".
+  familySiteImagesUpdate: roleProtectedProcedure(["ADMIN", "MARKETING"])
+    .input(z.object({
+      hero: z.string().url().startsWith("https://").max(1000).nullable(),
+      gallery: z.array(z.string().url().startsWith("https://").max(1000)).max(FAMILY_GALLERY_MAX),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const value = { hero: input.hero, gallery: input.gallery };
+      await ctx.db.setting.upsert({
+        where: { key: FAMILY_IMAGES_SETTING_KEY },
+        create: { key: FAMILY_IMAGES_SETTING_KEY, value },
+        update: { value },
+      });
+      revalidateTag(CACHE_TAGS.settings);
+      return value;
+    }),
+
   // Aprobar (publicar) o volver a borrador la web familiar. Sólo administradores.
   familySitePublish: roleProtectedProcedure(["ADMIN"])
     .input(z.object({ published: z.boolean() }))
@@ -361,7 +383,7 @@ export const contentRouter = router({
   settingUpsert: roleProtectedProcedure(["ADMIN"])
     .input(z.object({
       key: z.string().min(1).max(100).regex(/^[a-zA-Z0-9_.:-]+$/, "Clave inválida")
-        .refine((k) => k !== FAMILY_SITE_SETTING_KEY && k !== FAMILY_PREVIEW_TOKEN_KEY, "Esta clave se maneja desde la tarjeta Web familiar"),
+        .refine((k) => ![FAMILY_SITE_SETTING_KEY, FAMILY_PREVIEW_TOKEN_KEY, FAMILY_IMAGES_SETTING_KEY].includes(k), "Esta clave se maneja desde la tarjeta Web familiar"),
       value: z.unknown().refine(
         (val) => {
           try { return JSON.stringify(val).length <= 10000; } catch { return false; }
