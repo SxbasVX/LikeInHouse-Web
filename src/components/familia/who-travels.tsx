@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ArrowUpRight, Baby, Backpack, Check, Glasses, Smile, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, Check } from "lucide-react";
+import { FamilyIcon, type FamilyIconName } from "@/components/familia/family-icons";
 import { useRouter } from "@/i18n/routing";
 import { TRAVELER_GROUPS, travelersHref, type TravelerGroup } from "@/lib/family-travelers";
 import { cn } from "@/lib/utils";
@@ -16,11 +17,11 @@ interface WhoTravelsProps {
 }
 
 // Ícono y color de cada generación (colores de la marca).
-const LOOK: Record<TravelerGroup, { icon: LucideIcon; color: string }> = {
-  bebes: { icon: Baby, color: "#F2B33D" },
-  ninos: { icon: Smile, color: "#FC451F" },
-  adolescentes: { icon: Backpack, color: "#15A58E" },
-  abuelos: { icon: Glasses, color: "#441514" },
+const LOOK: Record<TravelerGroup, { icon: FamilyIconName; color: string }> = {
+  bebes: { icon: "stroller", color: "#F2B33D" },
+  ninos: { icon: "kite", color: "#FC451F" },
+  adolescentes: { icon: "mountain", color: "#15A58E" },
+  abuelos: { icon: "tea", color: "#441514" },
 };
 
 // "¿Quiénes viajan?" con el mismo estilo que el buscador del hero de la web principal.
@@ -45,7 +46,6 @@ export function WhoTravels({ initial = [], mode, tone }: WhoTravelsProps) {
           {TRAVELER_GROUPS.map((g) => {
             const on = picked.includes(g.key);
             const look = LOOK[g.key];
-            const Icon = look.icon;
             return (
               <button
                 key={g.key}
@@ -62,7 +62,12 @@ export function WhoTravels({ initial = [], mode, tone }: WhoTravelsProps) {
                   className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
                   style={{ backgroundColor: on ? "rgba(255,255,255,0.2)" : `${look.color}1F`, color: on ? "#fff" : look.color }}
                 >
-                  {on ? <Check className="h-4 w-4" /> : <Icon className="h-[18px] w-[18px]" />}
+                  <FamilyIcon name={look.icon} className="family-icon h-5 w-5" />
+                  {on && (
+                    <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-brand-orange shadow">
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    </span>
+                  )}
                 </span>
                 <span className="min-w-0 whitespace-nowrap">
                   <span className="block text-sm font-semibold leading-tight">{t(`who_${g.key}`)}</span>

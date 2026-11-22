@@ -90,7 +90,7 @@ export function Footer({ variant = "general" }: { variant?: "general" | "family"
 
             {/* Columna marca */}
             <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-5">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <Link href="/" className="inline-block">
                 <Image
                   src="/Logo.svg"
@@ -102,8 +102,8 @@ export function Footer({ variant = "general" }: { variant?: "general" | "family"
               </Link>
                 {isFamily && (
                   <>
-                    <span aria-hidden="true" className="h-10 w-[2px] rounded-full bg-[#3FD0B4]" />
-                    <span className="font-serif text-3xl italic text-[#3FD0B4]">{tc("family_tag")}</span>
+                    <span aria-hidden="true" className="h-7 w-px bg-white/40" />
+                    <span className="pt-1 font-serif text-xl italic text-[#3FD0B4]">{tc("family_tag")}</span>
                   </>
                 )}
               </div>

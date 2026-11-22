@@ -134,7 +134,7 @@ export function Navbar({ variant = "general" }: { variant?: "general" | "family"
 
           <Link href="/" className="pointer-events-auto flex items-center shrink-0 group relative z-20">
             <Image src="/Logo.svg" alt="Like In House Logo" width={200} height={51}
-              className={cn(isFamily ? "w-24 sm:w-32 lg:w-[160px]" : "w-28 sm:w-36 md:w-44 lg:w-[200px]", "h-auto object-contain transition-transform group-hover:scale-105")}
+              className={cn(isFamily ? "w-24 sm:w-32 lg:w-[170px]" : "w-28 sm:w-36 md:w-44 lg:w-[200px]", "h-auto object-contain transition-transform group-hover:scale-105")}
               priority
             />
             {isFamily && <FamilyMark onDark />}
@@ -227,7 +227,7 @@ export function Navbar({ variant = "general" }: { variant?: "general" | "family"
 
         <Link href="/" className="flex items-center shrink-0 group">
           <Image src="/Logo-Azul.svg" alt="Like In House Logo" width={200} height={51}
-            className={cn(isFamily ? "w-24 sm:w-32 lg:w-[160px]" : "w-28 sm:w-36 md:w-44 lg:w-[200px]", "h-auto object-contain transition-transform group-hover:scale-105")}
+            className={cn(isFamily ? "w-24 sm:w-32 lg:w-[170px]" : "w-28 sm:w-36 md:w-44 lg:w-[200px]", "h-auto object-contain transition-transform group-hover:scale-105")}
             priority
           />
           {isFamily && <FamilyMark />}
@@ -317,9 +317,9 @@ export function Navbar({ variant = "general" }: { variant?: "general" | "family"
 function FamilyMark({ onDark = false }: { onDark?: boolean }) {
   const t = useTranslations("common");
   return (
-    <span className="ml-2.5 flex items-center gap-2.5 sm:ml-4 sm:gap-4">
-      <span aria-hidden="true" className={cn("h-7 w-[2px] rounded-full sm:h-10 lg:h-11", onDark ? "bg-[#3FD0B4]" : "bg-brand-teal")} />
-      <span className={cn("font-serif text-[22px] italic leading-none sm:text-3xl lg:text-[38px]", onDark ? "text-[#3FD0B4]" : "text-brand-teal")}>
+    <span className="ml-2 flex items-center gap-2 sm:ml-3 sm:gap-3">
+      <span aria-hidden="true" className={cn("h-5 w-px sm:h-6 lg:h-7", onDark ? "bg-white/50" : "bg-brand-teal/60")} />
+      <span className={cn("pt-1 font-serif text-base italic leading-none sm:text-lg lg:text-[22px]", onDark ? "text-[#3FD0B4]" : "text-brand-teal")}>
         {t("family_tag")}
       </span>
     </span>

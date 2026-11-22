@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { WhoTravels } from "@/components/familia/who-travels";
+import { WalkingFamily } from "@/components/familia/walking-family";
 
 // Hero de la web familiar: misma estructura que el de la web principal
 // (foto a pantalla completa, titular cursiva naranja + blanco, ola inferior),
@@ -66,6 +67,8 @@ export async function FamilyHero({ locale, imageUrl }: { locale: string; imageUr
       </div>
 
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10">
+        {/* Familia caminando sobre la ola (se apoya en la curva, a la izquierda) */}
+        <WalkingFamily className="absolute bottom-[38%] left-[36%] z-[1] h-11 w-auto sm:bottom-[50%] sm:left-[9%] sm:h-16 lg:h-20" />
         <svg viewBox="0 0 1440 140" fill="none" className="h-16 w-full sm:h-24 lg:h-32" preserveAspectRatio="none" aria-hidden="true">
           <path d="M0 140 L1440 140 L1440 60 C1200 0 960 0 720 60 C480 120 240 120 0 40 Z" fill="white" />
         </svg>
