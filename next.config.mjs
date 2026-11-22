@@ -25,6 +25,11 @@ const nextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      {
+        // Fotos por defecto de la web familiar (licencia Pexels, uso comercial libre)
+        protocol: "https",
+        hostname: "images.pexels.com",
+      },
     ],
     // Optimización: formatos modernos de imagen
     formats: ["image/avif", "image/webp"],

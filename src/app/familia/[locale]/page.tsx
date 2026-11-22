@@ -7,7 +7,7 @@ import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import { getServerCaller } from "@/lib/trpc-server";
 import { buildFamilyMetadata, canViewFamilySite } from "@/lib/family-page";
-import { DEFAULT_HERO_IMAGE } from "@/lib/site-images";
+import { DEFAULT_HERO_IMAGE, FAMILY_DEFAULT_CARD_IMAGES } from "@/lib/site-images";
 import { FeaturedToursSection } from "@/components/public/sections/featured-tours";
 import { TestimonialsSection } from "@/components/public/sections/testimonials";
 import { FAQSection } from "@/components/public/sections/faq";
@@ -112,7 +112,8 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
           {/* En el celular se desliza de lado; en pantallas grandes es una grilla */}
           <ul className="-mx-4 mt-14 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-6 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
             {GENERATIONS.map(({ key, photo, icon, color }) => {
-              const src = images.generations[photo];
+              // Foto del panel; si no hay, una foto ilustrativa por defecto
+              const src = images.generations[photo] ?? FAMILY_DEFAULT_CARD_IMAGES[photo];
               return (
                 <li key={key} className="group w-[82%] shrink-0 snap-center sm:w-auto">
                   <div

@@ -166,7 +166,7 @@ export function FamilySitePanel() {
               <div>
                 <h3 className="font-semibold">Fotos de &quot;Pensado para viajar en familia&quot;</h3>
                 <p className="mb-3 text-sm text-muted-foreground">
-                  Una foto real de familias para cada tarjeta. Mientras no haya foto, se muestra el ícono dibujado.
+                  Una foto de familias para cada tarjeta. Mientras no subas una, se muestra una foto ilustrativa de Pexels.
                 </p>
                 <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                   {FAMILY_GENERATIONS.map((gen) => (
