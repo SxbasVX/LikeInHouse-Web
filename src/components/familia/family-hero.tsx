@@ -58,7 +58,7 @@ export async function FamilyHero({ locale, imageUrl }: { locale: string; imageUr
         </p>
 
         <div
-          className="w-full max-w-3xl text-left"
+          className="w-full max-w-[60rem] text-left"
           style={{ opacity: 0, animation: "hero-reveal 0.7s cubic-bezier(0.16,1,0.3,1) 880ms forwards" }}
         >
           <WhoTravels mode="go" tone="dark" />

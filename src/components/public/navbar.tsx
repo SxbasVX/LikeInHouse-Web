@@ -134,7 +134,7 @@ export function Navbar({ variant = "general" }: { variant?: "general" | "family"
 
           <Link href="/" className="pointer-events-auto flex items-center shrink-0 group relative z-20">
             <Image src="/Logo.svg" alt="Like In House Logo" width={200} height={51}
-              className="w-28 sm:w-36 md:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
+              className={cn(isFamily ? "w-24 sm:w-32 lg:w-[160px]" : "w-28 sm:w-36 md:w-44 lg:w-[200px]", "h-auto object-contain transition-transform group-hover:scale-105")}
               priority
             />
             {isFamily && <FamilyMark onDark />}
@@ -227,7 +227,7 @@ export function Navbar({ variant = "general" }: { variant?: "general" | "family"
 
         <Link href="/" className="flex items-center shrink-0 group">
           <Image src="/Logo-Azul.svg" alt="Like In House Logo" width={200} height={51}
-            className="w-28 sm:w-36 md:w-44 lg:w-[200px] h-auto object-contain transition-transform group-hover:scale-105"
+            className={cn(isFamily ? "w-24 sm:w-32 lg:w-[160px]" : "w-28 sm:w-36 md:w-44 lg:w-[200px]", "h-auto object-contain transition-transform group-hover:scale-105")}
             priority
           />
           {isFamily && <FamilyMark />}
@@ -313,12 +313,15 @@ export function Navbar({ variant = "general" }: { variant?: "general" | "family"
   );
 }
 
-// "Familia" en la cursiva naranja de la marca, junto al logo.
+// Firma de la web familiar junto al logo: línea vertical turquesa + "Familia" en cursiva.
 function FamilyMark({ onDark = false }: { onDark?: boolean }) {
   const t = useTranslations("common");
   return (
-    <span className={cn("ml-1.5 self-end pb-0.5 font-serif text-lg italic leading-none sm:ml-2 sm:text-2xl lg:text-[28px]", onDark ? "text-[#3FD0B4]" : "text-brand-orange")}>
-      {t("family_tag")}
+    <span className="ml-2.5 flex items-center gap-2.5 sm:ml-4 sm:gap-4">
+      <span aria-hidden="true" className={cn("h-7 w-[2px] rounded-full sm:h-10 lg:h-11", onDark ? "bg-[#3FD0B4]" : "bg-brand-teal")} />
+      <span className={cn("font-serif text-[22px] italic leading-none sm:text-3xl lg:text-[38px]", onDark ? "text-[#3FD0B4]" : "text-brand-teal")}>
+        {t("family_tag")}
+      </span>
     </span>
   );
 }
@@ -345,7 +348,12 @@ function MobileMenuContent({ t, isEs, cartCount, switchLocale, intlRouter, setMo
           <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 group">
             <Map className="h-6 w-6 text-brand-orange" />
             <span className="text-xl font-bold tracking-widest uppercase text-black">LikeInHouse</span>
-            {isFamily && <span className="font-serif text-xl italic text-brand-orange">{t("family_tag")}</span>}
+            {isFamily && (
+              <>
+                <span aria-hidden="true" className="h-6 w-[2px] rounded-full bg-brand-teal" />
+                <span className="font-serif text-xl italic text-brand-teal">{t("family_tag")}</span>
+              </>
+            )}
           </Link>
         </div>
         <div className="h-12 w-12" />

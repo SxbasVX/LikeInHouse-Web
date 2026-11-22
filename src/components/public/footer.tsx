@@ -90,7 +90,8 @@ export function Footer({ variant = "general" }: { variant?: "general" | "family"
 
             {/* Columna marca */}
             <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-5">
-              <Link href="/" className="inline-block">
+              <div className="flex items-center gap-4">
+                <Link href="/" className="inline-block">
                 <Image
                   src="/Logo.svg"
                   alt="Like In House"
@@ -99,9 +100,13 @@ export function Footer({ variant = "general" }: { variant?: "general" | "family"
                   className="w-36 sm:w-44 h-auto object-contain brightness-0 invert"
                 />
               </Link>
-              {isFamily && (
-                <p className="-mt-3 font-serif text-2xl italic text-[#3FD0B4]">{tc("family_tag")}</p>
-              )}
+                {isFamily && (
+                  <>
+                    <span aria-hidden="true" className="h-10 w-[2px] rounded-full bg-[#3FD0B4]" />
+                    <span className="font-serif text-3xl italic text-[#3FD0B4]">{tc("family_tag")}</span>
+                  </>
+                )}
+              </div>
               <p className="text-sm text-white/50 leading-relaxed max-w-xs">
                 {t("description", { fallback: "Experiencias auténticas en Perú con guías locales expertos, transporte seguro y momentos que duran toda la vida." })}
               </p>

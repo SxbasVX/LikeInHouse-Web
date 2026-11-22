@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ArrowUpRight, Check } from "lucide-react";
+import { ArrowUpRight, Baby, Backpack, Check, Glasses, Smile, type LucideIcon } from "lucide-react";
 import { useRouter } from "@/i18n/routing";
 import { TRAVELER_GROUPS, travelersHref, type TravelerGroup } from "@/lib/family-travelers";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,14 @@ interface WhoTravelsProps {
   /** Fondo sobre el que va el título: foto oscura (hero) o fondo claro (catálogo). */
   tone: "dark" | "light";
 }
+
+// Ícono y color de cada generación (colores de la marca).
+const LOOK: Record<TravelerGroup, { icon: LucideIcon; color: string }> = {
+  bebes: { icon: Baby, color: "#F2B33D" },
+  ninos: { icon: Smile, color: "#FC451F" },
+  adolescentes: { icon: Backpack, color: "#15A58E" },
+  abuelos: { icon: Glasses, color: "#441514" },
+};
 
 // "¿Quiénes viajan?" con el mismo estilo que el buscador del hero de la web principal.
 export function WhoTravels({ initial = [], mode, tone }: WhoTravelsProps) {
@@ -36,6 +44,8 @@ export function WhoTravels({ initial = [], mode, tone }: WhoTravelsProps) {
         <div className="grid flex-1 grid-cols-2 gap-1.5 sm:grid-cols-4">
           {TRAVELER_GROUPS.map((g) => {
             const on = picked.includes(g.key);
+            const look = LOOK[g.key];
+            const Icon = look.icon;
             return (
               <button
                 key={g.key}
@@ -43,15 +53,21 @@ export function WhoTravels({ initial = [], mode, tone }: WhoTravelsProps) {
                 aria-pressed={on}
                 onClick={() => toggle(g.key)}
                 className={cn(
-                  "flex min-h-[52px] flex-col items-start justify-center rounded-xl px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange",
-                  on ? "bg-brand-darkRed text-white" : "bg-gray-50 text-gray-900 hover:bg-gray-100"
+                  "family-pop flex min-h-[56px] items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange",
+                  on ? "bg-brand-orange text-white" : "bg-gray-50 text-gray-900 hover:bg-gray-100"
                 )}
               >
-                <span className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
-                  {on && <Check className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
-                  {t(`who_${g.key}`)}
+                <span
+                  aria-hidden="true"
+                  className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: on ? "rgba(255,255,255,0.2)" : `${look.color}1F`, color: on ? "#fff" : look.color }}
+                >
+                  {on ? <Check className="h-4 w-4" /> : <Icon className="h-[18px] w-[18px]" />}
                 </span>
-                <span className={cn("text-[11px]", on ? "text-white/75" : "text-gray-500")}>{t(`who_${g.key}_ages`)}</span>
+                <span className="min-w-0 whitespace-nowrap">
+                  <span className="block text-sm font-semibold leading-tight">{t(`who_${g.key}`)}</span>
+                  <span className={cn("block text-[11px]", on ? "text-white/80" : "text-gray-500")}>{t(`who_${g.key}_ages`)}</span>
+                </span>
               </button>
             );
           })}
@@ -60,10 +76,10 @@ export function WhoTravels({ initial = [], mode, tone }: WhoTravelsProps) {
           <button
             type="button"
             onClick={() => router.push(travelersHref(picked))}
-            className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-orange px-6 py-3.5 text-sm font-bold text-white shadow-[0_0_16px_rgb(var(--brand-orange-rgb)/0.35)] transition-all hover:scale-[1.02] hover:bg-brand-darkRed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-darkRed focus-visible:ring-offset-2 sm:text-base"
+            className="group flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-orange px-6 py-3.5 text-sm font-bold text-white shadow-[0_0_16px_rgb(var(--brand-orange-rgb)/0.35)] transition-all hover:scale-[1.02] hover:bg-brand-darkRed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-darkRed focus-visible:ring-offset-2 sm:text-base"
           >
             {picked.length ? t("who_go") : t("who_go_all")}
-            <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
+            <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transform-none sm:h-5 sm:w-5" aria-hidden="true" />
           </button>
         )}
       </div>

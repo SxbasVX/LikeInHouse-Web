@@ -1,5 +1,5 @@
-// Encabezado de sección con el estilo de la web principal:
-// línea superior turquesa, título en Montserrat liviana y remate en Playfair cursiva naranja.
+// Encabezado de sección con el estilo de la web principal (eyebrow turquesa, Montserrat
+// liviana y remate en Playfair cursiva) más un trazo a mano alzada bajo la palabra destacada.
 export function SectionHeading({
   id,
   eyebrow,
@@ -26,7 +26,18 @@ export function SectionHeading({
         {accent && (
           <>
             {" "}
-            <span className="font-serif font-normal italic text-brand-orange">{accent}</span>
+            <span className="relative inline-block font-serif font-normal italic text-brand-orange">
+              {accent}
+              {/* Trazo a mano alzada bajo la palabra destacada */}
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 200 14"
+                preserveAspectRatio="none"
+                className="family-squiggle absolute -bottom-2 left-0 h-3 w-full text-[#F2B33D] sm:-bottom-3"
+              >
+                <path d="M3 9 C 40 2, 70 13, 105 7 S 170 3, 197 8" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+            </span>
           </>
         )}
       </Tag>

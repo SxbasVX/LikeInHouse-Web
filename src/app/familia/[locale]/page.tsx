@@ -30,12 +30,16 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   });
 }
 
+// Cada generación con su color de la marca y una leve inclinación (se endereza al pasar el mouse).
 const GENERATIONS = [
-  { key: "gen_kids", icon: Baby },
-  { key: "gen_teens", icon: Backpack },
-  { key: "gen_parents", icon: Users },
-  { key: "gen_grandparents", icon: HeartHandshake },
+  { key: "gen_kids", icon: Baby, color: "#F2B33D", tilt: "lg:-rotate-2" },
+  { key: "gen_teens", icon: Backpack, color: "#FC451F", tilt: "lg:rotate-1" },
+  { key: "gen_parents", icon: Users, color: "#15A58E", tilt: "lg:-rotate-1" },
+  { key: "gen_grandparents", icon: HeartHandshake, color: "#441514", tilt: "lg:rotate-2" },
 ] as const;
+
+// Inclinación de cada foto del álbum "Momentos en familia".
+const POLAROID_TILT = ["-rotate-2", "rotate-1", "rotate-2", "-rotate-1", "rotate-1", "-rotate-2", "rotate-2", "-rotate-1"];
 
 type HomeSection = { type: string; imageUrl: string | null };
 
@@ -96,10 +100,14 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
             text={t("gen_text")}
           />
           <ul className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {GENERATIONS.map(({ key, icon: Icon }) => (
-              <li key={key} className="rounded-[2.5rem] bg-white p-8 shadow-[0_10px_30px_-12px_rgba(68,21,20,0.15)]">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-orange/10 text-brand-orange">
-                  <Icon className="h-6 w-6" aria-hidden="true" />
+            {GENERATIONS.map(({ key, icon: Icon, color, tilt }) => (
+              <li
+                key={key}
+                className={`rounded-[2.5rem] border-t-4 bg-white p-8 shadow-[0_10px_30px_-12px_rgba(68,21,20,0.15)] transition-transform duration-300 ease-out hover:rotate-0 hover:-translate-y-1 motion-reduce:transform-none ${tilt}`}
+                style={{ borderTopColor: color }}
+              >
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl" style={{ backgroundColor: `${color}1F`, color }}>
+                  <Icon className="h-7 w-7" aria-hidden="true" />
                 </span>
                 <h3 className="mt-6 font-heading text-xl font-bold text-brand-darkRed">{t(`${key}_title`)}</h3>
                 <p className="mt-3 text-[15px] font-light leading-relaxed text-gray-500">{t(`${key}_text`)}</p>
@@ -115,13 +123,16 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
         <section className="relative bg-[#FFF8EC] pb-24 lg:pb-32" aria-labelledby="family-moments">
           <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
             <SectionHeading id="family-moments" eyebrow={t("moments_eyebrow")} title={t("moments_title_1")} accent={t("moments_title_2")} text={t("moments_text")} />
-            <ul className="mt-12 grid auto-rows-[160px] grid-cols-2 gap-3 sm:auto-rows-[200px] sm:gap-4 lg:grid-cols-4">
+            {/* Álbum de fotos: polaroids levemente inclinadas */}
+            <ul className="mt-14 grid grid-cols-2 gap-5 sm:gap-8 lg:grid-cols-4">
               {images.gallery.map((url, i) => (
                 <li
                   key={url}
-                  className={`relative overflow-hidden rounded-[2rem] ${i === 0 ? "col-span-2 row-span-2" : ""} ${i === 3 ? "lg:row-span-2" : ""}`}
+                  className={`bg-white p-2.5 pb-8 shadow-[0_12px_30px_-12px_rgba(68,21,20,0.35)] transition-transform duration-300 ease-out hover:z-10 hover:rotate-0 hover:scale-[1.03] motion-reduce:transform-none sm:p-3 sm:pb-10 ${POLAROID_TILT[i % POLAROID_TILT.length]}`}
                 >
-                  <Image src={url} alt={t("moments_alt", { n: i + 1 })} fill className="object-cover" sizes="(min-width: 1024px) 25vw, 50vw" />
+                  <div className="relative aspect-square overflow-hidden bg-gray-100">
+                    <Image src={url} alt={t("moments_alt", { n: i + 1 })} fill className="object-cover" sizes="(min-width: 1024px) 25vw, 50vw" />
+                  </div>
                 </li>
               ))}
             </ul>

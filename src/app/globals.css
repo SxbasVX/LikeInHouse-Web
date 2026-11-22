@@ -319,3 +319,18 @@ button[data-active="true"] {
 .theme-familia {
   --brand-orange-rgb: 15 138 118;
 }
+
+/* Web familiar: pequeños gestos lúdicos (sólo si la persona no pidió reducir movimiento). */
+@keyframes family-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.07); }
+  100% { transform: scale(1); }
+}
+@keyframes family-draw {
+  from { stroke-dashoffset: 220; }
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .family-pop[aria-pressed="true"] { animation: family-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .family-squiggle path { stroke-dasharray: 220; animation: family-draw 0.9s ease-out 0.3s both; }
+}
