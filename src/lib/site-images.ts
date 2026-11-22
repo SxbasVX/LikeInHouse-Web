@@ -4,7 +4,11 @@ export const DEFAULT_HERO_IMAGE = "https://images.unsplash.com/photo-15263920606
 // Web familiar: fotos por defecto de "Pensado para viajar en familia" mientras el panel no tenga
 // las suyas. Son de Pexels (licencia libre para uso comercial, sin atribución obligatoria) y se usan
 // sólo como ilustración: nunca en secciones que muestran familias reales (carrusel, polaroid).
-const pexels = (id: number) => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=1200`;
+const pexels = (id: number, width = 1200) =>
+  `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=${width}`;
+
+// Hero de la web familiar: familia caminando por una colina hacia la montaña.
+export const FAMILY_DEFAULT_HERO_IMAGE = pexels(29855986, 2400);
 
 export const FAMILY_DEFAULT_CARD_IMAGES = {
   kids: pexels(1157386), // Viajes a su ritmo: papá caminando con su hijo frente a las montañas

@@ -153,7 +153,7 @@ export function FamilySitePanel() {
               <div>
                 <h3 className="font-semibold">Foto principal</h3>
                 <p className="mb-3 text-sm text-muted-foreground">
-                  Va de fondo en el inicio de la web familiar. Usa una foto horizontal de una familia viajando. Si la dejas vacía, se usa la del primer tour familiar.
+                  Va de fondo en el inicio de la web familiar. Usa una foto horizontal de una familia viajando. Si la dejas vacía, se usa una foto de familia de Pexels.
                 </p>
                 <ImageUpload
                   value={data.images.hero ?? ""}

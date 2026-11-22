@@ -7,7 +7,7 @@ import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import { getServerCaller } from "@/lib/trpc-server";
 import { buildFamilyMetadata, canViewFamilySite } from "@/lib/family-page";
-import { DEFAULT_HERO_IMAGE, FAMILY_DEFAULT_CARD_IMAGES } from "@/lib/site-images";
+import { FAMILY_DEFAULT_CARD_IMAGES, FAMILY_DEFAULT_HERO_IMAGE } from "@/lib/site-images";
 import { FeaturedToursSection } from "@/components/public/sections/featured-tours";
 import { TestimonialsSection } from "@/components/public/sections/testimonials";
 import { FAQSection } from "@/components/public/sections/faq";
@@ -40,41 +40,31 @@ const GENERATIONS = [
   { key: "gen_grandparents", photo: "grandparents", icon: "kite", color: "#441514" }, // Recuerdos para todos
 ] as const;
 
-type HomeSection = { type: string; imageUrl: string | null };
-
 export default async function FamilyHomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   if (!(await canViewFamilySite())) return null;
 
   const caller = await getServerCaller();
-  const [t, tours, allFaqs, sections, testimonials, settings] = await Promise.all([
+  const [t, tours, allFaqs, testimonials, settings] = await Promise.all([
     getTranslations({ locale, namespace: "familia" }),
     caller.public.familyFeaturedTours(),
     caller.public.faqs({ scope: "all" }),
-    caller.public.homeSections(),
     caller.public.testimonials(),
     caller.public.settings(),
   ]);
   const images = parseFamilySiteImages(settings as Record<string, unknown>);
 
-  // Foto del hero: la que se sube en el panel; si no, la del primer tour familiar; si no, la del inicio principal.
-  const heroImage =
-    images.hero ??
-    tours.find((tour) => tour.images?.[0]?.url)?.images[0].url ??
-    (sections as HomeSection[]).find((s) => s.type === "HERO")?.imageUrl ??
-    DEFAULT_HERO_IMAGE;
+  // Foto del hero: la que se sube en el panel; si no, una foto de familia por defecto.
+  const heroImage = images.hero ?? FAMILY_DEFAULT_HERO_IMAGE;
 
   const familyFaqs = allFaqs.filter((f) => isFamilyFaq(f.category));
   const faqs = familyFaqs.length > 0 ? familyFaqs : allFaqs;
 
-  // Polaroid del hero: la primera foto real de "Así se vive el Perú en familia" (si hay).
-  const polaroid = images.gallery[0] ?? null;
-
   return (
     <div>
       {/* Emoción */}
-      <FamilyHero locale={locale} imageUrl={heroImage} polaroid={polaroid} />
+      <FamilyHero locale={locale} imageUrl={heroImage} />
 
       {/* Descubrimiento */}
       {tours.length > 0 ? (
