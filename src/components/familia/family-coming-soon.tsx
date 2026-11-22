@@ -20,7 +20,6 @@ export async function FamilyComingSoon({ locale }: { locale: string }) {
           <span className="block">{t("soon_title_2")}</span>
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg font-light leading-relaxed text-white/80">{t("soon_text_1")}</p>
-        <p className="mx-auto mt-3 max-w-xl text-lg font-light leading-relaxed text-white/80">{t("soon_text_2")}</p>
         <a href={`${getBaseUrl()}/${locale}`} className={`${familyBtnPrimary} mt-10`}>
           {t("soon_cta")}
               <ArrowUpRight className="h-4 w-4" aria-hidden="true" />

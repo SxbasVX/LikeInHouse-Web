@@ -33,7 +33,7 @@ export default async function FamilyAboutPage({ params }: { params: Promise<{ lo
     <div>
       <section className="border-b border-gray-100 bg-[#faf8f5] py-16 lg:py-24">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
-          <SectionHeading as="h1" eyebrow={t("about_eyebrow")} title={t("about_title_1")} accent={t("about_title_2")} text={[t("about_intro_1"), t("about_intro_2"), t("about_intro_3")]} />
+          <SectionHeading as="h1" eyebrow={t("about_eyebrow")} title={t("about_title_1")} accent={t("about_title_2")} text={t("about_intro_1")} />
         </div>
       </section>
 
@@ -43,7 +43,6 @@ export default async function FamilyAboutPage({ params }: { params: Promise<{ lo
           <div className="max-w-[65ch] space-y-5 text-lg font-light leading-relaxed text-gray-600">
             <p>{t("about_story_1")}</p>
             <p>{t("about_story_2")}</p>
-            <p>{t("about_story_3")}</p>
           </div>
         </div>
       </section>

@@ -55,7 +55,7 @@ export default async function FamilyFAQPage({ params }: { params: Promise<{ loca
       )}
       <section className="border-b border-gray-100 bg-[#faf8f5] py-16 lg:py-24">
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
-          <SectionHeading as="h1" eyebrow={t("faq_eyebrow")} title={t("faq_page_title_1")} accent={t("faq_page_title_2")} text={[t("faq_page_text_1"), t("faq_page_text_2")]} />
+          <SectionHeading as="h1" eyebrow={t("faq_eyebrow")} title={t("faq_page_title_1")} accent={t("faq_page_title_2")} text={t("faq_page_text_1")} />
         </div>
       </section>
       <section className="bg-white px-4 py-14 sm:px-6 lg:py-20">

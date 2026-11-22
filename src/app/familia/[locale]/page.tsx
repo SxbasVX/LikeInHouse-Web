@@ -177,14 +177,14 @@ export default async function FamilyHomePage({ params }: { params: Promise<{ loc
       {testimonials.length > 0 && (
         <TestimonialsSection
           testimonials={testimonials}
-          copy={{ eyebrow: t("testi_eyebrow"), title: t("testi_title_1"), accent: t("testi_title_2"), description: t("testi_text"), link: t("testi_link") }}
+          copy={{ eyebrow: t("testi_eyebrow"), title: t("testi_title_1"), accent: t("testi_title_2"), link: t("testi_link") }}
         />
       )}
 
       {/* Dudas antes de reservar */}
       <FAQSection
         faqs={faqs}
-        copy={{ eyebrow: t("faqh_eyebrow"), title: t("faqh_title_1"), accent: t("faqh_title_2"), description: t("faqh_text"), link: t("faqh_link") }}
+        copy={{ eyebrow: t("faqh_eyebrow"), title: t("faqh_title_1"), accent: t("faqh_title_2"), link: t("faqh_link") }}
       />
     </div>
   );
