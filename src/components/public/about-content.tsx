@@ -34,6 +34,7 @@ export function AboutContent() {
   const expItemsAnim   = useStaggerAnimation({ threshold: 0.1 });
   const essenceAnim    = useScrollAnimation({ threshold: 0.1 });
   const awardsAnim     = useScrollAnimation({ threshold: 0.1 });
+  const missionAnim    = useScrollAnimation({ threshold: 0.1 });
 
   return (
     <>
@@ -210,6 +211,34 @@ export function AboutContent() {
             <blockquote className="font-heading text-2xl sm:text-3xl lg:text-4xl font-light text-white leading-relaxed italic">
               &ldquo;{t("essence_quote")}&rdquo;
             </blockquote>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Misión y visión ─────────────────────────────────── */}
+      <section className="bg-white py-20 lg:py-28">
+        <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-12">
+          <div
+            ref={missionAnim.ref}
+            className={`${missionAnim.isVisible ? "scroll-visible" : "scroll-hidden"}`}
+          >
+            <div className="text-center mb-14">
+              <p className="text-sm font-medium uppercase tracking-[0.2em] text-brand-teal mb-3">
+                {t("mv_badge")}
+              </p>
+              <h2 className="font-heading text-3xl font-light text-brand-darkRed sm:text-4xl tracking-tight">
+                {t("mv_title")}{" "}
+                <span className="font-serif italic font-normal text-brand-teal">{t("mv_title_accent")}</span>
+              </h2>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              {(["mission", "vision"] as const).map((key) => (
+                <article key={key} className="rounded-2xl bg-[#faf8f5] p-8 lg:p-10">
+                  <h3 className="font-heading text-2xl font-bold text-brand-darkRed mb-4">{t(`${key}_title`)}</h3>
+                  <p className="text-[15px] leading-relaxed text-gray-600">{t(`${key}_text`)}</p>
+                </article>
+              ))}
+            </div>
           </div>
         </div>
       </section>
